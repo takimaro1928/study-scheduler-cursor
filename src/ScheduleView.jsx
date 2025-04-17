@@ -14,11 +14,18 @@ import {
   PointerSensor,
   DragOverlay,
   closestCenter,
+  useDraggable,
+  useDroppable
 } from '@dnd-kit/core';
 import { restrictToWindowEdges } from '@dnd-kit/modifiers';
 
 // DraggableQuestion: ドラッグ可能な問題アイテムコンポーネント
-const DraggableQuestion = ({ question, listeners, attributes, isDragging, transform }) => {
+const DraggableQuestion = ({ question, isDragging }) => {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: question.id,
+    data: question
+  });
+
   // スタイルを作成（isDraggingに応じて透明度を変える）
   const style = {
     opacity: isDragging ? 0.4 : 1,
@@ -31,17 +38,17 @@ const DraggableQuestion = ({ question, listeners, attributes, isDragging, transf
     : styles.draggableQuestion;
 
   // 表示するテキストを作成
-  const displayText = `${question.subject}${question.chapter ? ` ${question.chapter}` : ''}-${question.number}`;
+  const displayText = `${question.subject || ''}${question.chapter ? ` ${question.chapter}` : ''}-${question.number}`;
 
   return (
-    <div className={itemClass} style={style}>
+    <div ref={setNodeRef} className={itemClass} style={style}>
       {/* グリップハンドルのみにドラッグリスナーを適用 */}
       <div 
         className={styles.gripHandle}
         {...listeners} 
         {...attributes}
       >
-        <GripVertical strokeWidth={1.5} />
+        <GripVertical size={10} strokeWidth={1.2} />
       </div>
       <span className={styles.questionText}>{displayText}</span>
     </div>
@@ -50,11 +57,17 @@ const DraggableQuestion = ({ question, listeners, attributes, isDragging, transf
 
 // DroppableDateCell: 日付セルコンポーネント（ドロップターゲット）
 const DroppableDateCell = ({ 
-  date, questions, isOver, scheduleQuestion, selectedDate, setSelectedDate, 
+  date, questions, isOver, selectedDate, setSelectedDate, 
   activeId, openDetailModal 
 }) => {
   // 日付のフォーマット
   const dateStr = format(date, 'yyyy/MM/dd');
+  
+  // useDroppableフックを使用
+  const { setNodeRef } = useDroppable({
+    id: dateStr,
+    data: { date }
+  });
   
   // 条件付きクラス名の設定
   let cellClassName = styles.dateCell;
@@ -63,38 +76,32 @@ const DroppableDateCell = ({
   if (isOver) cellClassName += ` ${styles.dateCellOver}`;
   
   // 日付セルの内容をレンダリング
-  const renderCell = () => {
-    return (
-      <div className={cellClassName}>
-        <div className={styles.dateCellContent}>
-          <div className={styles.dateNumber}>
-            {format(date, 'd')}
-          </div>
-          <div className={styles.questionList}>
-            {questions.slice(0, 3).map((q) => (
-              <DraggableQuestion
-                key={q.id}
-                question={q}
-                listeners={null}
-                attributes={null}
-                isDragging={activeId === q.id}
-              />
-            ))}
-            {questions.length > 3 && (
-              <div className={styles.showMore} onClick={() => {
-                setSelectedDate(date);
-                openDetailModal();
-              }}>
-                +{questions.length - 3} more
-              </div>
-            )}
-          </div>
+  return (
+    <div ref={setNodeRef} className={cellClassName}>
+      <div className={styles.dateCellContent}>
+        <div className={styles.dateNumber}>
+          {format(date, 'd')}
+        </div>
+        <div className={styles.questionList}>
+          {questions.slice(0, 3).map((q) => (
+            <DraggableQuestion
+              key={q.id}
+              question={q}
+              isDragging={activeId === q.id}
+            />
+          ))}
+          {questions.length > 3 && (
+            <div className={styles.showMore} onClick={() => {
+              setSelectedDate(date);
+              openDetailModal();
+            }}>
+              +{questions.length - 3} more
+            </div>
+          )}
         </div>
       </div>
-    );
-  };
-
-  return renderCell();
+    </div>
+  );
 };
 
 // メインのScheduleViewコンポーネント
@@ -177,23 +184,26 @@ const ScheduleView = ({ data, scheduleQuestion }) => {
 
   // ドラッグ終了時の処理
   const handleDragEnd = useCallback((event) => {
-    const { over } = event;
+    const { active, over } = event;
     
     // クリーンアップ
     setActiveId(null);
     setIsOverDroppable(false);
     setActiveDroppableId(null);
     
-    if (over && activeDragData) {
+    if (over && active) {
       try {
         // 日付文字列から日付オブジェクトを作成
         const newDate = new Date(over.id);
         
+        // ドラッグしていた問題のID
+        const questionId = active.id;
+        
         // スケジュール変更関数を呼び出し
-        scheduleQuestion(activeDragData.id, newDate);
+        scheduleQuestion(questionId, newDate);
         
         // 成功時のフィードバック (オプション)
-        console.log(`Question ${activeDragData.id} scheduled to ${over.id}`);
+        console.log(`Question ${questionId} scheduled to ${over.id}`);
       } catch (error) {
         // エラー処理
         console.error('Failed to schedule question:', error);
@@ -202,7 +212,7 @@ const ScheduleView = ({ data, scheduleQuestion }) => {
     
     // ドラッグしていた問題のデータをクリア
     setActiveDragData(null);
-  }, [activeDragData, scheduleQuestion]);
+  }, [scheduleQuestion]);
 
   // カレンダーレイアウトのレンダリング
   return (
@@ -210,10 +220,10 @@ const ScheduleView = ({ data, scheduleQuestion }) => {
       <div className={styles.header}>
         <h2>スケジュール表示</h2>
         <div className={styles.controls}>
-          <button onClick={prevMonth} className={styles.iconButton}><ChevronLeft size={20} /></button>
-          <button onClick={goToToday} className={styles.todayButton}><Calendar size={16} />今日</button>
+          <button onClick={prevMonth} className={styles.iconButton}><ChevronLeft size={16} /></button>
+          <button onClick={goToToday} className={styles.todayButton}><Calendar size={14} />今日</button>
           <div className={styles.currentMonth}>{format(currentDate, 'yyyy年M月', { locale: ja })}</div>
-          <button onClick={nextMonth} className={styles.iconButton}><ChevronRight size={20} /></button>
+          <button onClick={nextMonth} className={styles.iconButton}><ChevronRight size={16} /></button>
         </div>
       </div>
 
@@ -246,7 +256,6 @@ const ScheduleView = ({ data, scheduleQuestion }) => {
                   date={day}
                   questions={dayQuestions}
                   isOver={activeDroppableId === dateStr}
-                  scheduleQuestion={scheduleQuestion}
                   selectedDate={selectedDate}
                   setSelectedDate={setSelectedDate}
                   activeId={activeId}
@@ -261,10 +270,10 @@ const ScheduleView = ({ data, scheduleQuestion }) => {
             {activeId && activeDragData && (
               <div className={styles.draggableQuestionDragging}>
                 <div className={styles.gripHandle}>
-                  <GripVertical strokeWidth={1.5} />
+                  <GripVertical size={10} strokeWidth={1.2} />
                 </div>
                 <span className={styles.questionText}>
-                  {`${activeDragData.subject}${activeDragData.chapter ? ` ${activeDragData.chapter}` : ''}-${activeDragData.number}`}
+                  {`${activeDragData.subject || ''}${activeDragData.chapter ? ` ${activeDragData.chapter}` : ''}-${activeDragData.number}`}
                 </span>
               </div>
             )}
@@ -285,7 +294,7 @@ const ScheduleView = ({ data, scheduleQuestion }) => {
 
       {/* 使い方ガイド (オプション) */}
       <div className={styles.helpText}>
-        <InfoIcon size={14} className={styles.infoIcon} />
+        <InfoIcon size={12} className={styles.infoIcon} />
         <span>問題をドラッグして日付セルにドロップすると、次回の学習日を変更できます</span>
       </div>
     </div>
