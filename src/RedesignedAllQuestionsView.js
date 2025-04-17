@@ -3,9 +3,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search, Filter, Edit, Clock, Calendar as CalendarIcon, CheckCircle, XCircle, AlertTriangle, Info,
-  ChevronRight, ChevronDown, ChevronUp, X as XIcon, FilePlus, Sliders
+  ChevronRight, ChevronDown, ChevronUp, X as XIcon, FilePlus, Sliders, PlusCircle
 } from 'lucide-react';
 import styles from './RedesignedAllQuestionsView.module.css'; // CSSモジュール
+import AddQuestionModal from './AddQuestionModal';
 
 // 科目ごとのカラーマップ（境界線の色に使用）
 const subjectColorMap = {
@@ -110,11 +111,15 @@ const RedesignedAllQuestionsView = ({
   toggleQuestionSelection,
   onToggleBulkEdit,
   onSaveBulkEditItems,
+  onAddQuestion,
 }) => {
   // 検索とフィルター用state
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
+  
+  // 問題追加モーダル制御
+  const [showAddModal, setShowAddModal] = useState(false);
   
   // 拡張フィルターstate
   const [filters, setFilters] = useState({
@@ -485,6 +490,14 @@ const RedesignedAllQuestionsView = ({
         
         <div className={styles.controlButtons}>
           <button
+            onClick={() => setShowAddModal(true)}
+            className={styles.addButton}
+          >
+            <PlusCircle size={18} />
+            新規問題追加
+          </button>
+          
+          <button
             onClick={() => setShowFilters(!showFilters)}
             className={`${styles.controlButton} ${activeFiltersCount > 0 ? styles.activeFilterButton : ''}`}
           >
@@ -506,6 +519,21 @@ const RedesignedAllQuestionsView = ({
           </button>
         </div>
       </div>
+
+      {/* 新規問題追加モーダル */}
+      {showAddModal && (
+        <AddQuestionModal
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onSave={(newQuestion) => {
+            if (onAddQuestion) {
+              onAddQuestion(newQuestion);
+            }
+            setShowAddModal(false);
+          }}
+          subjects={subjects}
+        />
+      )}
 
       {/* 拡張フィルターパネル */}
       {showFilters && (
