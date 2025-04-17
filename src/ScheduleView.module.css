@@ -1,0 +1,146 @@
+/* src/ScheduleView.module.css (問題アイテムのスタイル改善版) */
+
+/* コンテナ */
+.container {
+  padding: 1rem 1rem 5rem 1rem;
+  max-width: 64rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ヘッダー（年月ナビ） */
+.header {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+}
+@media (min-width: 768px) { /* md */
+  .header { flex-direction: row; justify-content: space-between; align-items: center; }
+}
+.title { font-size: 1.25rem; font-weight: 600; color: #1f2937; display: flex; align-items: center; margin-bottom: 0.5rem; }
+@media (min-width: 768px) { .title { margin-bottom: 0; } }
+.title svg { width: 1.25rem; height: 1.25rem; margin-right: 0.5rem; color: #4f46e5; }
+.nav { display: flex; align-items: center; background-color: white; border-radius: 9999px; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); padding: 0.25rem 0.5rem; margin-top: 0.5rem; }
+@media (min-width: 768px) { .nav { margin-top: 0; } }
+.navButton { width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: none; border: none; cursor: pointer; }
+.navButton:hover { background-color: #f3f4f6; }
+.navButton svg { width: 1.25rem; height: 1.25rem; color: #4f46e5; }
+.monthDisplay { font-size: 1.125rem; font-weight: 700; color: #1f2937; margin: 0 0.5rem; min-width: 120px; text-align: center; }
+
+/* カレンダーラッパー */
+.calendarWrapper { background-color: white; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); padding: 0.5rem 1rem 1rem 1rem; border: 1px solid #e5e7eb; }
+@media (min-width: 640px) { .calendarWrapper { padding: 1rem; } }
+
+/* 曜日ヘッダー */
+.weekdayGrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-bottom: 0.5rem; }
+@media (min-width: 640px) { .weekdayGrid { gap: 8px; } }
+.weekdayHeader { text-align: center; padding: 0.375rem 0; font-weight: 700; font-size: 0.75rem; border-radius: 0.375rem; }
+@media (min-width: 640px) { .weekdayHeader { font-size: 0.875rem; } }
+.weekdayHeaderSun { background-color: #fee2e2; color: #dc2626; }
+.weekdayHeaderSat { background-color: #dbeafe; color: #2563eb; }
+.weekdayHeaderOther { background-color: #f3f4f6; color: #374151; }
+
+/* カレンダーグリッド */
+.calendarGrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+@media (min-width: 640px) { .calendarGrid { gap: 8px; } }
+
+/* 日付セル */
+.dateCell { position: relative; display: flex; flex-direction: column; padding: 4px; border-radius: 0.5rem; border: 1px solid #e5e7eb; min-height: 100px; background-color: white; transition: border-color 0.15s ease, background-color 0.15s ease; }
+.dateCell:hover { border-color: #a5b4fc; }
+@media (min-width: 640px) { .dateCell { padding: 6px; min-height: 110px; } }
+.dateCellEmpty { background-color: #f9fafb; border-color: #f3f4f6; min-height: 100px; border-radius: 0.5rem; }
+@media (min-width: 640px) { .dateCellEmpty { min-height: 110px; } }
+.dateCellToday { background-color: #eef2ff; border-color: #a5b4fc; box-shadow: 0 0 0 1px #a5b4fc; }
+@media (min-width: 640px) { .dateCellToday { box-shadow: 0 0 0 2px #a5b4fc; } }
+.dateCellWeekend { background-color: #f9fafb; }
+.dateCellOver { border-style: dashed !important; border-width: 2px !important; border-color: #818cf8 !important; background-color: #e0e7ff !important; }
+
+/* 日付番号 */
+.dayNumber { text-align: right; font-weight: 600; font-size: 0.75rem; margin-bottom: 2px; }
+.dayNumberToday { color: #3b82f6; }
+.dayNumberSun { color: #ef4444; }
+.dayNumberSat { color: #3b82f6; }
+.dayNumberOther { color: #6b7280; } /* 平日の色を少し薄く */
+
+/* 問題リストエリア */
+.questionList { flex-grow: 1; margin-top: 4px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; max-height: 70px; padding-right: 4px; }
+.questionList::-webkit-scrollbar { width: 4px; }
+.questionList::-webkit-scrollbar-track { background: transparent; }
+.questionList::-webkit-scrollbar-thumb { background-color: #d1d5db; border-radius: 4px; }
+
+/* --- ★★★ ここから下の問題アイテムスタイルを修正 ★★★ --- */
+
+/* ドラッグ可能な問題アイテム (見やすく修正) */
+.draggableQuestion {
+  opacity: 1;
+  cursor: grab;
+  padding: 5px 8px; /* 上下パディング少し増やす */
+  background-color: #f9fafb; /* 背景を白に近いグレーに変更 */
+  color: #374151; /* 文字色を濃いグレーに変更 */
+  border-radius: 4px;
+  font-size: 0.8125rem; /* 文字サイズ少し大きく */
+  margin: 2px 0;
+  border: 1px solid #e5e7eb; /* 枠線をグレーに */
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: none; /* 通常時の影削除 */
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.draggableQuestion:hover {
+  background-color: #f3f4f6; /* hover:bg-gray-100 */
+  border-color: #d1d5db; /* hover:border-gray-300 */
+}
+.draggableQuestion svg { /* Grip icon */
+  width: 14px; height: 14px;
+  margin-right: 6px;
+  color: #9ca3af; /* text-gray-400 */
+  flex-shrink: 0;
+  stroke-width: 2;
+}
+/* 問題テキスト用のクラス (JSX側で適用) */
+.questionText {
+    font-weight: 500; /* font-medium */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #1f2937; /* text-gray-800 - 強制的に少し濃く */
+}
+
+/* ドラッグ中のオーバーレイ用スタイル (コントラスト改善) */
+.draggableQuestionDragging {
+  opacity: 0.95;
+  cursor: grabbing;
+  padding: 5px 8px;
+  background-color: #4f46e5; /* 背景をIndigoに */
+  color: white; /* 文字色を白に */
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  margin: 2px 0;
+  border: 1px solid #4338ca; /* 枠線も同系色 */
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: none;
+}
+.draggableQuestionDragging svg { color: #e5e7eb; /* text-gray-200 */ }
+/* ドラッグ中テキスト用のクラス (JSX側で適用) */
+.draggableQuestionDragging .questionText {
+    font-weight: 500;
+    color: white; /* ドラッグ中は白文字 */
+}
+/* --- ★★★ 問題アイテムスタイルの修正ここまで ★★★ --- */
+
+
+/* もっと見るボタン */
+.showMore { margin-top: auto; padding-top: 2px; text-align: center; font-size: 0.7rem; color: #4f46e5; font-weight: 500; cursor: pointer; border-top: 1px dashed #d1d5db; }
+.showMore:hover { text-decoration: underline; }
+
+/* ドロップゾーンのプレースホルダー */
+.dropPlaceholder { text-align: center; font-size: 0.7rem; color: #6366f1; padding: 0.25rem; border: 1px dashed #a5b4fc; border-radius: 0.375rem; margin-top: 0.25rem; }
+
+/* ===== ScheduleView v4 Styles END ===== */

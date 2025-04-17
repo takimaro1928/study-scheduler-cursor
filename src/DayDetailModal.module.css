@@ -1,0 +1,163 @@
+/* src/DayDetailModal.module.css */
+
+/* オーバーレイ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5); /* 半透明の黒 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
+
+/* モーダル本体 */
+.modal {
+  background-color: white;
+  border-radius: 0.75rem; /* rounded-xl */
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); /* shadow-xl */
+  width: 100%;
+  max-width: 36rem; /* max-w-lg */
+  margin: 1rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh; /* 高すぎないように制限 */
+}
+
+/* ヘッダー */
+.header {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem; /* p-4 */
+  border-bottom: 1px solid #e5e7eb; /* border-b border-gray-200 */
+  background-color: #f9fafb; /* bg-gray-50 */
+}
+.headerTitle {
+  font-size: 1.125rem; /* text-lg */
+  font-weight: 600; /* font-semibold */
+  color: #1f2937; /* text-gray-800 */
+}
+.closeButton {
+  color: #9ca3af; /* text-gray-400 */
+  padding: 0.25rem; /* p-1 */
+  border-radius: 9999px; /* rounded-full */
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.closeButton:hover {
+  color: #4b5563; /* hover:text-gray-600 */
+  background-color: #e5e7eb; /* hover:bg-gray-200 */
+}
+
+/* コンテンツエリア (スクロール) */
+.content {
+  padding: 1rem; /* p-4 */
+  overflow-y: auto;
+  flex-grow: 1; /* 残りの高さを埋める */
+ /* スクロールバーのスタイル（オプション） */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+}
+.content::-webkit-scrollbar { width: 6px; }
+.content::-webkit-scrollbar-track { background: #f7fafc; }
+.content::-webkit-scrollbar-thumb { background-color: #cbd5e0; border-radius: 6px; }
+
+/* 科目別アコーディオン */
+.subjectGroup {
+  border: 1px solid #e5e7eb; /* border */
+  border-radius: 0.5rem; /* rounded-md */
+  overflow: hidden; /* 角丸のため */
+  margin-bottom: 0.75rem; /* space-y-3 */
+}
+.subjectHeader {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem; /* p-3 */
+  background-color: #f9fafb; /* bg-gray-100 */
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  border: none; /* ボタンデフォルトスタイル解除 */
+  font-size: inherit; /* ボタンデフォルトスタイル解除 */
+}
+.subjectHeader:hover {
+  background-color: #f3f4f6; /* hover:bg-gray-200 */
+}
+.subjectName {
+  font-weight: 600; /* font-semibold */
+  color: #374151; /* text-gray-700 */
+  font-size: 0.875rem; /* text-sm */
+}
+.subjectChevron {
+  color: #6b7280; /* text-gray-500 */
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+}
+.subjectChevronOpen {
+  transform: rotate(180deg);
+}
+.subjectContent {
+  padding: 0.75rem; /* p-3 */
+  background-color: white;
+  border-top: 1px solid #e5e7eb; /* border-t */
+}
+.subjectQuestionList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px; /* space-y-1 */
+}
+
+/* モーダル内の問題アイテム */
+.modalQuestionItem {
+  padding: 6px 10px; /* 上下を少し増やす */
+  background-color: #f3f4f6; /* bg-gray-100 */
+  color: #1f2937; /* text-gray-800 */
+  border-radius: 6px; /* rounded-md */
+  font-size: 0.875rem; /* text-sm */
+  margin: 2px 0; /* 上下マージン減らす */
+  border: 1px solid #e5e7eb; /* border-gray-200 */
+  white-space: normal; /* 折り返し許可 */
+  overflow-wrap: break-word;
+  line-height: 1.4;
+  transition: background-color 0.15s ease;
+}
+.modalQuestionItem:hover {
+    background-color: #e5e7eb; /* hover:bg-gray-200 */
+}
+
+/* 問題がない場合 */
+.noQuestionsText {
+  text-align: center;
+  color: #6b7280; /* text-gray-500 */
+  padding: 1rem 0; /* py-4 */
+}
+
+/* フッター */
+.footer {
+  flex-shrink: 0;
+  padding: 0.75rem 1rem; /* p-3 */
+  background-color: #f9fafb; /* bg-gray-50 */
+  border-top: 1px solid #e5e7eb; /* border-t */
+  text-align: right;
+}
+.closeButtonFooter {
+  padding: 0.5rem 1rem; /* px-4 py-2 */
+  background-color: #4f46e5; /* bg-indigo-500 */
+  color: white;
+  font-size: 0.875rem; /* text-sm */
+  font-weight: 500; /* font-medium */
+  border-radius: 0.375rem; /* rounded-md */
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.closeButtonFooter:hover {
+  background-color: #4338ca; /* hover:bg-indigo-600 */
+}

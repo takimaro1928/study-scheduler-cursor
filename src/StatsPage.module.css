@@ -1,0 +1,276 @@
+/* src/StatsPage.module.css */
+
+.container {
+  padding: 1.5rem;
+  max-width: 72rem; /* max-w-6xl */
+  margin-left: auto;
+  margin-right: auto;
+  padding-bottom: 5rem;
+}
+
+.title {
+  font-size: 1.5rem; /* text-xl */
+  font-weight: 700; /* font-bold */
+  color: #1f2937; /* text-gray-800 */
+  margin-bottom: 1.5rem; /* mb-6 */
+  display: flex;
+  align-items: center;
+}
+
+.titleIcon {
+  margin-right: 0.5rem; /* mr-2 */
+  color: #4f46e5; /* text-indigo-600 */
+}
+
+/* フィルターコンテナ */
+.filterContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #f9fafb; /* bg-gray-50 */
+  border-radius: 0.5rem; /* rounded-lg */
+  border: 1px solid #e5e7eb; /* border-gray-200 */
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filterLabel {
+  font-size: 0.875rem; /* text-sm */
+  font-weight: 500; /* font-medium */
+  color: #4b5563; /* text-gray-600 */
+  white-space: nowrap;
+}
+
+.filterSelect {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db; /* border-gray-300 */
+  border-radius: 0.375rem; /* rounded-md */
+  font-size: 0.875rem; /* text-sm */
+  background-color: white;
+  min-width: 8rem;
+}
+
+/* タブ切り替え */
+.tabContainer {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #e5e7eb; /* border-b border-gray-200 */
+  padding-bottom: 0.5rem;
+}
+
+.tabButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem; /* text-sm */
+  font-weight: 500; /* font-medium */
+  color: #4b5563; /* text-gray-600 */
+  border-radius: 0.375rem; /* rounded-md */
+  border: 1px solid transparent;
+  background-color: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tabButton:hover {
+  background-color: #f3f4f6; /* hover:bg-gray-100 */
+  color: #374151; /* hover:text-gray-700 */
+}
+
+.activeTab {
+  color: #4f46e5; /* text-indigo-600 */
+  background-color: #eef2ff; /* bg-indigo-50 */
+  border-color: #c7d2fe; /* border-indigo-200 */
+}
+
+/* 概要タブ */
+.overviewTab {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* 統計カード（4カラムグリッド） */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .statsGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.statCard {
+  background-color: white;
+  border-radius: 0.5rem; /* rounded-lg */
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* shadow-sm */
+  border: 1px solid #e5e7eb; /* border-gray-200 */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.statTitle {
+  font-size: 0.875rem; /* text-sm */
+  font-weight: 500; /* font-medium */
+  color: #6b7280; /* text-gray-500 */
+}
+
+.statValue {
+  font-size: 1.875rem; /* text-3xl */
+  font-weight: 700; /* font-bold */
+  color: #1f2937; /* text-gray-800 */
+}
+
+.statDescription {
+  font-size: 0.75rem; /* text-xs */
+  color: #6b7280; /* text-gray-500 */
+}
+
+/* チャートコンテナ */
+.chartContainer {
+  background-color: white;
+  border-radius: 0.5rem; /* rounded-lg */
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* shadow-sm */
+  border: 1px solid #e5e7eb; /* border-gray-200 */
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.chartTitle {
+  font-size: 1rem; /* text-base */
+  font-weight: 600; /* font-semibold */
+  color: #374151; /* text-gray-700 */
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb; /* border-b border-gray-200 */
+  display: flex;
+  align-items: center;
+}
+
+.chartIcon {
+  margin-right: 0.5rem; /* mr-2 */
+  color: #4f46e5; /* text-indigo-600 */
+}
+
+.chartContent {
+  padding: 1rem;
+  min-height: 300px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.noDataMessage {
+  color: #6b7280; /* text-gray-500 */
+  font-size: 0.875rem; /* text-sm */
+  text-align: center;
+  padding: 2rem;
+}
+
+/* 科目別タブ */
+.subjectsTab {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.tableContainer {
+  background-color: white;
+  border-radius: 0.5rem; /* rounded-lg */
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* shadow-sm */
+  border: 1px solid #e5e7eb; /* border-gray-200 */
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.sectionTitle {
+  font-size: 1rem; /* text-base */
+  font-weight: 600; /* font-semibold */
+  color: #374151; /* text-gray-700 */
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb; /* border-b border-gray-200 */
+}
+
+.tableWrapper {
+  overflow-x: auto;
+  padding: 0 1rem 1rem 1rem;
+}
+
+.statsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.statsTable th,
+.statsTable td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb; /* border-b border-gray-200 */
+}
+
+.statsTable th {
+  font-size: 0.75rem; /* text-xs */
+  font-weight: 600; /* font-semibold */
+  color: #4b5563; /* text-gray-600 */
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.statsTable th:hover {
+  color: #1f2937; /* hover:text-gray-800 */
+}
+
+.statsTable td {
+  font-size: 0.875rem; /* text-sm */
+  color: #374151; /* text-gray-700 */
+}
+
+.statsTable tr:nth-child(even) {
+  background-color: #f9fafb; /* bg-gray-50 */
+}
+
+.statsTable tr:hover {
+  background-color: #f3f4f6; /* hover:bg-gray-100 */
+}
+
+/* ミニバーチャート（科目別理解度の可視化） */
+.miniBarContainer {
+  display: flex;
+  height: 1.25rem;
+  border-radius: 9999px; /* rounded-full */
+  overflow: hidden;
+  width: 100%;
+  background-color: #f3f4f6; /* bg-gray-100 */
+}
+
+.miniBarSegment {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+/* 学習履歴タブ */
+.timeseriesTab {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}

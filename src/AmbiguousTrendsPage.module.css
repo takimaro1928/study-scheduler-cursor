@@ -1,0 +1,303 @@
+/* src/AmbiguousTrendsPage.module.css */
+/* 元のスタイルにコメント貫通修正 + クリック全文表示スタイル を追加 */
+
+/* =============================================== */
+/* === ここから元々あったスタイル (変更なし) === */
+/* =============================================== */
+
+.container {
+  padding: 1.5rem;
+  max-width: 72rem; /* max-w-6xl */
+  margin-left: auto;
+  margin-right: auto;
+  padding-bottom: 5rem;
+}
+
+.title {
+  font-size: 1.5rem; /* text-xl */
+  font-weight: 700; /* font-bold */
+  color: #1f2937; /* text-gray-800 */
+  margin-bottom: 1.5rem; /* mb-6 */
+  display: flex;
+  align-items: center;
+}
+
+.titleIcon {
+  width: 1.25rem; /* w-5 */
+  height: 1.25rem; /* h-5 */
+  margin-right: 0.5rem; /* mr-2 */
+  color: #4f46e5; /* text-indigo-500 */
+}
+
+.filterToggleContainer {
+  margin-bottom: 1rem; /* mb-4 */
+}
+
+.filterToggleButton {
+  display: inline-flex; /* inline-flex */
+  align-items: center;
+  padding: 0.5rem 1rem; /* px-3 py-2 */
+  background-color: #f3f4f6; /* bg-gray-100 */
+  border-radius: 0.5rem; /* rounded-lg */
+  color: #374151; /* text-gray-700 */
+  font-weight: 500; /* font-medium */
+  border: 1px solid #e5e7eb; /* border-gray-200 */
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.filterToggleButton:hover {
+  background-color: #e5e7eb; /* hover:bg-gray-200 */
+}
+
+.filterToggleButton svg {
+  width: 1rem; /* w-4 */
+  height: 1rem; /* h-4 */
+  margin-right: 0.5rem; /* mr-2 */
+  margin-left: 0.5rem; /* ml-2 */
+}
+
+.filterPanel {
+  margin-top: 0.5rem; /* mt-2 */
+  padding: 1rem; /* p-4 */
+  background-color: white;
+  border-radius: 0.5rem; /* rounded-lg */
+  border: 1px solid #e5e7eb; /* border-gray-200 */
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* shadow-sm */
+  animation: fadeIn 0.3s ease-out;
+}
+
+.filterGrid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr)); /* grid-cols-1 */
+  gap: 1rem; /* gap-4 */
+}
+
+@media (min-width: 768px) { /* md */
+  .filterGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)); /* md:grid-cols-3 */
+  }
+}
+
+.filterLabel {
+  display: block;
+  font-size: 0.875rem; /* text-sm */
+  font-weight: 500; /* font-medium */
+  color: #4b5563; /* text-gray-700 */
+  margin-bottom: 0.25rem; /* mb-1 */
+}
+
+.filterSelect {
+  width: 100%;
+  padding: 0.5rem; /* p-2 */
+  border: 1px solid #d1d5db; /* border-gray-300 */
+  border-radius: 0.375rem; /* rounded-lg */
+  font-size: 0.875rem; /* text-sm */
+  background-color: white; /* Ensure background for contrast */
+}
+
+/* --- グラフ表示エリア --- */
+.chartContainer {
+  margin-top: 2rem; /* mt-8 */
+  margin-bottom: 2rem; /* mb-8 */
+  padding: 1.5rem; /* p-6 */
+  background-color: white;
+  border-radius: 0.75rem; /* rounded-xl */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); /* shadow-md */
+  border: 1px solid #e5e7eb; /* border-gray-200 */
+}
+
+.chartTitle {
+  font-size: 1.125rem; /* text-lg */
+  font-weight: 600; /* font-semibold */
+  color: #374151; /* text-gray-700 */
+  margin-bottom: 1.5rem; /* mb-6 */
+  display: flex;
+  align-items: center;
+}
+
+.chartTitle svg {
+  width: 1.125rem; /* w-4.5 (approx) */
+  height: 1.125rem; /* h-4.5 (approx) */
+  margin-right: 0.5rem; /* mr-2 */
+  color: #6366f1; /* text-indigo-500 */
+}
+
+.chartContainer > div { width: 100%; }
+
+/* --- テーブル関連 --- */
+.tableContainer {
+  margin-top: 1.5rem;
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+}
+
+.tableTitle {
+  padding: 1rem 1rem 0.5rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.table {
+  min-width: 100%;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table thead th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4b5563;
+  background-color: #f9fafb;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e5e7eb;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.table thead th:hover { background-color: #f3f4f6; }
+.sortIcon { display: inline-block; vertical-align: middle; margin-left: 0.25rem; color: #9ca3af; opacity: 0.5; }
+.sortIconActive { display: inline-block; vertical-align: middle; margin-left: 0.25rem; color: #1f2937; }
+.table tbody tr:nth-child(even) { background-color: #f9fafb; }
+.table tbody tr:hover { background-color: #f3f4f6; }
+
+.table tbody td {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #374151;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle; /* デフォルトは中央揃え */
+}
+
+.table tbody td:nth-child(3),
+.table tbody td:nth-child(4) {
+  white-space: normal;
+  min-width: 150px;
+}
+
+.noDataMessage { padding: 2rem; text-align: center; color: #6b7280; background-color: #f9fafb; border: 1px dashed #e5e7eb; border-radius: 0.5rem; margin: 1rem; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ===================================================== */
+/* === ここからが追加・修正されたスタイル === */
+/* ===================================================== */
+
+/* --- コメント列のスタイル修正 --- */
+/* コメント列セル (td) */
+.commentCell { /* td に適用 */
+  min-width: 150px;
+  max-width: 300px; /* 最大幅は維持 */
+  vertical-align: top; /* 上揃え */
+  overflow: visible; /* ★ ボックスがはみ出るように visible に変更 */
+  white-space: normal; /* ★ 折り返しを許可 */
+  position: relative; /* 全文表示ボックスの基準点 */
+}
+
+/* 省略表示用テキスト */
+.commentTextAbbr {
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* 3行で省略 */
+  -webkit-box-orient: vertical;
+  overflow: hidden; /* 省略表示のために必要 */
+  text-overflow: ellipsis;
+  line-height: 1.4;
+  word-break: break-all; /* ★ 単語途中でも改行 */
+  white-space: normal; /* ★ normal に変更 */
+  cursor: pointer; /* クリック可能を示す */
+  transition: color 0.2s ease;
+}
+.commentTextAbbr:hover {
+  color: #4f46e5; /* ホバー時に色を変える */
+}
+
+/* --- クリックで表示される全文表示ボックスのスタイル --- */
+.expandedCommentBox {
+  position: absolute; /* 親のtdを基準に配置 */
+  top: 90%; /* 位置を微調整 (セルの下端付近から開始) */
+  left: 0;
+  width: calc(100% + 2rem); /* セルの左右パディング分を考慮して少し広げる */
+  transform: translateX(-1rem); /* 左パディング分ずらす */
+  z-index: 5; /* 他の行より手前に */
+
+  background-color: white;
+  border: 1px solid #a5b4fc; /* 枠線 */
+  border-radius: 0.375rem; /* 角丸 */
+  padding: 0.75rem; /* パディング */
+  padding-top: 1.5rem; /* 閉じるボタンのスペース */
+  margin-top: 0.25rem; /* 上に少し余白 */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* 影 */
+
+  font-size: 0.875rem; /* text-sm */
+  line-height: 1.5;
+  color: #1f2937; /* 文字色 */
+  white-space: pre-wrap; /* 改行をそのまま表示 */
+  word-break: break-all; /* 単語途中でも折り返し */
+
+  animation: fadeInComment 0.2s ease-out; /* 表示アニメーション */
+}
+
+@keyframes fadeInComment {
+  from { opacity: 0; transform: translateY(-5px) translateX(-1rem); }
+  to { opacity: 1; transform: translateY(0) translateX(-1rem); }
+}
+
+/* 全文表示ボックス内の閉じるボタン */
+.closeExpandedComment {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  color: #9ca3af; /* グレー */
+  border-radius: 9999px;
+  line-height: 1; /* ボタン高さ調整 */
+}
+.closeExpandedComment:hover {
+  color: #4b5563; /* 少し濃く */
+  background-color: #f3f4f6; /* 薄いグレー背景 */
+}
+.closeExpandedComment svg {
+  display: block; /* svgの不要な余白削除 */
+}
+
+/* --- 編集ボタン列 (元のスタイルと同じ) --- */
+.table thead th:last-child,
+.table tbody td:last-child {
+  width: 50px;
+  text-align: center;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.editCommentButton {
+  display: inline-flex;
+  padding: 0.375rem;
+  color: #6b7280;
+  background-color: transparent;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+.editCommentButton:hover {
+  color: #4f46e5;
+  background-color: #eef2ff;
+}
+.editCommentButton svg {
+  width: 1rem;
+  height: 1rem;
+}
