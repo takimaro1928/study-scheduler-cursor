@@ -1,5 +1,5 @@
 /* src/RedesignedAllQuestionsView.module.css */
-/* モダンなカードデザイン版 */
+/* モダンなカードデザイン版 + フィルター機能強化版 */
 
 .container { 
   padding: 1.5rem; 
@@ -106,6 +106,7 @@
   transition: all 0.2s ease;
   cursor: pointer;
   flex-grow: 1;
+  position: relative;
 }
 
 @media (min-width: 768px) {
@@ -123,6 +124,28 @@
   width: 1.25rem;
   height: 1.25rem;
   margin-right: 0.5rem;
+}
+
+/* アクティブフィルター表示 */
+.activeFilterButton {
+  border-color: #818cf8;
+  background-color: #eef2ff;
+}
+
+.filterBadge {
+  position: absolute;
+  top: -0.5rem;
+  right: -0.5rem;
+  background-color: #4f46e5;
+  color: white;
+  font-size: 0.75rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
 }
 
 .bulkEditButtonActive {
@@ -156,6 +179,26 @@
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   margin-bottom: 2rem;
   animation: fadeIn 0.3s ease-out;
+}
+
+/* フィルターセクション */
+.filterSection {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.filterSection:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.filterSectionTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #4b5563;
+  margin-bottom: 1rem;
 }
 
 .filterGrid {
@@ -194,6 +237,132 @@
   outline: none;
 }
 
+/* 範囲入力コンテナ */
+.rangeInputContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rangeSeparator {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.rangeInput {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.rangeInput:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+  outline: none;
+}
+
+/* 日付入力 */
+.dateInput {
+  flex: 1;
+  padding: 0.7rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.dateInput:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+  outline: none;
+}
+
+/* 複数選択コンテナ */
+.multiSelectContainer {
+  margin-top: 1.25rem;
+}
+
+.multiSelectHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.toggleAllButton {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggleAllButton:hover {
+  background-color: #e5e7eb;
+  color: #1f2937;
+}
+
+.multiSelectGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  max-height: 12rem;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  background-color: #f9fafb;
+}
+
+@media (min-width: 768px) {
+  .multiSelectGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.checkboxItem {
+  min-width: 0;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  color: #4b5563;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s ease;
+}
+
+.checkboxLabel:hover {
+  background-color: #f3f4f6;
+}
+
+.checkbox {
+  width: 1rem;
+  height: 1rem;
+  color: #4f46e5;
+  border-color: #d1d5db;
+  border-radius: 0.25rem;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+
+.checkboxLabel span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .filterActions {
   margin-top: 1.5rem;
   display: flex;
@@ -210,11 +379,17 @@
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
 }
 
 .filterResetButton:hover {
   background-color: #e5e7eb;
   color: #374151;
+}
+
+.resetIcon {
+  margin-right: 0.375rem;
 }
 
 /* 一括編集パネル */
@@ -228,11 +403,98 @@
   animation: fadeIn 0.3s ease-out;
 }
 
+.bulkEditMessage {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #4b5563;
+  margin-bottom: 1rem;
+}
+
+.bulkEditControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.bulkEditDateInput {
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.bulkEditDateInput:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+  outline: none;
+}
+
+.bulkEditButton {
+  padding: 0.75rem 1rem;
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bulkEditButton:hover {
+  background-color: #4338ca;
+}
+
+.bulkEditButton:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
 /* 問題リストエリア（アコーディオン） */
 .listContainer {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+/* 検索結果なしの表示 */
+.noResults {
+  background-color: white;
+  padding: 3rem 2rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.noResultsIcon {
+  color: #9ca3af;
+  margin-bottom: 1rem;
+}
+
+.noResultsMessage {
+  font-size: 1rem;
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+}
+
+.resetSearchButton {
+  padding: 0.75rem 1.25rem;
+  background-color: #eef2ff;
+  color: #4f46e5;
+  border: 1px solid #c7d2fe;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.resetSearchButton:hover {
+  background-color: #e0e7ff;
+  border-color: #818cf8;
 }
 
 /* 科目アコーディオン */
@@ -384,6 +646,7 @@
   padding: 1rem 1.25rem;
   gap: 1rem;
   transition: all 0.2s ease;
+  flex-wrap: wrap;
 }
 
 .questionCard:hover {
@@ -450,6 +713,32 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* コメント表示ボックス */
+.commentBox {
+  flex-basis: 100%;
+  font-size: 0.875rem;
+  color: #4b5563;
+  background-color: #f9fafb;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ハイライトされたテキスト */
+.highlightedText {
+  background-color: rgba(251, 191, 36, 0.3);
+  padding: 0.125rem 0;
+  border-radius: 2px;
+  font-weight: 500;
 }
 
 /* 理解度バッジ */
