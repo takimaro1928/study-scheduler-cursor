@@ -81,8 +81,7 @@
 
 .controlButtons {
   display: flex;
-  gap: 0.75rem;
-  width: 100%;
+  gap: 0.5rem;
 }
 
 @media (min-width: 768px) {
@@ -91,28 +90,38 @@
   }
 }
 
-.controlButton {
-  padding: 0.75rem 1.25rem;
-  border: 1px solid #e5e7eb;
-  background-color: white;
-  border-radius: 0.75rem;
+.addButton {
   display: flex;
   align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  color: #374151;
-  font-weight: 500;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
   font-size: 0.875rem;
-  transition: all 0.2s ease;
+  font-weight: 500;
+  background-color: #2563eb;
+  color: white;
+  border: none;
   cursor: pointer;
-  flex-grow: 1;
-  position: relative;
+  transition: background-color 0.2s;
 }
 
-@media (min-width: 768px) {
-  .controlButton {
-    flex-grow: 0;
-  }
+.addButton:hover {
+  background-color: #1d4ed8;
+}
+
+.controlButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  color: #4b5563;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
 .controlButton:hover {
