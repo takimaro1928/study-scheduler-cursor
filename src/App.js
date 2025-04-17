@@ -72,17 +72,19 @@ function naturalSortCompare(a, b) { if (a == null && b == null) return 0; if (a 
 function calculateCorrectRate(question, isCorrect) { const currentCount = question?.answerCount ?? 0; const validCurrentCount = (typeof currentCount === 'number' && !isNaN(currentCount)) ? currentCount : 0; const currentRate = question?.correctRate ?? 0; const validCurrentRate = (typeof currentRate === 'number' && !isNaN(currentRate)) ? currentRate : 0; if (validCurrentCount === 0) { return isCorrect ? 100 : 0; } const totalCorrectPoints = validCurrentRate * validCurrentCount / 100; const newRate = isCorrect ? ((totalCorrectPoints + 1) / (validCurrentCount + 1)) * 100 : (totalCorrectPoints / (validCurrentCount + 1)) * 100; return Math.round(newRate); }
 
 // 総問題数を計算する関数
-const calculateTotalQuestionCount = () => {
+const calculateTotalQuestionCount = (subjects) => {
   let total = 0;
-  subjects.forEach(subject => {
-    if (subject?.chapters) {
-      subject.chapters.forEach(chapter => {
-        if (chapter?.questions) {
-          total += chapter.questions.length;
-        }
-      });
-    }
-  });
+  if (Array.isArray(subjects)) {
+    subjects.forEach(subject => {
+      if (subject?.chapters) {
+        subject.chapters.forEach(chapter => {
+          if (chapter?.questions) {
+            total += chapter.questions.length;
+          }
+        });
+      }
+    });
+  }
   return total;
 };
 
@@ -665,21 +667,6 @@ const handleDataExport = () => {
   }
 };
 
-// 総問題数を計算する関数
-const calculateTotalQuestionCount = () => {
-  let total = 0;
-  subjects.forEach(subject => {
-    if (subject?.chapters) {
-      subject.chapters.forEach(chapter => {
-        if (chapter?.questions) {
-          total += chapter.questions.length;
-        }
-      });
-    }
-  });
-  return total;
-};
-
   // ★ メインビュー切り替え ★
   const MainView = () => {
     // 新規問題を追加する関数
@@ -799,7 +786,7 @@ const calculateTotalQuestionCount = () => {
         onAddQuestion={addQuestion}
       />,
       schedule: <ScheduleView subjects={subjects} getQuestionsForDate={getQuestionsForDate} formatDate={formatDate} onDateChange={handleQuestionDateChange} />,
-      settings: <SettingsPage onResetAllData={resetAllData} onResetAnswerStatusOnly={resetAnswerStatusOnly} onImport={handleDataImport} onExport={handleDataExport} exportTimestamp={localStorage.getItem('lastExportTimestamp')} formatDate={formatDate} totalQuestionCount={calculateTotalQuestionCount()} />,
+      settings: <SettingsPage onResetAllData={resetAllData} onResetAnswerStatusOnly={resetAnswerStatusOnly} onImport={handleDataImport} onExport={handleDataExport} exportTimestamp={localStorage.getItem('lastExportTimestamp')} formatDate={formatDate} totalQuestionCount={calculateTotalQuestionCount(subjects)} />,
       stats: <StatsPage subjects={subjects} formatDate={formatDate} answerHistory={answerHistory} />,
       enhanced: <EnhancedStatsPage subjects={subjects} formatDate={formatDate} answerHistory={answerHistory} saveComment={saveComment} />,
       ambiguous: <AmbiguousTrendsPage subjects={subjects} formatDate={formatDate} answerHistory={answerHistory} saveComment={saveComment} saveBulkEditItems={saveBulkEditItems} setEditingQuestion={setEditingQuestion} />,
