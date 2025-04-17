@@ -88,6 +88,34 @@ const calculateTotalQuestionCount = (subjects) => {
   return total;
 };
 
+// ★ その他のユーティリティ関数 ★
+
+// 全問題を取得する関数
+const getAllQuestions = (subjectsData) => {
+  const allQuestions = [];
+  if (!subjectsData) return allQuestions;
+  
+  subjectsData.forEach(subject => {
+    if (subject.chapters) {
+      subject.chapters.forEach(chapter => {
+        if (chapter.questions) {
+          chapter.questions.forEach(question => {
+            allQuestions.push({
+              ...question,
+              subject: subject.name || subject.subjectName,
+              chapter: chapter.name || chapter.chapterName,
+              id: question.id,
+              number: question.number
+            });
+          });
+        }
+      });
+    }
+  });
+  
+  return allQuestions;
+};
+
 // ★ メインビュー切り替え ★
 function App() {
   const [subjects, setSubjects] = useState([]);
@@ -785,7 +813,7 @@ const handleDataExport = () => {
         setEditingQuestion={setEditingQuestion}
         onAddQuestion={addQuestion}
       />,
-      schedule: <ScheduleView subjects={subjects} getQuestionsForDate={getQuestionsForDate} formatDate={formatDate} onDateChange={handleQuestionDateChange} />,
+      schedule: <ScheduleView data={{ questions: getAllQuestions(subjects) }} scheduleQuestion={handleQuestionDateChange} />,
       settings: <SettingsPage onResetAllData={resetAllData} onResetAnswerStatusOnly={resetAnswerStatusOnly} onImport={handleDataImport} onExport={handleDataExport} exportTimestamp={localStorage.getItem('lastExportTimestamp')} formatDate={formatDate} totalQuestionCount={calculateTotalQuestionCount(subjects)} />,
       stats: <StatsPage subjects={subjects} formatDate={formatDate} answerHistory={answerHistory} />,
       enhanced: <EnhancedStatsPage subjects={subjects} formatDate={formatDate} answerHistory={answerHistory} saveComment={saveComment} />,
