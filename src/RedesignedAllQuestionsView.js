@@ -733,15 +733,49 @@ const RedesignedAllQuestionsView = ({
           <div className={styles.bulkEditControls}>
             <input
               type="date"
-              value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
+              value={selectedDate instanceof Date 
+                ? selectedDate.toISOString().split('T')[0] 
+                : selectedDate 
+                  ? new Date(selectedDate).toISOString().split('T')[0] 
+                  : ''}
               onChange={(e) => {
-                const date = e.target.value ? new Date(e.target.value) : null;
-                setSelectedDate(date);
+                try {
+                  // 日付文字列をそのまま保持
+                  const dateStr = e.target.value;
+                  console.log("選択された日付文字列:", dateStr);
+                  
+                  if (dateStr) {
+                    // 表示用にDateオブジェクトも作成
+                    const [year, month, day] = dateStr.split('-').map(Number);
+                    const dateObj = new Date(year, month-1, day);
+                    console.log("変換後の日付オブジェクト:", dateObj);
+                    
+                    if (!isNaN(dateObj.getTime())) {
+                      setSelectedDate(dateStr);
+                    } else {
+                      console.error("無効な日付形式:", dateStr);
+                    }
+                  } else {
+                    setSelectedDate(null);
+                  }
+                } catch (e) {
+                  console.error("日付処理エラー:", e);
+                  setSelectedDate(null);
+                }
               }}
               className={styles.bulkEditDateInput}
             />
             <button
-              onClick={() => saveBulkEdit(selectedDate)}
+              onClick={() => {
+                if (selectedDate) {
+                  console.log("一括編集の日付:", selectedDate);
+                  // saveBulkEdit 関数を呼び出して一括編集を実行
+                  // この関数は App.js から渡されたもので、選択した日付を nextDate として設定する
+                  saveBulkEdit(selectedDate);
+                } else {
+                  alert("日付を選択してください");
+                }
+              }}
               disabled={!selectedDate}
               className={styles.bulkEditButton}
             >
