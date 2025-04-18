@@ -1,0 +1,225 @@
+/* 通知システム全体のコンテナ */
+.notificationSystem {
+  position: relative;
+  z-index: 1000;
+}
+
+/* 通知トグルボタン */
+.toggleButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  transition: background-color 0.2s;
+}
+
+.toggleButton:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* 重要な通知がある場合のスタイル */
+.hasCritical {
+  color: #e74c3c;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+  }
+}
+
+/* 通知バッジ */
+.badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background-color: #e74c3c;
+  color: white;
+  border-radius: 50%;
+  min-width: 18px;
+  height: 18px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  font-weight: bold;
+}
+
+/* 通知コンテナ */
+.notificationContainer {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  width: 320px;
+  max-height: 400px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 1001;
+}
+
+/* 通知ヘッダー */
+.notificationHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.notificationHeader h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.clearAllButton {
+  background: none;
+  border: none;
+  color: #3498db;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 8px;
+}
+
+.clearAllButton:hover {
+  text-decoration: underline;
+}
+
+/* 通知リスト */
+.notificationList {
+  overflow-y: auto;
+  max-height: 350px;
+  padding: 8px 0;
+}
+
+/* 個別の通知 */
+.notification {
+  padding: 12px 16px;
+  margin: 4px 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: flex-start;
+  border-left: 4px solid;
+  background-color: #f9f9f9;
+  position: relative;
+  animation: slideIn 0.3s forwards;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notificationIcon {
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  font-weight: bold;
+}
+
+.notificationContent {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.4;
+  word-break: break-word;
+  padding-right: 24px;
+}
+
+.closeButton {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+}
+
+.closeButton:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* 通知タイプに応じたスタイル */
+.SUCCESS {
+  border-left-color: #2ecc71;
+}
+
+.SUCCESS .notificationIcon {
+  color: #2ecc71;
+}
+
+.INFO {
+  border-left-color: #3498db;
+}
+
+.INFO .notificationIcon {
+  color: #3498db;
+}
+
+.WARNING {
+  border-left-color: #f39c12;
+}
+
+.WARNING .notificationIcon {
+  color: #f39c12;
+}
+
+.ERROR {
+  border-left-color: #e74c3c;
+}
+
+.ERROR .notificationIcon {
+  color: #e74c3c;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  color: #888;
+}
+
+.emptyStateIcon {
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.emptyState p {
+  margin: 0;
+  font-size: 14px;
+} 
