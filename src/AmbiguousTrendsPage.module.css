@@ -248,8 +248,8 @@
 }
 
 @keyframes fadeInComment {
-  from { opacity: 0; transform: translateY(-5px) translateX(-1rem); }
-  to { opacity: 1; transform: translateY(0) translateX(-1rem); }
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* 全文表示ボックス内の閉じるボタン */
@@ -300,4 +300,444 @@
 .editCommentButton svg {
   width: 1rem;
   height: 1rem;
+}
+
+/* === 曖昧問題推移グラフのタイムユニット切り替えUIのスタイル === */
+.chartTitleContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.timeAxisButtons {
+  display: flex;
+  background-color: #f3f4f6;
+  border-radius: 9999px; /* 完全な丸みに変更 */
+  padding: 0.25rem;
+  border: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.timeAxisButton {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  background-color: transparent;
+  border: none;
+  border-radius: 9999px; /* 完全な丸みに変更 */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 1;
+  min-width: 3.5rem;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.buttonIcon {
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.timeAxisButton:hover .buttonIcon {
+  opacity: 1;
+}
+
+.timeAxisButtonActive .buttonIcon {
+  opacity: 1;
+}
+
+.timeAxisButton:hover {
+  color: #4f46e5;
+}
+
+.timeAxisButtonActive {
+  color: #ffffff;
+  background-color: #4f46e5;
+  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
+  transform: translateY(-1px);
+}
+
+.timeAxisButtonActive:hover {
+  color: #ffffff;
+  background-color: #4338ca;
+}
+
+/* === 理由フィルター複数選択のスタイル === */
+.reasonFilterContainer {
+  margin-top: 1.25rem;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1.25rem;
+}
+
+.reasonFilterHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.toggleAllButton {
+  font-size: 0.75rem;
+  color: #4f46e5;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.toggleAllButton:hover {
+  background-color: #f3f4f6;
+}
+
+.reasonCheckboxGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .reasonCheckboxGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .reasonCheckboxGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.reasonCheckboxItem {
+  margin-bottom: 0.25rem;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s;
+}
+
+.checkboxLabel:hover {
+  background-color: #f3f4f6;
+}
+
+.checkbox {
+  margin-right: 0.5rem;
+  cursor: pointer;
+  width: 1rem;
+  height: 1rem;
+  accent-color: #4f46e5;
+}
+
+.checkboxText {
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+/* フィルターリセットボタン */
+.filterActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.resetFilterButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  background-color: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.resetFilterButton:hover {
+  background-color: #e5e7eb;
+  color: #4b5563;
+}
+
+/* === アクションセルのスタイル === */
+.actionsCell {
+  white-space: nowrap;
+  text-align: center;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.25rem;
+  background-color: #f9fafb;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.actionButton:hover {
+  background-color: #f3f4f6;
+  color: #4f46e5;
+  border-color: #c7d2fe;
+}
+
+/* 各アクションボタンに特有の色を設定 */
+.actionButton:nth-child(1) { /* 今日復習 */
+  color: #0891b2; /* シアン */
+}
+.actionButton:nth-child(1):hover {
+  background-color: #ecfeff;
+  color: #0e7490;
+  border-color: #a5f3fc;
+}
+
+.actionButton:nth-child(2) { /* 詳細編集 */
+  color: #4f46e5; /* インディゴ */
+}
+.actionButton:nth-child(2):hover {
+  background-color: #eef2ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
+}
+
+.actionButton:nth-child(3) { /* コメント編集 */
+  color: #65a30d; /* ライム */
+}
+.actionButton:nth-child(3):hover {
+  background-color: #f7fee7;
+  color: #4d7c0f;
+  border-color: #bef264;
+}
+
+/* 日付セル */
+.dateCell {
+  white-space: nowrap;
+}
+
+/* タブナビゲーション用のスタイル */
+.tabNavigation {
+  display: flex;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.tabButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tabButton:hover {
+  color: #4f46e5;
+}
+
+.activeTab {
+  color: #4f46e5;
+  border-bottom-color: #4f46e5;
+}
+
+/* ヘッダースタイル */
+.header {
+  margin-bottom: 1.5rem;
+}
+
+.pageTitle {
+  display: flex;
+  align-items: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.titleIcon {
+  margin-right: 0.5rem;
+  color: #ef4444;
+}
+
+.pageDescription {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* 統計表示用のスタイル */
+.statsControls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
+}
+
+.timeRangeSelector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.statsDropdown {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.analysisGridContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.analysisCard {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.analysisTitle {
+  display: flex;
+  align-items: center;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 1rem;
+}
+
+.analysisIcon {
+  margin-right: 0.5rem;
+  color: #4f46e5;
+}
+
+.chartContainer {
+  width: 100%;
+  height: 250px;
+}
+
+.improvedQuestionsSection {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 1rem;
+}
+
+.sectionIcon {
+  margin-right: 0.5rem;
+  color: #4f46e5;
+}
+
+.tableResponsive {
+  overflow-x: auto;
+}
+
+.statsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.statsTable th,
+.statsTable td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.statsTable th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.statsTable tr:hover {
+  background-color: #f9fafb;
+}
+
+.quickSuccess {
+  background-color: #ecfdf5;
+}
+
+.quickSuccess:hover {
+  background-color: #d1fae5;
+}
+
+.slowSuccess {
+  background-color: #fff7ed;
+}
+
+.slowSuccess:hover {
+  background-color: #ffedd5;
+}
+
+.noDataMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #6b7280;
+  text-align: center;
+  background-color: #f9fafb;
+  border-radius: 0.375rem;
+  gap: 0.5rem;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .analysisGridContainer {
+    grid-template-columns: 1fr;
+  }
+  
+  .tabButton {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+  
+  .statsTable th,
+  .statsTable td {
+    padding: 0.5rem;
+    font-size: 0.8rem;
+  }
 }
