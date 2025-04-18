@@ -208,6 +208,7 @@
 .commentTextAbbr {
   display: -webkit-box;
   -webkit-line-clamp: 3; /* 3行で省略 */
+  line-clamp: 3; /* 標準プロパティも追加 */
   -webkit-box-orient: vertical;
   overflow: hidden; /* 省略表示のために必要 */
   text-overflow: ellipsis;
