@@ -65,30 +65,36 @@
   padding-bottom: 0.5rem;
 }
 
+.tabNavigation {
+  display: flex;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  overflow-x: auto;
+}
+
 .tabButton {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem; /* text-sm */
-  font-weight: 500; /* font-medium */
-  color: #4b5563; /* text-gray-600 */
-  border-radius: 0.375rem; /* rounded-md */
-  border: 1px solid transparent;
-  background-color: transparent;
+  padding: 0.75rem 1.25rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6b7280;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .tabButton:hover {
-  background-color: #f3f4f6; /* hover:bg-gray-100 */
-  color: #374151; /* hover:text-gray-700 */
+  color: #4f46e5;
 }
 
 .activeTab {
-  color: #4f46e5; /* text-indigo-600 */
-  background-color: #eef2ff; /* bg-indigo-50 */
-  border-color: #c7d2fe; /* border-indigo-200 */
+  color: #4f46e5;
+  border-bottom-color: #4f46e5;
 }
 
 /* 概要タブ */
@@ -156,18 +162,17 @@
 }
 
 .chartTitle {
-  font-size: 1rem; /* text-base */
-  font-weight: 600; /* font-semibold */
-  color: #374151; /* text-gray-700 */
-  padding: 1rem;
-  border-bottom: 1px solid #e5e7eb; /* border-b border-gray-200 */
   display: flex;
   align-items: center;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 1rem;
 }
 
 .chartIcon {
-  margin-right: 0.5rem; /* mr-2 */
-  color: #4f46e5; /* text-indigo-600 */
+  margin-right: 0.5rem;
+  color: #4f46e5;
 }
 
 .chartContent {
@@ -273,4 +278,323 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
+}
+
+/* ヘッダースタイル */
+.header {
+  margin-bottom: 1.5rem;
+}
+
+.pageTitle {
+  display: flex;
+  align-items: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.pageDescription {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* 知識保持曲線のスタイル */
+.retentionCurveContainer {
+  background-color: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.retentionControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+}
+
+.controlGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.controlGroup label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.controlSelect {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  color: #111827;
+  background-color: white;
+  min-width: 200px;
+}
+
+.retentionChartContainer {
+  margin-bottom: 2rem;
+}
+
+.modelInfo {
+  font-size: 0.875rem;
+  font-weight: normal;
+  color: #6b7280;
+  margin-left: 0.5rem;
+}
+
+.chartWrapper {
+  margin-bottom: 1.5rem;
+}
+
+.reviewRecommendations {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #f0f9ff;
+  border-radius: 0.5rem;
+}
+
+.recommendationTitle {
+  display: flex;
+  align-items: center;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0369a1;
+  margin-bottom: 0.5rem;
+}
+
+.recommendationIcon {
+  margin-right: 0.5rem;
+  color: #0369a1;
+}
+
+.recommendationBox {
+  padding: 0.5rem 0;
+}
+
+.recommendationList {
+  margin-top: 0.5rem;
+  padding-left: 1.5rem;
+}
+
+.recommendationItem {
+  margin-bottom: 0.5rem;
+}
+
+.recommendationHighlight {
+  font-weight: 600;
+  color: #0369a1;
+}
+
+.recommendationDetail {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-left: 0.5rem;
+}
+
+.noRecommendation {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.curveExplanation {
+  padding: 1rem;
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+}
+
+.explanationTitle {
+  display: flex;
+  align-items: center;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #4b5563;
+  margin-bottom: 0.5rem;
+}
+
+.explanationIcon {
+  margin-right: 0.5rem;
+  color: #4b5563;
+}
+
+/* 学習効率ダッシュボードのスタイル */
+.efficiencyDashboardContainer {
+  background-color: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-top: 2rem;
+}
+
+.dashboardTitle {
+  display: flex;
+  align-items: center;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 1.5rem;
+}
+
+.dashboardIcon {
+  margin-right: 0.5rem;
+  color: #4f46e5;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.metricCard {
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.metricHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.metricIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  background-color: rgba(79, 70, 229, 0.1);
+  margin-right: 0.75rem;
+}
+
+.metricIcon svg {
+  color: #4f46e5;
+}
+
+.metricTitle {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.metricValue {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.metricTrend {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.trendPositive {
+  color: #10b981;
+}
+
+.trendNegative {
+  color: #ef4444;
+}
+
+.trendIcon {
+  margin-right: 0.25rem;
+}
+
+.reportList {
+  margin-top: 2rem;
+}
+
+.reportItem {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.reportItemAlert {
+  background-color: #fee2e2;
+  border-left: 4px solid #ef4444;
+}
+
+.reportItemWarning {
+  background-color: #fffbeb;
+  border-left: 4px solid #f59e0b;
+}
+
+.reportItemInfo {
+  background-color: #eff6ff;
+  border-left: 4px solid #3b82f6;
+}
+
+.reportItemSuccess {
+  background-color: #ecfdf5;
+  border-left: 4px solid #10b981;
+}
+
+.reportHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.reportTitle {
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.reportContent {
+  font-size: 0.875rem;
+}
+
+.reportAction {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 0.375rem 0.75rem;
+  background-color: white;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reportAction:hover {
+  background-color: #f9fafb;
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+  .retentionControls {
+    flex-direction: column;
+  }
+  
+  .controlSelect {
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .tabButton {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+  
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
 }
