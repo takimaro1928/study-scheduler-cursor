@@ -2,8 +2,8 @@
 // テーブルソート機能の不具合修正版 + 科目名/章名プロパティ対応版
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Filter, ChevronDown, ChevronUp, Info, ArrowUpDown, BarChart2, AlertCircle, RotateCcw, TrendingUp, Edit2, TrendingDown, X, RefreshCw, Calendar, Edit } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { Filter, ChevronDown, ChevronUp, Info, ArrowUpDown, BarChart2, AlertCircle, RotateCcw, TrendingUp, Edit2, TrendingDown, X, RefreshCw, Calendar, Edit, Activity, ArrowRight, CalendarDays, CalendarClock, CalendarRange } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Sankey, Tooltip as RechartsTooltip } from 'recharts';
 import styles from './AmbiguousTrendsPage.module.css';
 import CommentEditModal from './CommentEditModal';
 
@@ -201,6 +201,10 @@ const AmbiguousTrendsPage = ({ subjects, formatDate = formatDateInternal, answer
   // 時間軸の集計単位を管理するステート
   const [timeAxisUnit, setTimeAxisUnit] = useState('daily'); // 'daily', 'weekly', 'monthly'
 
+  // --- 新機能: 曖昧から理解への遷移分析のための状態 ---
+  const [activeTab, setActiveTab] = useState('ambiguous'); // 'ambiguous', 'transitions'
+  const [timeRangeForTransition, setTimeRangeForTransition] = useState('30days'); // '7days', '30days', '90days', 'all'
+  
   // --- Memoized Data ---
   const ambiguousQuestions = useMemo(() => getAmbiguousQuestions(subjects || []), [subjects]);
 
@@ -937,178 +941,574 @@ const AmbiguousTrendsPage = ({ subjects, formatDate = formatDateInternal, answer
     );
   };
 
+  // 曖昧→理解 遷移分析のためのデータ計算
+  const transitionAnalysisData = useMemo(() => {
+    console.log("[AmbiguousTrendsPage] Calculating ambiguous to understanding transitions...");
+    
+    if (!Array.isArray(answerHistory) || answerHistory.length === 0) {
+      console.log("[AmbiguousTrendsPage] No answer history for transition analysis.");
+      return {
+        transitionCounts: [],
+        transitionTime: [],
+        transitionPatterns: [],
+        improvedQuestions: []
+      };
+    }
+
+    // 時間範囲のフィルタリング
+    const now = new Date();
+    let cutoffDate = new Date(0); // デフォルトは全期間
+    
+    if (timeRangeForTransition !== 'all') {
+      cutoffDate = new Date();
+      const days = timeRangeForTransition === '7days' ? 7 : 
+                  timeRangeForTransition === '30days' ? 30 : 90;
+      cutoffDate.setDate(now.getDate() - days);
+    }
+    
+    const filteredHistory = answerHistory.filter(record => {
+      const recordDate = new Date(record.timestamp);
+      return recordDate >= cutoffDate;
+    });
+    
+    // 問題IDごとに理解度の変化を追跡
+    const questionTransitions = {};
+    
+    filteredHistory.forEach(record => {
+      if (!record.questionId || !record.understanding) return;
+      
+      if (!questionTransitions[record.questionId]) {
+        questionTransitions[record.questionId] = [];
+      }
+      
+      questionTransitions[record.questionId].push({
+        timestamp: new Date(record.timestamp),
+        understanding: record.understanding,
+        isCorrect: record.isCorrect
+      });
+    });
+    
+    // 各問題IDで、遷移をソートして分析
+    Object.keys(questionTransitions).forEach(qId => {
+      questionTransitions[qId].sort((a, b) => a.timestamp - b.timestamp);
+    });
+    
+    // 曖昧→理解 の遷移を検出
+    const transitions = [];
+    const improvementTimes = [];
+    const transitionPatterns = {
+      quickImprovement: 0, // 3回以内で曖昧→理解
+      gradualImprovement: 0, // 4-7回で曖昧→理解
+      persistentDifficulty: 0, // 8回以上かかる
+      fluctuating: 0 // 理解→曖昧→理解のパターン
+    };
+    
+    const improvedQuestions = [];
+    
+    Object.keys(questionTransitions).forEach(qId => {
+      const history = questionTransitions[qId];
+      let foundTransition = false;
+      let transitionStart = null;
+      let transitionEnd = null;
+      let attemptsToUnderstand = 0;
+      let hasFluctuated = false;
+      
+      for (let i = 0; i < history.length; i++) {
+        const current = history[i];
+        
+        // 曖昧状態の検出
+        if (current.understanding.startsWith('曖昧△') && !transitionStart) {
+          transitionStart = current.timestamp;
+          attemptsToUnderstand = 1;
+        } 
+        // 曖昧→理解の遷移検出
+        else if (transitionStart && 
+                (current.understanding === '理解○' || current.understanding === '完璧◎')) {
+          transitionEnd = current.timestamp;
+          const daysToUnderstand = Math.ceil((transitionEnd - transitionStart) / (1000 * 60 * 60 * 24));
+          
+          // 改善時間を記録
+          improvementTimes.push({
+            questionId: qId,
+            days: daysToUnderstand,
+            attempts: attemptsToUnderstand
+          });
+          
+          // 曖昧→理解に改善した問題を記録
+          const question = findQuestionById(subjects, qId);
+          if (question) {
+            improvedQuestions.push({
+              id: qId,
+              subjectName: question.subjectName,
+              chapterName: question.chapterName,
+              daysToUnderstand,
+              attemptsToUnderstand
+            });
+          }
+          
+          // 遷移パターンを分類
+          if (attemptsToUnderstand <= 3) {
+            transitionPatterns.quickImprovement++;
+          } else if (attemptsToUnderstand <= 7) {
+            transitionPatterns.gradualImprovement++;
+          } else {
+            transitionPatterns.persistentDifficulty++;
+          }
+          
+          if (hasFluctuated) {
+            transitionPatterns.fluctuating++;
+          }
+          
+          foundTransition = true;
+          break;
+        } 
+        // 理解→曖昧への後退を検出
+        else if (i > 0 && 
+                (history[i-1].understanding === '理解○' || history[i-1].understanding === '完璧◎') && 
+                current.understanding.startsWith('曖昧△')) {
+          hasFluctuated = true;
+          transitionStart = current.timestamp; // 再度開始を設定
+          attemptsToUnderstand++;
+        }
+        // 曖昧状態の継続
+        else if (transitionStart && current.understanding.startsWith('曖昧△')) {
+          attemptsToUnderstand++;
+        }
+      }
+      
+      if (foundTransition) {
+        transitions.push({
+          questionId: qId,
+          from: 'ambiguous',
+          to: 'understood',
+          count: 1
+        });
+      }
+    });
+    
+    // 改善時間のグラフ用データ
+    const timeDistribution = [
+      { name: '1-3日', count: 0 },
+      { name: '4-7日', count: 0 },
+      { name: '8-14日', count: 0 },
+      { name: '15-30日', count: 0 },
+      { name: '30日以上', count: 0 }
+    ];
+    
+    improvementTimes.forEach(item => {
+      if (item.days <= 3) timeDistribution[0].count++;
+      else if (item.days <= 7) timeDistribution[1].count++;
+      else if (item.days <= 14) timeDistribution[2].count++;
+      else if (item.days <= 30) timeDistribution[3].count++;
+      else timeDistribution[4].count++;
+    });
+    
+    // 遷移パターンのグラフ用データ
+    const patternData = [
+      { name: '迅速に改善 (≤3回)', value: transitionPatterns.quickImprovement },
+      { name: '徐々に改善 (4-7回)', value: transitionPatterns.gradualImprovement },
+      { name: '定着に苦労 (≥8回)', value: transitionPatterns.persistentDifficulty },
+      { name: '不安定な理解', value: transitionPatterns.fluctuating }
+    ];
+    
+    return {
+      transitionCounts: transitions,
+      transitionTime: timeDistribution,
+      transitionPatterns: patternData,
+      improvedQuestions: improvedQuestions.sort((a, b) => a.attemptsToUnderstand - b.attemptsToUnderstand)
+    };
+  }, [answerHistory, subjects, timeRangeForTransition]);
+
+  // 問題IDから問題オブジェクトを検索する関数
+  const findQuestionById = (subjects, questionId) => {
+    for (const subject of subjects) {
+      if (!subject?.chapters) continue;
+      
+      const subjectName = subject.subjectName || subject.name || '?';
+      
+      for (const chapter of subject.chapters) {
+        if (!chapter?.questions) continue;
+        
+        const chapterName = chapter.chapterName || chapter.name || '?';
+        
+        for (const question of chapter.questions) {
+          if (question.id === questionId) {
+            return {
+              ...question,
+              subjectName,
+              chapterName
+            };
+          }
+        }
+      }
+    }
+    return null;
+  };
+  
+  // 時間範囲の変更ハンドラ
+  const handleTimeRangeChange = (e) => {
+    setTimeRangeForTransition(e.target.value);
+  };
+
+  // タブ切り替えハンドラ
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+  };
+
+  // 円グラフの色配列
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+
+  // 曖昧→理解への遷移分析タブの内容
+  const renderTransitionAnalysisTab = () => {
+    return (
+      <div className={styles.transitionTabContent}>
+        <div className={styles.statsControls}>
+          <div className={styles.timeRangeSelector}>
+            <label htmlFor="timeRange">分析期間:</label>
+            <select
+              id="timeRange"
+              value={timeRangeForTransition}
+              onChange={handleTimeRangeChange}
+              className={styles.statsDropdown}
+            >
+              <option value="7days">過去7日間</option>
+              <option value="30days">過去30日間</option>
+              <option value="90days">過去90日間</option>
+              <option value="all">全期間</option>
+            </select>
+          </div>
+        </div>
+
+        <div className={styles.analysisGridContainer}>
+          {/* 改善時間グラフ */}
+          <div className={styles.analysisCard}>
+            <h3 className={styles.analysisTitle}>
+              <Activity size={18} className={styles.analysisIcon} />
+              曖昧から理解までの所要日数
+            </h3>
+            <div className={styles.chartContainer}>
+              {transitionAnalysisData.transitionTime.some(item => item.count > 0) ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart
+                    data={transitionAnalysisData.transitionTime}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 40 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="count" name="問題数" fill="#4f46e5" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className={styles.noDataMessage}>
+                  <AlertCircle size={24} />
+                  <p>分析対象期間内に「曖昧→理解」への改善例がありません</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 学習パターングラフ */}
+          <div className={styles.analysisCard}>
+            <h3 className={styles.analysisTitle}>
+              <TrendingUp size={18} className={styles.analysisIcon} />
+              理解定着パターン分析
+            </h3>
+            <div className={styles.chartContainer}>
+              {transitionAnalysisData.transitionPatterns.some(item => item.value > 0) ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={transitionAnalysisData.transitionPatterns}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={true}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {transitionAnalysisData.transitionPatterns.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => [value, '問題数']} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className={styles.noDataMessage}>
+                  <AlertCircle size={24} />
+                  <p>分析対象期間内に「曖昧→理解」への改善例がありません</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 改善した問題リスト */}
+        <div className={styles.improvedQuestionsSection}>
+          <h3 className={styles.sectionTitle}>
+            <ArrowRight size={18} className={styles.sectionIcon} />
+            曖昧から理解へ改善した問題
+          </h3>
+          {transitionAnalysisData.improvedQuestions.length > 0 ? (
+            <div className={styles.tableResponsive}>
+              <table className={styles.statsTable}>
+                <thead>
+                  <tr>
+                    <th>問題ID</th>
+                    <th>科目</th>
+                    <th>章</th>
+                    <th>改善までの日数</th>
+                    <th>試行回数</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transitionAnalysisData.improvedQuestions.map((question) => (
+                    <tr key={question.id} className={question.attemptsToUnderstand <= 3 ? styles.quickSuccess : question.attemptsToUnderstand >= 8 ? styles.slowSuccess : ''}>
+                      <td>{question.id}</td>
+                      <td>{question.subjectName}</td>
+                      <td>{question.chapterName}</td>
+                      <td>{question.daysToUnderstand}日</td>
+                      <td>{question.attemptsToUnderstand}回</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className={styles.noDataMessage}>
+              <AlertCircle size={24} />
+              <p>分析対象期間内に「曖昧→理解」への改善例がありません</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   // --- Component Render ---
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}> <Info className={styles.titleIcon} /> 曖昧問題傾向分析 </h2>
+      <div className={styles.header}>
+        <h2 className={styles.pageTitle}><AlertCircle size={24} className={styles.titleIcon} /> 曖昧問題傾向分析</h2>
+        <p className={styles.pageDescription}>「曖昧」とマークされた問題の傾向を確認し、効率的な学習計画に役立てましょう。</p>
+      </div>
 
-      <div className={styles.filterToggleContainer}> <button onClick={() => setShowFilters(!showFilters)} className={styles.filterToggleButton}> <Filter size={16} /> フィルター・並べ替え {showFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />} </button> </div>
+      {/* タブナビゲーション追加 */}
+      <div className={styles.tabNavigation}>
+        <button 
+          className={`${styles.tabButton} ${activeTab === 'ambiguous' ? styles.activeTab : ''}`}
+          onClick={() => handleTabChange('ambiguous')}
+        >
+          <AlertCircle size={16} />
+          曖昧問題リスト
+        </button>
+        <button 
+          className={`${styles.tabButton} ${activeTab === 'transitions' ? styles.activeTab : ''}`}
+          onClick={() => handleTabChange('transitions')}
+        >
+          <TrendingUp size={16} />
+          理解への遷移分析
+        </button>
+      </div>
 
-      {showFilters && (
-        <div className={styles.filterPanel}>
-          <div className={styles.filterGrid}>
-            <div>
-              <label htmlFor="subjectFilter" className={styles.filterLabel}>科目</label>
-              <select id="subjectFilter" value={filter.subject} onChange={handleSubjectChange} className={styles.filterSelect}>
-                <option value="all">全ての科目</option>
-                {filterOptions.subjects.map(subject => (
-                  <option key={subject} value={subject}>{subject}</option>
-                ))}
-              </select>
-            </div>
+      {/* タブ内容切り替え */}
+      {activeTab === 'ambiguous' ? (
+        <div className={styles.ambiguousTabContent}>
+          <div className={styles.filters}>
+            <button 
+              className={styles.filterToggle} 
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter size={18} /> フィルター {showFilters ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </button>
             
-            {/* 章フィルター (科目が選択されている時のみ表示) */}
-            {filter.subject !== 'all' && (
-              <div>
-                <label htmlFor="chapterFilter" className={styles.filterLabel}>章</label>
-                <select 
-                  id="chapterFilter" 
-                  value={filter.chapter} 
-                  onChange={(e) => setFilter(prev => ({ ...prev, chapter: e.target.value }))}
-                  className={styles.filterSelect}
-                >
-                  <option value="all">全ての章</option>
-                  {filterOptions.chapters.map(chapter => (
-                    <option key={chapter} value={chapter}>{chapter}</option>
-                  ))}
-                </select>
+            {showFilters && (
+              <div className={styles.filterPanel}>
+                <div className={styles.filterGrid}>
+                  <div>
+                    <label htmlFor="subjectFilter" className={styles.filterLabel}>科目</label>
+                    <select id="subjectFilter" value={filter.subject} onChange={handleSubjectChange} className={styles.filterSelect}>
+                      <option value="all">全ての科目</option>
+                      {filterOptions.subjects.map(subject => (
+                        <option key={subject} value={subject}>{subject}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* 章フィルター (科目が選択されている時のみ表示) */}
+                  {filter.subject !== 'all' && (
+                    <div>
+                      <label htmlFor="chapterFilter" className={styles.filterLabel}>章</label>
+                      <select 
+                        id="chapterFilter" 
+                        value={filter.chapter} 
+                        onChange={(e) => setFilter(prev => ({ ...prev, chapter: e.target.value }))}
+                        className={styles.filterSelect}
+                      >
+                        <option value="all">全ての章</option>
+                        {filterOptions.chapters.map(chapter => (
+                          <option key={chapter} value={chapter}>{chapter}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <label htmlFor="periodFilter" className={styles.filterLabel}>最終解答期間</label>
+                    <select 
+                      id="periodFilter" 
+                      value={filter.period} 
+                      onChange={(e) => setFilter(prev => ({ ...prev, period: e.target.value }))}
+                      className={styles.filterSelect}
+                    >
+                      <option value="all">全期間</option>
+                      <option value="week">直近1週間</option>
+                      <option value="month">直近1ヶ月</option>
+                      <option value="quarter">直近3ヶ月</option>
+                    </select>
+                  </div>
+                </div>
+                
+                {/* 理由フィルター (複数選択) */}
+                <div className={styles.reasonFilterContainer}>
+                  <div className={styles.reasonFilterHeader}>
+                    <label className={styles.filterLabel}>理由</label>
+                    <button onClick={handleToggleAllReasons} className={styles.toggleAllButton}>
+                      {filterOptions.reasons.length > 0 && filterOptions.reasons.length === filter.reasons.length 
+                        ? '全て解除' 
+                        : '全て選択'}
+                    </button>
+                  </div>
+                  
+                  <div className={styles.reasonCheckboxGrid}>
+                    {filterOptions.reasons.map(reason => (
+                      <div key={reason} className={styles.reasonCheckboxItem}>
+                        <label className={styles.checkboxLabel}>
+                          <input 
+                            type="checkbox" 
+                            checked={filter.reasons.includes(reason)} 
+                            onChange={() => handleReasonChange(reason)}
+                            className={styles.checkbox}
+                          />
+                          <span className={styles.checkboxText}>{reason}</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* フィルターリセットボタン */}
+                <div className={styles.filterActions}>
+                  <button onClick={handleResetFilters} className={styles.resetFilterButton}>
+                    <X size={14} /> フィルターをリセット
+                  </button>
+                </div>
               </div>
             )}
-            
-            <div>
-              <label htmlFor="periodFilter" className={styles.filterLabel}>最終解答期間</label>
-              <select 
-                id="periodFilter" 
-                value={filter.period} 
-                onChange={(e) => setFilter(prev => ({ ...prev, period: e.target.value }))}
-                className={styles.filterSelect}
-              >
-                <option value="all">全期間</option>
-                <option value="week">直近1週間</option>
-                <option value="month">直近1ヶ月</option>
-                <option value="quarter">直近3ヶ月</option>
-              </select>
-            </div>
           </div>
           
-          {/* 理由フィルター (複数選択) */}
-          <div className={styles.reasonFilterContainer}>
-            <div className={styles.reasonFilterHeader}>
-              <label className={styles.filterLabel}>理由</label>
-              <button onClick={handleToggleAllReasons} className={styles.toggleAllButton}>
-                {filterOptions.reasons.length > 0 && filterOptions.reasons.length === filter.reasons.length 
-                  ? '全て解除' 
-                  : '全て選択'}
-              </button>
-            </div>
-            
-            <div className={styles.reasonCheckboxGrid}>
-              {filterOptions.reasons.map(reason => (
-                <div key={reason} className={styles.reasonCheckboxItem}>
-                  <label className={styles.checkboxLabel}>
-                    <input 
-                      type="checkbox" 
-                      checked={filter.reasons.includes(reason)} 
-                      onChange={() => handleReasonChange(reason)}
-                      className={styles.checkbox}
-                    />
-                    <span className={styles.checkboxText}>{reason}</span>
-                  </label>
-                </div>
-              ))}
-            </div>
+          <div className={styles.chartContainer}>
+            <h3 className={styles.chartTitle}> <BarChart2 size={18} /> 科目別の曖昧問題数 </h3>
+            {ambiguousCountBySubject.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={ambiguousCountBySubject} margin={{ top: 5, right: 20, left: -10, bottom: 50 }} barGap={5} >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="subjectName" tick={{ fontSize: 11, fill: '#4b5563' }} angle={-45} textAnchor="end" height={60} interval={0} />
+                  <YAxis tick={{ fontSize: 11, fill: '#4b5563' }} allowDecimals={false} />
+                  <Tooltip cursor={{ fill: 'rgba(238, 242, 255, 0.6)' }} contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '0.375rem', fontSize: '0.875rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }} />
+                  <Bar dataKey="count" name="曖昧問題数" fill="#818cf8" radius={[4, 4, 0, 0]} barSize={20} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className={styles.noDataMessage}>グラフを表示するデータがありません。</div>
+            )}
           </div>
-          
-          {/* フィルターリセットボタン */}
-          <div className={styles.filterActions}>
-            <button onClick={handleResetFilters} className={styles.resetFilterButton}>
-              <X size={14} /> フィルターをリセット
-            </button>
+
+          <div className={styles.chartContainer}>
+            <div className={styles.chartTitleContainer}>
+              <h3 className={styles.chartTitle}> <TrendingUp size={18} /> 曖昧問題数の推移 </h3>
+              <div className={styles.timeAxisButtons}>
+                <button 
+                  className={`${styles.timeAxisButton} ${timeAxisUnit === 'daily' ? styles.timeAxisButtonActive : ''}`}
+                  onClick={() => setTimeAxisUnit('daily')}
+                >
+                  <CalendarDays size={16} className={styles.buttonIcon} />
+                  <span>日次</span>
+                </button>
+                <button 
+                  className={`${styles.timeAxisButton} ${timeAxisUnit === 'weekly' ? styles.timeAxisButtonActive : ''}`}
+                  onClick={() => setTimeAxisUnit('weekly')}
+                >
+                  <CalendarRange size={16} className={styles.buttonIcon} />
+                  <span>週次</span>
+                </button>
+                <button 
+                  className={`${styles.timeAxisButton} ${timeAxisUnit === 'monthly' ? styles.timeAxisButtonActive : ''}`}
+                  onClick={() => setTimeAxisUnit('monthly')}
+                >
+                  <CalendarClock size={16} className={styles.buttonIcon} />
+                  <span>月次</span>
+                </button>
+              </div>
+            </div>
+            {getAggregatedTrendsData.length > 1 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={getAggregatedTrendsData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }} >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb"/>
+                  <XAxis 
+                    dataKey={timeAxisUnit === 'daily' ? "date" : "period"} 
+                    tick={{ fontSize: 11, fill: '#4b5563' }} 
+                    interval={timeAxisUnit === 'daily' ? 'preserveStartEnd' : 0}
+                    angle={timeAxisUnit === 'weekly' ? -30 : 0}
+                    height={timeAxisUnit === 'weekly' ? 50 : 30}
+                    textAnchor={timeAxisUnit === 'weekly' ? "end" : "middle"}
+                  />
+                  <YAxis tick={{ fontSize: 11, fill: '#4b5563' }} allowDecimals={false} domain={['auto', 'auto']} />
+                  <Tooltip 
+                    cursor={{ stroke: '#a5b4fc', strokeWidth: 1 }} 
+                    contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '0.375rem', fontSize: '0.875rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+                    formatter={(value, name) => [value, timeAxisUnit === 'daily' ? '曖昧問題数' : `${timeAxisUnit === 'weekly' ? '週' : '月'}の曖昧問題数`]}
+                    labelFormatter={(label) => {
+                      if (timeAxisUnit === 'daily') return label;
+                      if (timeAxisUnit === 'weekly') return `${label}`;
+                      return `${label}`;
+                    }}
+                  />
+                  <Line type="monotone" dataKey="count" name="曖昧問題数" stroke="#818cf8" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className={styles.noDataMessage}>
+                {answerHistory.length === 0 ? '解答履歴データがありません。' : 'グラフを表示するための十分な解答履歴データがありません。(2日分以上の記録が必要です)'}
+              </div>
+            )}
           </div>
+
+          {/* テーブル表示エリア - テーブルタイプ引数を追加 */}
+          {renderTable('longStagnant', '長期停滞している曖昧問題', AlertCircle, '#b45309', '(最終解答日から30日以上経過)', sortedLongStagnantQuestions, '長期停滞している曖昧問題はありません。', '#fffbeb')}
+          {renderTable('recentReverted', '直近の"揺り戻し"が発生した問題', TrendingDown, '#f97316', '(直前の解答が「理解○」だった問題)', sortedRecentRevertedQuestions, '直近で「理解○」→「曖昧△」となった問題はありません。', '#fff7ed')}
+          {renderTable('completeReverted', '完全な"揺り戻しサイクル"を経験した問題', RotateCcw, '#5b21b6', '(曖昧△ → 理解○ → 曖昧△ の流れを経験)', sortedCompleteRevertedQuestions, '完全な"揺り戻しサイクル"を経験した問題はありません。', '#f5f3ff')}
+          {renderTable('all', '全ての曖昧問題リスト', null, '#374151', '(現在のフィルターとソート適用)', filteredAndSortedQuestions, ambiguousQuestions.length > 0 ? '表示できる曖昧問題がありません。フィルター条件を変更してみてください。' : '曖昧と評価された問題はまだありません。', null)}
         </div>
+      ) : (
+        renderTransitionAnalysisTab()
       )}
 
-      <div className={styles.chartContainer}>
-        <h3 className={styles.chartTitle}> <BarChart2 size={18} /> 科目別の曖昧問題数 </h3>
-        {ambiguousCountBySubject.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={ambiguousCountBySubject} margin={{ top: 5, right: 20, left: -10, bottom: 50 }} barGap={5} >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="subjectName" tick={{ fontSize: 11, fill: '#4b5563' }} angle={-45} textAnchor="end" height={60} interval={0} />
-              <YAxis tick={{ fontSize: 11, fill: '#4b5563' }} allowDecimals={false} />
-              <Tooltip cursor={{ fill: 'rgba(238, 242, 255, 0.6)' }} contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '0.375rem', fontSize: '0.875rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }} />
-              <Bar dataKey="count" name="曖昧問題数" fill="#818cf8" radius={[4, 4, 0, 0]} barSize={20} />
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className={styles.noDataMessage}>グラフを表示するデータがありません。</div>
-        )}
-      </div>
-
-      <div className={styles.chartContainer}>
-        <div className={styles.chartTitleContainer}>
-          <h3 className={styles.chartTitle}> <TrendingUp size={18} /> 曖昧問題数の推移 </h3>
-          <div className={styles.timeAxisButtons}>
-            <button 
-              className={`${styles.timeAxisButton} ${timeAxisUnit === 'daily' ? styles.timeAxisButtonActive : ''}`}
-              onClick={() => setTimeAxisUnit('daily')}
-            >
-              日次
-            </button>
-            <button 
-              className={`${styles.timeAxisButton} ${timeAxisUnit === 'weekly' ? styles.timeAxisButtonActive : ''}`}
-              onClick={() => setTimeAxisUnit('weekly')}
-            >
-              週次
-            </button>
-            <button 
-              className={`${styles.timeAxisButton} ${timeAxisUnit === 'monthly' ? styles.timeAxisButtonActive : ''}`}
-              onClick={() => setTimeAxisUnit('monthly')}
-            >
-              月次
-            </button>
-          </div>
-        </div>
-        {getAggregatedTrendsData.length > 1 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={getAggregatedTrendsData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }} >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb"/>
-              <XAxis 
-                dataKey={timeAxisUnit === 'daily' ? "date" : "period"} 
-                tick={{ fontSize: 11, fill: '#4b5563' }} 
-                interval={timeAxisUnit === 'daily' ? 'preserveStartEnd' : 0}
-                angle={timeAxisUnit === 'weekly' ? -30 : 0}
-                height={timeAxisUnit === 'weekly' ? 50 : 30}
-                textAnchor={timeAxisUnit === 'weekly' ? "end" : "middle"}
-              />
-              <YAxis tick={{ fontSize: 11, fill: '#4b5563' }} allowDecimals={false} domain={['auto', 'auto']} />
-              <Tooltip 
-                cursor={{ stroke: '#a5b4fc', strokeWidth: 1 }} 
-                contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '0.375rem', fontSize: '0.875rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
-                formatter={(value, name) => [value, timeAxisUnit === 'daily' ? '曖昧問題数' : `${timeAxisUnit === 'weekly' ? '週' : '月'}の曖昧問題数`]}
-                labelFormatter={(label) => {
-                  if (timeAxisUnit === 'daily') return label;
-                  if (timeAxisUnit === 'weekly') return `${label}`;
-                  return `${label}`;
-                }}
-              />
-              <Line type="monotone" dataKey="count" name="曖昧問題数" stroke="#818cf8" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 6 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className={styles.noDataMessage}>
-            {answerHistory.length === 0 ? '解答履歴データがありません。' : 'グラフを表示するための十分な解答履歴データがありません。(2日分以上の記録が必要です)'}
-          </div>
-        )}
-      </div>
-
-      {/* テーブル表示エリア - テーブルタイプ引数を追加 */}
-      {renderTable('longStagnant', '長期停滞している曖昧問題', AlertCircle, '#b45309', '(最終解答日から30日以上経過)', sortedLongStagnantQuestions, '長期停滞している曖昧問題はありません。', '#fffbeb')}
-      {renderTable('recentReverted', '直近の"揺り戻し"が発生した問題', TrendingDown, '#f97316', '(直前の解答が「理解○」だった問題)', sortedRecentRevertedQuestions, '直近で「理解○」→「曖昧△」となった問題はありません。', '#fff7ed')}
-      {renderTable('completeReverted', '完全な"揺り戻しサイクル"を経験した問題', RotateCcw, '#5b21b6', '(曖昧△ → 理解○ → 曖昧△ の流れを経験)', sortedCompleteRevertedQuestions, '完全な"揺り戻しサイクル"を経験した問題はありません。', '#f5f3ff')}
-      {renderTable('all', '全ての曖昧問題リスト', null, '#374151', '(現在のフィルターとソート適用)', filteredAndSortedQuestions, ambiguousQuestions.length > 0 ? '表示できる曖昧問題がありません。フィルター条件を変更してみてください。' : '曖昧と評価された問題はまだありません。', null)}
-
-      {editingCommentQuestion && ( <CommentEditModal question={editingCommentQuestion} onSave={saveComment} onCancel={handleCloseCommentModal} /> )}
+      {editingCommentQuestion && (
+        <CommentEditModal
+          question={editingCommentQuestion}
+          onSave={(newComment) => {
+            if (saveComment) {
+              saveComment(editingCommentQuestion.id, newComment);
+            }
+            setEditingCommentQuestion(null);
+          }}
+          onCancel={() => setEditingCommentQuestion(null)}
+        />
+      )}
     </div>
   );
 };
