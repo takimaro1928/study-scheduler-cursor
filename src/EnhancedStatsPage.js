@@ -1,7 +1,7 @@
 // src/EnhancedStatsPage.js
 import React, { useState, useMemo } from 'react';
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { BarChart2, PieChart as PieChartIcon, TrendingUp, Calendar, BookOpen, CheckCircle, AlertTriangle, XCircle, ArrowUpDown, ChevronDown, ChevronRight, Filter, Calendar as CalendarIcon, X, RefreshCw, BookOpenCheck, Zap } from 'lucide-react';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { BarChart2, PieChartIcon, TrendingUp, Calendar, BookOpen, CheckCircle, AlertTriangle, XCircle, ArrowUpDown, ChevronDown, ChevronRight, Filter, Calendar as CalendarIcon, X, RefreshCw, BookOpenCheck, Zap, Brain, Info } from 'lucide-react';
 import styles from './StatsPage.module.css';
 
 const EnhancedStatsPage = ({ subjects = [], answerHistory = [], formatDate }) => {
@@ -37,6 +37,13 @@ const EnhancedStatsPage = ({ subjects = [], answerHistory = [], formatDate }) =>
   const [weakPointsSort, setWeakPointsSort] = useState({
     key: 'correctRate',
     order: 'asc' // 正解率の低い順
+  });
+
+  // 知識保持曲線のオプション
+  const [retentionOptions, setRetentionOptions] = useState({
+    modelType: 'ebbinghaus', // 'ebbinghaus', 'personalized'
+    timeScale: 'days', // 'hours', 'days', 'weeks'
+    questionType: 'all' // 'all', 'difficult', 'medium', 'easy'
   });
   
   // フィルタリングされた解答履歴
@@ -599,634 +606,401 @@ const EnhancedStatsPage = ({ subjects = [], answerHistory = [], formatDate }) =>
       setPeriodFilter('all');
     }
   };
-  
-  return (
-    <div className={styles.container}>
-      <h2 className={styles.title}>
-        <BarChart2 className={styles.titleIcon} size={20} />
-        学習統計
-      </h2>
+
+  // 知識保持曲線の計算
+  const retentionCurveData = useMemo(() => {
+    console.log("知識保持曲線データの計算中...");
+    
+    // 時間単位の設定
+    const timeUnitInHours = 
+      retentionOptions.timeScale === 'hours' ? 1 :
+      retentionOptions.timeScale === 'days' ? 24 : 
+      retentionOptions.timeScale === 'weeks' ? 168 : 24;
+    
+    const timeUnitLabel = 
+      retentionOptions.timeScale === 'hours' ? '時間' :
+      retentionOptions.timeScale === 'days' ? '日' : 
+      retentionOptions.timeScale === 'weeks' ? '週間' : '日';
+    
+    // エビングハウスの忘却曲線のパラメータ
+    const S = 100; // 最初の記憶強度 (100%)
+    const R = 0.9; // 安定度係数 (一般的なモデルでは0.9程度)
+    
+    // 難易度別の安定度係数
+    const difficultyFactors = {
+      'easy': 0.95,      // 簡単な問題は忘れにくい
+      'medium': 0.9,     // 普通の問題
+      'difficult': 0.85  // 難しい問題は忘れやすい
+    };
+    
+    // 個人化モデルのパラメータ計算
+    let personalizedR = R; // デフォルト値
+    
+    if (retentionOptions.modelType === 'personalized' && Array.isArray(answerHistory) && answerHistory.length > 0) {
+      // 同じ問題に対する時間経過と正答率のパターンを分析
+      const questionPerformance = {};
       
-      {/* 拡張されたフィルターセクション */}
-      <div className={styles.filterContainer}>
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel}>期間:</label>
-          <select 
-            className={styles.filterSelect}
-            value={periodFilter}
-            onChange={(e) => setPeriodFilter(e.target.value)}
-            disabled={customDateRange.enabled}
-          >
-            <option value="all">全期間</option>
-            <option value="week">直近1週間</option>
-            <option value="month">直近1ヶ月</option>
-            <option value="3months">直近3ヶ月</option>
-          </select>
-        </div>
+      answerHistory.forEach(record => {
+        if (!record.questionId || !record.timestamp) return;
         
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel}>科目:</label>
-          <select 
-            className={styles.filterSelect}
-            value={subjectFilter}
-            onChange={(e) => {
-              setSubjectFilter(e.target.value);
-              setChapterFilter([]);
-            }}
-          >
-            <option value="all">全科目</option>
-            {subjectOptions.map(subject => (
-              <option key={subject.id} value={subject.id}>{subject.name}</option>
-            ))}
-          </select>
-        </div>
+        if (!questionPerformance[record.questionId]) {
+          questionPerformance[record.questionId] = [];
+        }
         
-        {/* 章フィルター（科目が選択されている場合のみ表示） */}
-        {subjectFilter !== 'all' && chapterOptions.length > 0 && (
-          <div className={styles.filterGroup}>
-            <label className={styles.filterLabel}>章:</label>
-            <select 
-              className={styles.filterSelect}
-              multiple
-              value={chapterFilter}
-              onChange={(e) => {
-                const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
-                setChapterFilter(selectedOptions);
-              }}
-              size={Math.min(3, chapterOptions.length)}
+        questionPerformance[record.questionId].push({
+          timestamp: new Date(record.timestamp),
+          isCorrect: record.isCorrect
+        });
+      });
+      
+      // 各問題の学習後の経過時間と正答率の関係を計算
+      let totalDifficultyFactor = 0;
+      let validQuestionCount = 0;
+      
+      Object.keys(questionPerformance).forEach(qId => {
+        const records = questionPerformance[qId];
+        if (records.length < 2) return; // 最低2回以上解答されている問題のみ分析
+        
+        // 時間順にソート
+        records.sort((a, b) => a.timestamp - b.timestamp);
+        
+        // 前回の学習からの経過時間と正答率の関係を計算
+        let correctAfterDelay = 0;
+        let totalAfterDelay = 0;
+        
+        for (let i = 1; i < records.length; i++) {
+          const prevTime = records[i-1].timestamp;
+          const currTime = records[i].timestamp;
+          const hoursDiff = (currTime - prevTime) / (1000 * 60 * 60);
+          
+          // 前回の学習から一定時間（1時間以上）経過している場合のみカウント
+          if (hoursDiff >= 1) {
+            totalAfterDelay++;
+            if (records[i].isCorrect) {
+              correctAfterDelay++;
+            }
+          }
+        }
+        
+        if (totalAfterDelay > 0) {
+          // 時間経過後の正答率から安定度係数を推定
+          const correctRate = correctAfterDelay / totalAfterDelay;
+          
+          // 安定度係数の調整（難しい問題ほど係数が小さくなる）
+          let difficultyFactor;
+          if (correctRate >= 0.8) {
+            difficultyFactor = difficultyFactors.easy;
+          } else if (correctRate >= 0.5) {
+            difficultyFactor = difficultyFactors.medium;
+          } else {
+            difficultyFactor = difficultyFactors.difficult;
+          }
+          
+          totalDifficultyFactor += difficultyFactor;
+          validQuestionCount++;
+        }
+      });
+      
+      // 平均の安定度係数を計算
+      if (validQuestionCount > 0) {
+        personalizedR = totalDifficultyFactor / validQuestionCount;
+      }
+      
+      console.log(`パーソナライズされた安定度係数: ${personalizedR.toFixed(4)}`);
+    }
+    
+    // 難易度別のフィルタリング
+    let selectedR = personalizedR;
+    
+    if (retentionOptions.questionType !== 'all') {
+      selectedR = difficultyFactors[retentionOptions.questionType];
+    }
+    
+    // エビングハウスの忘却曲線の数式: R(t) = S * e^(-t/S)
+    // ここで、R(t)は時間tにおける記憶保持率、Sは安定度
+    const calculateRetention = (t, stability) => {
+      return S * Math.pow(Math.E, -t / (S * stability));
+    };
+    
+    // グラフ用のデータポイントを生成（最大30ポイント）
+    const dataPoints = [];
+    const maxTimeUnits = 30;
+    
+    // 初期値 (学習直後 = 100%)
+    dataPoints.push({
+      time: 0,
+      label: `0${timeUnitLabel}`,
+      retention: 100
+    });
+    
+    // 各時間ポイントでの記憶保持率を計算
+    for (let i = 1; i <= maxTimeUnits; i++) {
+      const timeValue = i;
+      const retention = calculateRetention(timeValue, selectedR);
+      
+      dataPoints.push({
+        time: timeValue,
+        label: `${timeValue}${timeUnitLabel}`,
+        retention: Math.max(0, Math.min(100, Math.round(retention)))
+      });
+    }
+    
+    // 復習ポイントを計算（記憶保持率が70%を下回るタイミング）
+    const reviewPoints = [];
+    let lastPoint = dataPoints[0];
+    
+    for (let i = 1; i < dataPoints.length; i++) {
+      const currentPoint = dataPoints[i];
+      
+      if (lastPoint.retention >= 70 && currentPoint.retention < 70) {
+        reviewPoints.push({
+          time: currentPoint.time,
+          retention: currentPoint.retention,
+          label: `${currentPoint.time}${timeUnitLabel}後に復習`
+        });
+      }
+      
+      lastPoint = currentPoint;
+    }
+    
+    return {
+      curve: dataPoints,
+      reviewPoints: reviewPoints,
+      modelType: retentionOptions.modelType,
+      stabilityFactor: selectedR.toFixed(4)
+    };
+  }, [retentionOptions, answerHistory]);
+
+  // 知識保持曲線モデルの変更ハンドラ
+  const handleRetentionModelChange = (e) => {
+    setRetentionOptions(prev => ({
+      ...prev,
+      modelType: e.target.value
+    }));
+  };
+  
+  // 知識保持曲線の時間スケール変更ハンドラ
+  const handleTimeScaleChange = (e) => {
+    setRetentionOptions(prev => ({
+      ...prev,
+      timeScale: e.target.value
+    }));
+  };
+  
+  // 問題難易度フィルターの変更ハンドラ
+  const handleQuestionTypeChange = (e) => {
+    setRetentionOptions(prev => ({
+      ...prev,
+      questionType: e.target.value
+    }));
+  };
+
+  // 知識保持曲線タブの内容
+  const renderRetentionCurveTab = () => {
+    return (
+      <div className={styles.retentionCurveContainer}>
+        <div className={styles.retentionControls}>
+          <div className={styles.controlGroup}>
+            <label htmlFor="modelType">モデルタイプ:</label>
+            <select
+              id="modelType"
+              value={retentionOptions.modelType}
+              onChange={handleRetentionModelChange}
+              className={styles.controlSelect}
             >
-              {chapterOptions.map(chapter => (
-                <option key={chapter.id} value={chapter.id}>{chapter.name}</option>
-              ))}
+              <option value="ebbinghaus">エビングハウス (標準)</option>
+              <option value="personalized">パーソナライズ (学習履歴ベース)</option>
             </select>
-            <div className={styles.selectHelp}>複数選択: Ctrlキーを押しながらクリック</div>
-          </div>
-        )}
-        
-        {/* カスタム期間フィルター */}
-        <div className={styles.filterGroup} style={{ alignItems: 'flex-start' }}>
-          <div className={styles.checkboxGroup}>
-            <input 
-              type="checkbox" 
-              id="customDateRange"
-              checked={customDateRange.enabled}
-              onChange={toggleCustomDateRange}
-              className={styles.checkbox}
-            />
-            <label htmlFor="customDateRange" className={styles.checkboxLabel}>カスタム期間:</label>
           </div>
           
-          {customDateRange.enabled && (
-            <div className={styles.dateRangeInputs}>
-              <input 
-                type="date" 
-                value={customDateRange.start ? customDateRange.start.split('T')[0] : ''}
-                onChange={(e) => setCustomDateRange(prev => ({ ...prev, start: e.target.value }))}
-                className={styles.dateInput}
-              />
-              <span className={styles.dateSeparator}>～</span>
-              <input 
-                type="date" 
-                value={customDateRange.end ? customDateRange.end.split('T')[0] : ''}
-                onChange={(e) => setCustomDateRange(prev => ({ ...prev, end: e.target.value }))}
-                className={styles.dateInput}
-              />
-            </div>
-          )}
+          <div className={styles.controlGroup}>
+            <label htmlFor="timeScale">時間スケール:</label>
+            <select
+              id="timeScale"
+              value={retentionOptions.timeScale}
+              onChange={handleTimeScaleChange}
+              className={styles.controlSelect}
+            >
+              <option value="hours">時間単位</option>
+              <option value="days">日単位</option>
+              <option value="weeks">週単位</option>
+            </select>
+          </div>
+          
+          <div className={styles.controlGroup}>
+            <label htmlFor="questionType">問題タイプ:</label>
+            <select
+              id="questionType"
+              value={retentionOptions.questionType}
+              onChange={handleQuestionTypeChange}
+              className={styles.controlSelect}
+            >
+              <option value="all">すべての問題</option>
+              <option value="easy">簡単な問題</option>
+              <option value="medium">標準的な問題</option>
+              <option value="difficult">難しい問題</option>
+            </select>
+          </div>
+        </div>
+        
+        <div className={styles.retentionChartContainer}>
+          <h3 className={styles.chartTitle}>
+            <Brain size={18} className={styles.chartIcon} />
+            知識保持曲線
+            <span className={styles.modelInfo}>
+              (安定度係数: {retentionCurveData.stabilityFactor})
+            </span>
+          </h3>
+          
+          <div className={styles.chartWrapper}>
+            <ResponsiveContainer width="100%" height={400}>
+              <AreaChart
+                data={retentionCurveData.curve}
+                margin={{ top: 10, right: 30, left: 0, bottom: 30 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="label" 
+                  label={{ 
+                    value: `学習後の経過${retentionOptions.timeScale === 'hours' ? '時間' : retentionOptions.timeScale === 'days' ? '日数' : '週数'}`, 
+                    position: 'insideBottom',
+                    offset: -10
+                  }} 
+                />
+                <YAxis 
+                  domain={[0, 100]} 
+                  label={{ 
+                    value: '記憶保持率 (%)', 
+                    angle: -90, 
+                    position: 'insideLeft',
+                    style: { textAnchor: 'middle' } 
+                  }} 
+                />
+                <Tooltip formatter={(value) => [`${value}%`, '記憶保持率']} />
+                <Area 
+                  type="monotone" 
+                  dataKey="retention" 
+                  stroke="#4f46e5" 
+                  fill="#e0e7ff" 
+                  name="記憶保持率"
+                />
+                {/* 復習推奨ライン (70%) */}
+                <Line
+                  type="monotone"
+                  dataKey="retention"
+                  data={[
+                    { time: 0, retention: 70, label: "" },
+                    { time: 30, retention: 70, label: "" }
+                  ]}
+                  stroke="#ef4444"
+                  strokeDasharray="3 3"
+                  dot={false}
+                  activeDot={false}
+                  isAnimationActive={false}
+                  name="復習推奨ライン"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+          
+          {/* 復習タイミングの推奨 */}
+          <div className={styles.reviewRecommendations}>
+            <h4 className={styles.recommendationTitle}>
+              <RefreshCw size={16} className={styles.recommendationIcon} />
+              復習タイミングの推奨
+            </h4>
+            
+            {retentionCurveData.reviewPoints.length > 0 ? (
+              <div className={styles.recommendationBox}>
+                <p>
+                  記憶保持率が70%を下回る前に復習することをお勧めします。
+                </p>
+                <ul className={styles.recommendationList}>
+                  {retentionCurveData.reviewPoints.map((point, index) => (
+                    <li key={index} className={styles.recommendationItem}>
+                      <span className={styles.recommendationHighlight}>
+                        学習から{point.label}
+                      </span>
+                      のタイミングで復習すると効果的です
+                      <span className={styles.recommendationDetail}>
+                        (記憶保持率: 約{point.retention}%)
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className={styles.noRecommendation}>
+                選択した期間内では、記憶保持率が70%を下回るタイミングが見つかりませんでした。
+              </p>
+            )}
+          </div>
+          
+          <div className={styles.curveExplanation}>
+            <h4 className={styles.explanationTitle}>
+              <Info size={16} className={styles.explanationIcon} />
+              知識保持曲線について
+            </h4>
+            <p>
+              知識保持曲線は、学習後の時間経過に伴う記憶の定着度を示すモデルです。
+              エビングハウスの忘却曲線をベースに、{retentionOptions.modelType === 'personalized' ? 'あなたの学習履歴から計算されたパーソナライズされた' : '一般的な'}忘却パターンを予測しています。
+              効率的な学習のために、記憶保持率が70%を下回る前の復習がおすすめです。
+            </p>
+          </div>
         </div>
       </div>
-      
-      {/* タブ切り替え */}
-      <div className={styles.tabContainer}>
-        <button 
+    );
+  };
+
+  return (
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <h2 className={styles.pageTitle}>
+          <BarChart2 size={24} className={styles.titleIcon} />
+          学習統計・分析
+        </h2>
+        <p className={styles.pageDescription}>
+          学習状況や習熟度をデータ分析し、効率的な学習戦略のための情報を提供します。
+        </p>
+      </div>
+
+      <div className={styles.tabNavigation}>
+        <button
           className={`${styles.tabButton} ${activeTab === 'overview' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('overview')}
         >
-          <BookOpen size={16} />
-          概要
+          <BarChart2 size={18} />
+          学習概要
         </button>
-        <button 
-          className={`${styles.tabButton} ${activeTab === 'subjects' ? styles.activeTab : ''}`}
-          onClick={() => setActiveTab('subjects')}
+        <button
+          className={`${styles.tabButton} ${activeTab === 'progress' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('progress')}
         >
-          <PieChartIcon size={16} />
-          科目別
+          <TrendingUp size={18} />
+          進捗推移
         </button>
-        <button 
-          className={`${styles.tabButton} ${activeTab === 'timeseries' ? styles.activeTab : ''}`}
-          onClick={() => setActiveTab('timeseries')}
+        <button
+          className={`${styles.tabButton} ${activeTab === 'weakPoints' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('weakPoints')}
         >
-          <TrendingUp size={16} />
-          学習履歴
+          <AlertTriangle size={18} />
+          苦手分析
         </button>
-        <button 
-          className={`${styles.tabButton} ${activeTab === 'weakpoints' ? styles.activeTab : ''}`}
-          onClick={() => setActiveTab('weakpoints')}
+        <button
+          className={`${styles.tabButton} ${activeTab === 'retention' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('retention')}
         >
-          <Zap size={16} />
-          苦手問題
+          <Brain size={18} />
+          知識保持曲線
         </button>
       </div>
-      
-      {/* 概要タブ */}
-      {activeTab === 'overview' && (
-        <div className={styles.overviewTab}>
-          {/* 概要カード */}
-          <div className={styles.statsGrid}>
-            <div className={styles.statCard}>
-              <div className={styles.statTitle}>総問題数</div>
-              <div className={styles.statValue}>{stats.totalQuestions || 0}</div>
-              <div className={styles.statDescription}>登録されている問題の総数</div>
-            </div>
-            
-            <div className={styles.statCard}>
-              <div className={styles.statTitle}>解答済み問題数</div>
-              <div className={styles.statValue}>{stats.answeredQuestions || 0}</div>
-              <div className={styles.statDescription}>1回以上解答した問題数</div>
-            </div>
-            
-            <div className={styles.statCard}>
-              <div className={styles.statTitle}>進捗率</div>
-              <div className={styles.statValue}>{stats.completionRate || 0}%</div>
-              <div className={styles.statDescription}>全体の学習進捗</div>
-            </div>
-            
-            <div className={styles.statCard}>
-              <div className={styles.statTitle}>累計解答数</div>
-              <div className={styles.statValue}>{filteredHistory.length || 0}</div>
-              <div className={styles.statDescription}>解答した回数の合計</div>
-            </div>
-          </div>
-          
-          {/* 理解度の分布（円グラフ） */}
-          <div className={styles.chartContainer}>
-            <h3 className={styles.chartTitle}>
-              <CheckCircle size={18} className={styles.chartIcon} />
-              理解度の分布
-            </h3>
-            <div className={styles.chartContent}>
-              {stats.understandingPieData && stats.understandingPieData.some(item => item.value > 0) ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={stats.understandingPieData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={true}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      nameKey="name"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {stats.understandingPieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [`${value}問`, '問題数']} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className={styles.noDataMessage}>データがありません</div>
-              )}
-            </div>
-          </div>
-          
-          {/* 正解率の分布（棒グラフ） */}
-          <div className={styles.chartContainer}>
-            <h3 className={styles.chartTitle}>
-              <BarChart2 size={18} className={styles.chartIcon} />
-              正解率の分布
-            </h3>
-            <div className={styles.chartContent}>
-              {stats.correctRateBarData && stats.correctRateBarData.some(item => item.value > 0) ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={stats.correctRateBarData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [`${value}問`, '問題数']} />
-                    <Legend />
-                    <Bar dataKey="value" name="問題数">
-                      {stats.correctRateBarData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className={styles.noDataMessage}>データがありません</div>
-              )}
-            </div>
-          </div>
-          
-          {/* 復習間隔の分布（新機能） */}
-          <div className={styles.chartContainer}>
-            <h3 className={styles.chartTitle}>
-              <CalendarIcon size={18} className={styles.chartIcon} />
-              復習間隔の分布
-            </h3>
-            <div className={styles.chartContent}>
-              {stats.intervalBarData && stats.intervalBarData.some(item => item.value > 0) ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={stats.intervalBarData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [`${value}問`, '問題数']} />
-                    <Legend />
-                    <Bar dataKey="value" name="問題数">
-                      {stats.intervalBarData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className={styles.noDataMessage}>データがありません</div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* 科目別タブ */}
-      {activeTab === 'subjects' && (
-        <div className={styles.subjectsTab}>
-          <div className={styles.tableContainer}>
-            <h3 className={styles.sectionTitle}>科目別進捗状況</h3>
-            
-            <div className={styles.tableWrapper}>
-              <table className={styles.statsTable}>
-                <thead>
-                  <tr>
-                    <th className={styles.tableHeader}>科目名</th>
-                    <th className={styles.tableHeader}>問題数</th>
-                    <th className={styles.tableHeader}>解答済</th>
-                    <th className={styles.tableHeader}>進捗率</th>
-                    <th className={styles.tableHeader}>正解率</th>
-                    <th className={styles.tableHeader}>理解度分布</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.subjectStats && stats.subjectStats.map((subject) => {
-                    const isExpanded = expandedSubjectIds.includes(subject.id);
-                    
-                    return (
-                      <React.Fragment key={subject.id}>
-                        {/* 科目行 - クリック可能 */}
-                        <tr 
-                          className={`${styles.subjectRow} ${isExpanded ? styles.expandedRow : ''}`}
-                          onClick={() => toggleSubjectExpansion(subject.id)}
-                        >
-                          <td className={styles.subjectCell}>
-                            <div className={styles.subjectNameWithIcon}>
-                              <span className={`${styles.expansionIcon} ${isExpanded ? styles.expanded : ''}`}>
-                                {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                              </span>
-                              {subject.name}
-                            </div>
-                          </td>
-                          <td>{subject.total}</td>
-                          <td>{subject.answered}</td>
-                          <td>{subject.completionRate}%</td>
-                          <td>{subject.correctRate}%</td>
-                          <td>
-                            <div className={styles.miniBarContainer}>
-                              <div 
-                                className={styles.miniBarSegment} 
-                                style={{ 
-                                  width: `${subject.understanding['理解○'] / subject.total * 100}%`,
-                                  backgroundColor: '#10b981'
-                                }} 
-                                title={`理解○: ${subject.understanding['理解○']}問`}
-                              />
-                              <div 
-                                className={styles.miniBarSegment} 
-                                style={{ 
-                                  width: `${subject.understanding['曖昧△'] / subject.total * 100}%`,
-                                  backgroundColor: '#f59e0b'
-                                }} 
-                                title={`曖昧△: ${subject.understanding['曖昧△']}問`}
-                              />
-                              <div 
-                                className={styles.miniBarSegment} 
-                                style={{ 
-                                  width: `${subject.understanding['理解できていない×'] / subject.total * 100}%`,
-                                  backgroundColor: '#ef4444'
-                                }} 
-                                title={`理解できていない×: ${subject.understanding['理解できていない×']}問`}
-                              />
-                              <div 
-                                className={styles.miniBarSegment} 
-                                style={{ 
-                                  width: `${subject.understanding['未解答'] / subject.total * 100}%`,
-                                  backgroundColor: '#9ca3af'
-                                }} 
-                                title={`未解答: ${subject.understanding['未解答']}問`}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                        
-                        {/* 科目が展開されている場合、章の詳細を表示 */}
-                        {isExpanded && subject.chapters.map(chapter => (
-                          <tr key={`chapter-${chapter.id}`} className={styles.chapterRow}>
-                            <td className={styles.chapterCell}>{chapter.name}</td>
-                            <td>{chapter.total}</td>
-                            <td>{chapter.answered}</td>
-                            <td>{chapter.completionRate}%</td>
-                            <td>{chapter.correctRate}%</td>
-                            <td></td> {/* 章レベルでは理解度分布を表示しない */}
-                          </tr>
-                        ))}
-                      </React.Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          
-          {/* 科目別正解率の棒グラフ */}
-          <div className={styles.chartContainer}>
-            <h3 className={styles.chartTitle}>
-              <BarChart2 size={18} className={styles.chartIcon} />
-              科目別正解率
-            </h3>
-            <div className={styles.chartContent}>
-              {stats.subjectStats && stats.subjectStats.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart 
-                    data={stats.subjectStats.map(subject => ({
-                      name: subject.name,
-                      correctRate: subject.correctRate
-                    }))} 
-                    margin={{ top: 5, right: 30, left: 20, bottom: 50 }}
-                    layout="vertical"
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" domain={[0, 100]} />
-                    <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 12 }} />
-                    <Tooltip formatter={(value) => [`${value}%`, '正解率']} />
-                    <Legend />
-                    <Bar dataKey="correctRate" name="正解率" fill="#4f46e5" />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className={styles.noDataMessage}>データがありません</div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* 学習履歴タブ（拡張版） */}
-      {activeTab === 'timeseries' && (
-        <div className={styles.timeseriesTab}>
-          {/* 表示オプション */}
-          <div className={styles.displayOptions}>
-            <div className={styles.optionGroup}>
-              <label className={styles.optionLabel}>表示単位:</label>
-              <div className={styles.optionButtons}>
-                <button 
-                  className={`${styles.optionButton} ${chartOptions.timeseriesView === 'daily' ? styles.optionActive : ''}`}
-                  onClick={() => changeTimeseriesView('daily')}
-                >
-                  日次
-                </button>
-                <button 
-                  className={`${styles.optionButton} ${chartOptions.timeseriesView === 'weekly' ? styles.optionActive : ''}`}
-                  onClick={() => changeTimeseriesView('weekly')}
-                >
-                  週次
-                </button>
-                <button 
-                  className={`${styles.optionButton} ${chartOptions.timeseriesView === 'monthly' ? styles.optionActive : ''}`}
-                  onClick={() => changeTimeseriesView('monthly')}
-                >
-                  月次
-                </button>
-              </div>
-            </div>
-            
-            <div className={styles.optionGroup}>
-              <label className={styles.checkboxContainer}>
-                <input 
-                  type="checkbox" 
-                  checked={chartOptions.showMovingAverage} 
-                  onChange={toggleMovingAverage}
-                  className={styles.checkbox}
-                />
-                <span className={styles.checkboxLabel}>移動平均線（7日間）を表示</span>
-              </label>
-            </div>
-          </div>
-          
-          {/* 解答数と正解率グラフ */}
-          <div className={styles.chartContainer}>
-            <h3 className={styles.chartTitle}>
-              {chartOptions.timeseriesView === 'daily' && <Calendar size={18} className={styles.chartIcon} />}
-              {chartOptions.timeseriesView === 'weekly' && <Calendar size={18} className={styles.chartIcon} />}
-              {chartOptions.timeseriesView === 'monthly' && <Calendar size={18} className={styles.chartIcon} />}
-              {chartOptions.timeseriesView === 'daily' && '日別'}
-              {chartOptions.timeseriesView === 'weekly' && '週別'}
-              {chartOptions.timeseriesView === 'monthly' && '月別'}
-              解答数と正解率
-            </h3>
-            <div className={styles.chartContent}>
-              {stats.timeseriesData && (() => {
-                let chartData = [];
-                
-                // 表示オプションに基づいてデータを選択
-                if (chartOptions.timeseriesView === 'daily') {
-                  chartData = stats.timeseriesData.daily;
-                } else if (chartOptions.timeseriesView === 'weekly') {
-                  chartData = stats.timeseriesData.weekly;
-                } else if (chartOptions.timeseriesView === 'monthly') {
-                  chartData = stats.timeseriesData.monthly;
-                }
-                
-                const maData = stats.timeseriesData.movingAverage;
-                
-                if (chartData.length > 0) {
-                  return (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <LineChart
-                        margin={{ top: 5, right: 30, left: 20, bottom: chartOptions.timeseriesView === 'weekly' ? 50 : 5 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis 
-                          dataKey={chartOptions.timeseriesView === 'daily' ? 'date' : 'period'} 
-                          angle={chartOptions.timeseriesView === 'weekly' ? -30 : 0} 
-                          textAnchor={chartOptions.timeseriesView === 'weekly' ? 'end' : 'middle'} 
-                          height={chartOptions.timeseriesView === 'weekly' ? 60 : 30}
-                          allowDataOverflow
-                        />
-                        <YAxis yAxisId="left" orientation="left" stroke="#4f46e5" />
-                        <YAxis yAxisId="right" orientation="right" domain={[0, 100]} stroke="#10b981" />
-                        <Tooltip />
-                        <Legend />
-                        
-                        {/* メインの線 */}
-                        <Line 
-                          yAxisId="left" 
-                          type="monotone" 
-                          dataKey="count" 
-                          name="解答数" 
-                          data={chartData}
-                          stroke="#4f46e5" 
-                          activeDot={{ r: 8 }} 
-                        />
-                        <Line 
-                          yAxisId="right" 
-                          type="monotone" 
-                          dataKey="correctRate" 
-                          name="正解率(%)" 
-                          data={chartData}
-                          stroke="#10b981" 
-                        />
-                        
-                        {/* 移動平均線（オプション） */}
-                        {chartOptions.showMovingAverage && chartOptions.timeseriesView === 'daily' && (
-                          <>
-                            <Line 
-                              yAxisId="left" 
-                              type="monotone" 
-                              dataKey="maCount" 
-                              name="解答数(7日平均)" 
-                              data={maData}
-                              stroke="#818cf8" 
-                              strokeDasharray="3 3"
-                            />
-                            <Line 
-                              yAxisId="right" 
-                              type="monotone" 
-                              dataKey="maCorrectRate" 
-                              name="正解率(7日平均)" 
-                              data={maData}
-                              stroke="#34d399" 
-                              strokeDasharray="3 3"
-                            />
-                          </>
-                        )}
-                      </LineChart>
-                    </ResponsiveContainer>
-                  );
-                } else {
-                  return <div className={styles.noDataMessage}>解答履歴データがありません</div>;
-                }
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* 苦手問題タブ（新機能） */}
-      {activeTab === 'weakpoints' && (
-        <div className={styles.weakpointsTab}>
-          <div className={styles.tableContainer}>
-            <h3 className={styles.sectionTitle}>
-              <div className={styles.sectionTitleWithDescription}>
-                <span>苦手問題リスト</span>
-                <span className={styles.sectionDescription}>
-                  (正解率50%未満かつ解答回数3回以上の問題)
-                </span>
-              </div>
-            </h3>
-            
-            <div className={styles.tableWrapper}>
-              {sortedWeakPointsList.length > 0 ? (
-                <table className={styles.statsTable}>
-                  <thead>
-                    <tr>
-                      <th 
-                        className={styles.sortableHeader} 
-                        onClick={() => handleWeakPointsSort('id')}
-                      >
-                        問題ID 
-                        <ArrowUpDown size={14} className={styles.sortIcon} />
-                      </th>
-                      <th 
-                        className={styles.sortableHeader} 
-                        onClick={() => handleWeakPointsSort('subjectName')}
-                      >
-                        科目 
-                        <ArrowUpDown size={14} className={styles.sortIcon} />
-                      </th>
-                      <th 
-                        className={styles.sortableHeader} 
-                        onClick={() => handleWeakPointsSort('chapterName')}
-                      >
-                        章 
-                        <ArrowUpDown size={14} className={styles.sortIcon} />
-                      </th>
-                      <th 
-                        className={styles.sortableHeader} 
-                        onClick={() => handleWeakPointsSort('correctRate')}
-                      >
-                        正解率 
-                        <ArrowUpDown size={14} className={styles.sortIcon} />
-                      </th>
-                      <th 
-                        className={styles.sortableHeader} 
-                        onClick={() => handleWeakPointsSort('answerCount')}
-                      >
-                        解答回数 
-                        <ArrowUpDown size={14} className={styles.sortIcon} />
-                      </th>
-                      <th 
-                        className={styles.sortableHeader} 
-                        onClick={() => handleWeakPointsSort('lastAnswered')}
-                      >
-                        最終解答日 
-                        <ArrowUpDown size={14} className={styles.sortIcon} />
-                      </th>
-                      <th 
-                        className={styles.sortableHeader} 
-                        onClick={() => handleWeakPointsSort('understanding')}
-                      >
-                        理解度 
-                        <ArrowUpDown size={14} className={styles.sortIcon} />
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedWeakPointsList.map(question => (
-                      <tr key={question.id} className={styles.weakPointRow}>
-                        <td>{question.id}</td>
-                        <td>{question.subjectName}</td>
-                        <td>{question.chapterName}</td>
-                        <td className={styles.correctRateCell}>
-                          <div className={styles.correctRateBar}>
-                            <div 
-                              className={styles.correctRateBarInner}
-                              style={{ width: `${question.correctRate}%` }}
-                            ></div>
-                          </div>
-                          <span>{question.correctRate}%</span>
-                        </td>
-                        <td>{question.answerCount}</td>
-                        <td>{formatDate(question.lastAnswered)}</td>
-                        <td className={question.understanding.startsWith('曖昧△') ? styles.ambiguousCell : ''}>
-                          {question.understanding.includes(':') 
-                            ? question.understanding.split(':')[0] 
-                            : question.understanding}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <div className={styles.noDataMessage}>
-                  苦手問題が見つかりませんでした。
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+
+      <div className={styles.tabContent}>
+        {activeTab === 'overview' && renderOverviewTab()}
+        {activeTab === 'progress' && renderProgressTab()}
+        {activeTab === 'weakPoints' && renderWeakPointsTab()}
+        {activeTab === 'retention' && renderRetentionCurveTab()}
+      </div>
     </div>
   );
 };
