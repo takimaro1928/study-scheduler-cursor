@@ -57,24 +57,24 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate }) => {
 
   // CSS Modules を使う場合は className="today-container" を className={styles.todayContainer} 等に変更
   return (
-    <div className="today-container">
+    <div className="container">
       {/* ページタイトル */}
-      <h2 className="today-title-container">
+      <h2 className="section-title">
         <span>今日解く問題</span>
-        <span className="today-date-badge">
+        <span className="question-badge">
           {formatDate(new Date())}
         </span>
       </h2>
 
       {/* ★ todayQuestions が null や undefined, 空配列の場合の表示 */}
       {!todayQuestions || todayQuestions.length === 0 ? (
-        <div className="today-empty-card">
+        <div className="study-card">
           <p>今日解く問題はありません 🎉</p>
           <p>素晴らしい！ゆっくり休んでください。</p>
         </div>
       ) : (
         // 問題リスト
-        <div className="today-list">
+        <div className="study-cards-container">
           {todayQuestions.map(question => {
             // ★ question が null や undefined でないことを確認
             if (!question || !question.id) {
@@ -86,29 +86,29 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate }) => {
 
             return (
               // 問題カード
-              <div key={question.id} className="today-card">
-                <div className="today-card__content">
+              <div key={question.id} className="study-card">
+                <div className="study-card-content">
                   {/* 問題情報 - ★ nullish coalescing (?? '?') を使って安全に表示 */}
-                  <div className="today-card__subject">{question.subjectName || question.subject?.name || '?'}</div>
-　　　　　　　　　　　<div className="today-card__chapter">{question.chapterName || question.chapter?.name || '?'}</div>
-                  <div className="today-card__qid-badge">
+                  <div className="subject-name">{question.subjectName || question.subject?.name || '?'}</div>
+　　　　　　　　　　　<div className="chapter-name">{question.chapterName || question.chapter?.name || '?'}</div>
+                  <div className="question-badge">
                     問題 {question.id}
                   </div>
 
                   {/* --- 正誤ボタンエリア --- */}
                   {!questionState.showComprehension && (
                     <div>
-                      <div className="today-section-label">解答結果</div>
-                      <div className="today-button-grid">
+                      <div className="section-title"><span className="section-dot"></span>解答結果</div>
+                      <div className="answer-button-container">
                         <button
                           onClick={() => handleAnswerClick(question.id, true)}
-                          className="today-button today-button--correct"
+                          className="correct-button"
                         >
                           <Check /> 正解
                         </button>
                         <button
                           onClick={() => handleAnswerClick(question.id, false)}
-                          className="today-button today-button--incorrect"
+                          className="incorrect-button"
                         >
                           <X /> 不正解
                         </button>
@@ -119,23 +119,23 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate }) => {
                   {/* --- 理解度ボタンエリア --- */}
                   {questionState.showComprehension && (
                     <div>
-                      <div className="today-section-label">理解度を選択</div>
-                      <div className="today-button-grid">
+                      <div className="section-title"><span className="section-dot"></span>理解度を選択</div>
+                      <div className="understanding-container">
                         <button
                           onClick={() => handleUnderstandClick(question.id)}
-                          className="today-button today-button--understood"
+                          className="understanding-button"
                         >
                           <Check /> 理解済み
                         </button>
                         <button
                           onClick={() => handleAmbiguousClick(question.id)}
-                          className={`today-button today-button--ambiguous ${isAmbiguousPanelOpen ? 'open' : ''}`}
+                          className={`ambiguous-button ${isAmbiguousPanelOpen ? 'active' : ''}`}
                         >
                           <div style={{display: 'flex', alignItems: 'center'}}>
                             <AlertTriangle/>
-                            <span>曖昧</span>
+                            <span className="study-button-text">曖昧</span>
                           </div>
-                          <ChevronsUpDown className="today-button__dropdown-icon" />
+                          <ChevronsUpDown />
                         </button>
                       </div>
                     </div>
@@ -144,12 +144,12 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate }) => {
 
                 {/* --- 曖昧理由選択パネル --- */}
                 {isAmbiguousPanelOpen && (
-                  <div className="reason-panel-container">
+                  <div>
                      <div className="reason-panel">
-                       <div className="reason-panel__header">
-                         <div className="reason-panel__title">曖昧だった理由を選択してください:</div>
+                       <div className="reason-panel-header">
+                         <div className="reason-panel-title">曖昧だった理由を選択してください:</div>
                        </div>
-                       <div className="reason-panel__options">
+                       <div>
                          {ambiguousReasons.map((reason, index) => (
                            <button
                              key={index}
