@@ -18,6 +18,11 @@ import StatsPage from './StatsPage';
 import ReminderNotification from './ReminderNotification';
 import EnhancedStatsPage from './EnhancedStatsPage';
 import NotesPage from './NotesPage'; // NotesPage のインポートを追加
+import ErrorBoundary from './components/ErrorBoundary';
+// エラーハンドリング関連のインポート
+import { setupGlobalErrorHandlers } from './utils/error-logger';
+import { isStorageAvailable, getStorageItem, setStorageItem, studyDataValidator, historyDataValidator } from './utils/storage';
+import { NotificationProvider } from './contexts/NotificationContext';
 
 // 問題生成関数 (IDゼロパディング、understanding='理解○' 固定)
 function generateQuestions(prefix, start, end) {
@@ -129,15 +134,35 @@ function App() {
   const [answerHistory, setAnswerHistory] = useState([]);
   const [showExportReminder, setShowExportReminder] = useState(false);
   const [daysSinceLastExport, setDaysSinceLastExport] = useState(null);
+  // エラー関連の状態
+  const [hasStorageError, setHasStorageError] = useState(false);
+  
+  // グローバルエラーハンドラーの設定
+  useEffect(() => {
+    setupGlobalErrorHandlers();
     
-  // ★ 初期データロード処理 (変更なし) ★
+    // ローカルストレージの可用性チェック
+    if (!isStorageAvailable()) {
+      setHasStorageError(true);
+    }
+  }, []);
+  
+  // ★ 初期データロード処理 (エラーハンドリング強化) ★
   useEffect(() => {
     console.log("初期データロード開始 (Ver. サンプルデータ優先)");
-    const savedStudyData = localStorage.getItem('studyData');
-    let studyDataToSet;
-    if (savedStudyData) {
-      try {
-        studyDataToSet = JSON.parse(savedStudyData);
+    
+    try {
+      // ストレージ使用不可の場合は初期データを生成
+      if (hasStorageError) {
+        setSubjects(generateInitialData());
+        console.log('ストレージ使用不可のため、メモリ上で初期学習データを生成');
+        return;
+      }
+      
+      // 学習データのロード
+      const studyDataToSet = getStorageItem('studyData', null, studyDataValidator);
+      
+      if (studyDataToSet) {
         // データ形式の互換性チェック (変更なし)
         studyDataToSet.forEach(subject => { 
           // notes プロパティが存在しない場合初期化
@@ -162,30 +187,66 @@ function App() {
             }); 
           }); 
         });
+        setSubjects(studyDataToSet);
         console.log('学習データをLocalStorageから読み込み完了');
-      } catch (e) { console.error('学習データ読み込み失敗:', e); studyDataToSet = generateInitialData(); console.log('読み込み失敗のため、初期学習データを生成'); }
-    } else {
-      studyDataToSet = generateInitialData();
-      console.log('LocalStorageにデータがないため初期学習データを生成');
+      } else {
+        const initialData = generateInitialData();
+        setSubjects(initialData);
+        console.log('LocalStorageにデータがないため初期学習データを生成');
+      }
+
+      // 履歴データのロード
+      const historyDataToSet = getStorageItem('studyHistory', [], historyDataValidator);
+      setAnswerHistory(historyDataToSet);
+      console.log('解答履歴読み込み完了');
+
+      // 展開状態の初期設定
+      const initialExpandedSubjectsState = {};
+      if (Array.isArray(studyDataToSet)) { 
+        studyDataToSet.forEach(subject => { 
+          if (subject?.id) { 
+            initialExpandedSubjectsState[subject.id] = false; 
+          } 
+        }); 
+        if (studyDataToSet.length > 0 && studyDataToSet[0]?.id) { 
+          initialExpandedSubjectsState[studyDataToSet[0].id] = true; 
+        } 
+      }
+      setExpandedSubjects(initialExpandedSubjectsState);
+      console.log("初期データロード完了");
+    } catch (error) {
+      console.error("初期データロード中に予期せぬエラーが発生しました:", error);
+      // エラー発生時も初期データを設定してアプリが機能するようにする
+      setSubjects(generateInitialData());
     }
-    setSubjects(studyDataToSet);
+  }, [hasStorageError]);
 
-    const savedHistoryData = localStorage.getItem('studyHistory');
-    let historyDataToSet = [];
-    if (savedHistoryData) { try { historyDataToSet = JSON.parse(savedHistoryData); console.log('解答履歴読み込み完了'); } catch (e) { console.error('解答履歴読み込み失敗:', e); historyDataToSet = []; } } else { console.log('解答履歴なし'); }
-    setAnswerHistory(historyDataToSet);
-
-    const initialExpandedSubjectsState = {};
-    if (Array.isArray(studyDataToSet)) { studyDataToSet.forEach(subject => { if (subject?.id) { initialExpandedSubjectsState[subject.id] = false; } }); if (studyDataToSet.length > 0 && studyDataToSet[0]?.id) { initialExpandedSubjectsState[studyDataToSet[0].id] = true; } }
-    setExpandedSubjects(initialExpandedSubjectsState);
-    console.log("初期データロード完了");
-  }, []);
-
-  // ★ データ保存処理 (変更なし) ★
+  // ★ データ保存処理 (エラーハンドリング強化) ★
   useEffect(() => {
-    try { const dataToSave = JSON.stringify(subjects, (key, value) => { if (key === 'lastAnswered' && value instanceof Date) { return value.toISOString(); } return value; }); localStorage.setItem('studyData', dataToSave); } catch (e) { console.error("学習データ保存失敗:", e); }
-    try { localStorage.setItem('studyHistory', JSON.stringify(answerHistory)); } catch (e) { console.error("解答履歴保存失敗:", e); }
-  }, [subjects, answerHistory]);
+    // ストレージが使用不可の場合はスキップ
+    if (hasStorageError || !isStorageAvailable()) {
+      return;
+    }
+    
+    try { 
+      const dataToSave = JSON.stringify(subjects, (key, value) => { 
+        if (key === 'lastAnswered' && value instanceof Date) { 
+          return value.toISOString(); 
+        } 
+        return value; 
+      }); 
+      
+      setStorageItem('studyData', subjects);
+    } catch (e) { 
+      console.error("学習データ保存失敗:", e); 
+    }
+    
+    try { 
+      setStorageItem('studyHistory', answerHistory);
+    } catch (e) { 
+      console.error("解答履歴保存失敗:", e); 
+    }
+  }, [subjects, answerHistory, hasStorageError]);
 
   useEffect(() => {
     // エクスポートリマインダーチェック
@@ -452,7 +513,54 @@ const getQuestionsForDate = (date) => {
   const handleQuestionDateChange = (questionId, newDate) => { setSubjects(prevSubjects => { if (!Array.isArray(prevSubjects)) return []; const targetDate = new Date(newDate); if (isNaN(targetDate.getTime())) { console.error("無効日付:", newDate); return prevSubjects; } targetDate.setHours(0, 0, 0, 0); const targetDateString = targetDate.toISOString(); const newSubjects = prevSubjects.map(subject => { if (!subject?.chapters) return subject; return { ...subject, id: subject.id, name: subject.name, chapters: subject.chapters.map(chapter => { if (!chapter?.questions) return chapter; return { ...chapter, id: chapter.id, name: chapter.name, questions: chapter.questions.map(q => { if (q?.id === questionId) { return { ...q, nextDate: targetDateString }; } return q; }) }; }) }; }); return newSubjects; }); };
 
   // ★ 個別編集保存 (変更なし) ★
-  const saveQuestionEdit = (questionData) => { console.log("編集保存 (App.js):", questionData); setSubjects(prevSubjects => { if (!Array.isArray(prevSubjects)) return []; const newSubjects = prevSubjects.map(subject => { if (!subject?.chapters) return subject; return { ...subject, id: subject.id, name: subject.name, chapters: subject.chapters.map(chapter => { if (!chapter?.questions) return chapter; return { ...chapter, id: chapter.id, name: chapter.name, questions: chapter.questions.map(q => { if (q?.id === questionData.id) { const updatedQuestion = { ...q, ...questionData, lastAnswered: questionData.lastAnswered ? new Date(questionData.lastAnswered) : null, }; if (updatedQuestion.nextDate && isNaN(new Date(updatedQuestion.nextDate).getTime())) { updatedQuestion.nextDate = q.nextDate; } if (questionData.lastAnswered && isNaN(updatedQuestion.lastAnswered?.getTime())) { updatedQuestion.lastAnswered = null; } if (typeof updatedQuestion.answerCount !== 'number' || isNaN(updatedQuestion.answerCount) || updatedQuestion.answerCount < 0) { updatedQuestion.answerCount = 0; } if (typeof updatedQuestion.correctRate !== 'number' || isNaN(updatedQuestion.correctRate) || updatedQuestion.correctRate < 0 || updatedQuestion.correctRate > 100) { updatedQuestion.correctRate = 0;} console.log("最終更新データ:", updatedQuestion); return updatedQuestion; } return q; }) }; }) }; }); return newSubjects; }); setEditingQuestion(null); };
+  const saveQuestionEdit = (questionData) => { 
+    console.log("編集保存 (App.js):", questionData); 
+    setSubjects(prevSubjects => { 
+      if (!Array.isArray(prevSubjects)) return []; 
+      const newSubjects = prevSubjects.map(subject => { 
+        if (!subject?.chapters) return subject; 
+        return { 
+          ...subject, 
+          id: subject.id, 
+          name: subject.name, 
+          chapters: subject.chapters.map(chapter => { 
+            if (!chapter?.questions) return chapter; 
+            return { 
+              ...chapter, 
+              id: chapter.id, 
+              name: chapter.name, 
+              questions: chapter.questions.map(q => { 
+                if (q?.id === questionData.id) { 
+                  const updatedQuestion = { 
+                    ...q, 
+                    ...questionData, 
+                    lastAnswered: questionData.lastAnswered ? new Date(questionData.lastAnswered) : null, 
+                  }; 
+                  if (updatedQuestion.nextDate && isNaN(new Date(updatedQuestion.nextDate).getTime())) { 
+                    updatedQuestion.nextDate = q.nextDate; 
+                  } 
+                  if (questionData.lastAnswered && isNaN(updatedQuestion.lastAnswered?.getTime())) { 
+                    updatedQuestion.lastAnswered = null; 
+                  } 
+                  if (typeof updatedQuestion.answerCount !== 'number' || isNaN(updatedQuestion.answerCount) || updatedQuestion.answerCount < 0) { 
+                    updatedQuestion.answerCount = 0; 
+                  } 
+                  if (typeof updatedQuestion.correctRate !== 'number' || isNaN(updatedQuestion.correctRate) || updatedQuestion.correctRate < 0 || updatedQuestion.correctRate > 100) { 
+                    updatedQuestion.correctRate = 0;
+                  } 
+                  console.log("最終更新データ:", updatedQuestion); 
+                  return updatedQuestion; 
+                } 
+                return q; 
+              }) 
+            }; 
+          }) 
+        }; 
+      }); 
+      return newSubjects; 
+    }); 
+    setEditingQuestion(null); 
+  };
 
   // ★ 新しい一括編集関数 (変更なし) ★
   const saveBulkEditItems = (itemsToUpdate, specificQuestionIds = null) => { 
@@ -735,7 +843,7 @@ const saveSubjectNote = (subjectId, noteContent) => {
 };
 
 // ★ メインビュー切り替え ★
-const MainView = () => {
+const MainView = ({ subjects, ...otherProps }) => {
   // 新規問題を追加する関数
   const addQuestion = (newQuestion) => {
     setSubjects(prevSubjects => {
@@ -838,55 +946,106 @@ const MainView = () => {
     all: <RedesignedAllQuestionsView 
       subjects={subjects} 
       formatDate={formatDate} 
-      expandedSubjects={expandedSubjects} 
-      expandedChapters={expandedChapters} 
+      expandedSubjects={otherProps.expandedSubjects} 
+      expandedChapters={otherProps.expandedChapters} 
       toggleSubject={toggleSubject} 
       toggleChapter={toggleChapter} 
       onDateChange={handleQuestionDateChange} 
-      bulkEdit={bulkEditMode} 
-      onToggleBulkEdit={() => setBulkEditMode(!bulkEditMode)} 
-      selectedQuestions={selectedQuestions} 
+      bulkEdit={otherProps.bulkEditMode} 
+      onToggleBulkEdit={() => otherProps.setBulkEditMode(!otherProps.bulkEditMode)} 
+      selectedQuestions={otherProps.selectedQuestions} 
       onToggleQuestionSelection={toggleQuestionSelection} 
-      onSaveBulkEdit={saveBulkEdit} 
-      onSaveBulkEditItems={saveBulkEditItems}
-      setEditingQuestion={setEditingQuestion}
+      onSaveBulkEdit={otherProps.saveBulkEdit} 
+      onSaveBulkEditItems={otherProps.saveBulkEditItems}
+      setEditingQuestion={otherProps.setEditingQuestion}
       onAddQuestion={addQuestion}
     />,
     schedule: <ScheduleView data={{ questions: getAllQuestions(subjects) }} scheduleQuestion={handleQuestionDateChange} />,
     settings: <SettingsPage onResetAllData={resetAllData} onResetAnswerStatusOnly={resetAnswerStatusOnly} onImport={handleDataImport} onExport={handleDataExport} exportTimestamp={localStorage.getItem('lastExportTimestamp')} formatDate={formatDate} totalQuestionCount={calculateTotalQuestionCount(subjects)} />,
     stats: <StatsPage subjects={subjects} formatDate={formatDate} answerHistory={answerHistory} />,
     enhanced: <EnhancedStatsPage subjects={subjects} formatDate={formatDate} answerHistory={answerHistory} saveComment={saveComment} />,
-    ambiguous: <AmbiguousTrendsPage subjects={subjects} formatDate={formatDate} answerHistory={answerHistory} saveComment={saveComment} saveBulkEditItems={saveBulkEditItems} setEditingQuestion={setEditingQuestion} />,
-    notes: <NotesPage subjects={subjects} saveSubjectNote={saveSubjectNote} />,
+    ambiguous: <AmbiguousTrendsPage subjects={subjects} formatDate={formatDate} answerHistory={answerHistory} saveComment={saveComment} saveBulkEditItems={otherProps.saveBulkEditItems} setEditingQuestion={otherProps.setEditingQuestion} />,
+    notes: <ErrorBoundary><NotesPage subjects={subjects} saveSubjectNote={saveSubjectNote} /></ErrorBoundary>,
   };
 
-  return Views[activeTab] || Views.today;
+  return (
+    <NotificationProvider>
+      <div className="app-container">
+        <TopNavigation activeTab={otherProps.activeTab} setActiveTab={(tab) => otherProps.setActiveTab(tab)} />
+        
+        {/* ストレージエラー通知 */}
+        {otherProps.hasStorageError && (
+          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 mx-4 mt-4">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 mr-2" />
+              <p>
+                ローカルストレージにアクセスできないため、データが保存されません。
+                シークレットモードを使用している場合は通常モードに切り替えるか、ブラウザの設定を確認してください。
+              </p>
+            </div>
+          </div>
+        )}
+        
+        {otherProps.showExportReminder && (
+          <ReminderNotification 
+            daysSinceLastExport={otherProps.daysSinceLastExport}
+            onGoToSettings={handleGoToSettings}
+            onDismiss={handleDismissReminder}
+          />
+        )}
+        <div className="p-0 sm:p-4">
+          {Views[otherProps.activeTab] || Views.today}
+          {otherProps.editingQuestion && (
+            <QuestionEditModal
+              question={otherProps.editingQuestion}
+              onSave={otherProps.saveQuestionEdit}
+              onCancel={() => otherProps.setEditingQuestion(null)}
+              formatDate={formatDate}
+            />
+          )}
+        </div>
+        <div id="notification-area" className="fixed bottom-4 right-4 z-30"></div>
+      </div>
+    </NotificationProvider>
+  );
 };
 
-// ★ アプリ全体のレンダリング (変更なし) ★
+// ★ アプリ全体のレンダリング (エラー状態対応) ★
 return (
-  <div className="min-h-screen bg-gray-50">
-    <TopNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
-    {showExportReminder && (
-      <ReminderNotification 
-        daysSinceLastExport={daysSinceLastExport}
-        onGoToSettings={handleGoToSettings}
-        onDismiss={handleDismissReminder}
-      />
-    )}
-    <div className="p-0 sm:p-4">
-      <MainView />
-      {editingQuestion && (
-        <QuestionEditModal
-          question={editingQuestion}
-          onSave={saveQuestionEdit}
-          onCancel={() => setEditingQuestion(null)}
-          formatDate={formatDate}
-        />
-      )}
-    </div>
-    <div id="notification-area" className="fixed bottom-4 right-4 z-30"></div>
-  </div>
+  <ErrorBoundary>
+    <NotificationProvider>
+      <div className="App">
+        <div className="min-h-screen bg-gray-50">
+          <TopNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
+          
+          {/* ストレージエラー通知 */}
+          {hasStorageError && (
+            <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 mx-4 mt-4">
+              <div className="flex items-center">
+                <AlertTriangle className="h-5 w-5 mr-2" />
+                <p>
+                  ローカルストレージにアクセスできないため、データが保存されません。
+                  シークレットモードを使用している場合は通常モードに切り替えるか、ブラウザの設定を確認してください。
+                </p>
+              </div>
+            </div>
+          )}
+          
+          {showExportReminder && (
+            <ReminderNotification 
+              daysSinceLastExport={daysSinceLastExport}
+              onGoToSettings={handleGoToSettings}
+              onDismiss={handleDismissReminder}
+            />
+          )}
+          <div className="p-0 sm:p-4">
+            <MainView subjects={subjects} {...{ activeTab, setActiveTab, expandedSubjects, setExpandedSubjects, expandedChapters, setExpandedChapters, editingQuestion, setEditingQuestion, bulkEditMode, setBulkEditMode, selectedQuestions, setSelectedQuestions, answerHistory, setAnswerHistory, showExportReminder, setShowExportReminder, daysSinceLastExport, formatDate }} />
+          </div>
+          <div id="notification-area" className="fixed bottom-4 right-4 z-30"></div>
+        </div>
+      </div>
+    </NotificationProvider>
+  </ErrorBoundary>
 );
 }
 
