@@ -509,12 +509,66 @@ const getQuestionsForDate = (date) => {
   // ★ コメント保存用の関数 (変更なし) ★
   const saveComment = (questionId, commentText) => { setSubjects(prevSubjects => { if (!Array.isArray(prevSubjects)) return []; return prevSubjects.map(subject => { if (!subject?.chapters) return subject; return { ...subject, id: subject.id, name: subject.name, chapters: subject.chapters.map(chapter => { if (!chapter?.questions) return chapter; return { ...chapter, id: chapter.id, name: chapter.name, questions: chapter.questions.map(q => { if (q?.id === questionId) { return { ...q, comment: commentText }; } return q; })}; })}; }); }); };
 
-  // ★ DnD 日付変更 (変更なし) ★
-  const handleQuestionDateChange = (questionId, newDate) => { setSubjects(prevSubjects => { if (!Array.isArray(prevSubjects)) return []; const targetDate = new Date(newDate); if (isNaN(targetDate.getTime())) { console.error("無効日付:", newDate); return prevSubjects; } targetDate.setHours(0, 0, 0, 0); const targetDateString = targetDate.toISOString(); const newSubjects = prevSubjects.map(subject => { if (!subject?.chapters) return subject; return { ...subject, id: subject.id, name: subject.name, chapters: subject.chapters.map(chapter => { if (!chapter?.questions) return chapter; return { ...chapter, id: chapter.id, name: chapter.name, questions: chapter.questions.map(q => { if (q?.id === questionId) { return { ...q, nextDate: targetDateString }; } return q; }) }; }) }; }); return newSubjects; }); };
+  // ★ DnD 日付変更 (修正) ★
+  const handleQuestionDateChange = (questionId, newDate) => { 
+    console.log("日付変更: ", questionId, "新しい日付:", newDate);
+    
+    setSubjects(prevSubjects => { 
+      if (!Array.isArray(prevSubjects)) return []; 
+      
+      // 日付の検証と正規化
+      let targetDateString = null;
+      try {
+        const targetDate = new Date(newDate); 
+        if (isNaN(targetDate.getTime())) { 
+          console.error("無効日付:", newDate); 
+          return prevSubjects; 
+        } 
+        targetDate.setHours(0, 0, 0, 0); 
+        targetDateString = targetDate.toISOString();
+        console.log("変換後の日付文字列:", targetDateString);
+      } catch (e) {
+        console.error("日付処理エラー:", e);
+        return prevSubjects;
+      }
+      
+      // 問題更新
+      const newSubjects = prevSubjects.map(subject => { 
+        if (!subject?.chapters) return subject; 
+        
+        return { 
+          ...subject, 
+          id: subject.id, 
+          name: subject.name, 
+          chapters: subject.chapters.map(chapter => { 
+            if (!chapter?.questions) return chapter; 
+            
+            return { 
+              ...chapter, 
+              id: chapter.id, 
+              name: chapter.name, 
+              questions: chapter.questions.map(q => { 
+                if (q?.id === questionId) { 
+                  console.log("問題を更新:", q.id, "新しい日付:", targetDateString);
+                  return { ...q, nextDate: targetDateString }; 
+                } 
+                return q; 
+              }) 
+            }; 
+          }) 
+        }; 
+      }); 
+      
+      console.log("日付変更完了");
+      return newSubjects; 
+    }); 
+  };
 
   // ★ 個別編集保存 (変更なし) ★
   const saveQuestionEdit = (questionData) => { 
     console.log("編集保存 (App.js):", questionData); 
+    console.log("日付変更デバッグ - 受け取ったnextDate:", questionData.nextDate);
+    
     setSubjects(prevSubjects => { 
       if (!Array.isArray(prevSubjects)) return []; 
       const newSubjects = prevSubjects.map(subject => { 
@@ -531,23 +585,58 @@ const getQuestionsForDate = (date) => {
               name: chapter.name, 
               questions: chapter.questions.map(q => { 
                 if (q?.id === questionData.id) { 
+                  // 元の質問を保持して問題を特定しやすくする
+                  console.log("更新前の問題:", q);
+                  
                   const updatedQuestion = { 
                     ...q, 
-                    ...questionData, 
-                    lastAnswered: questionData.lastAnswered ? new Date(questionData.lastAnswered) : null, 
+                    ...questionData
                   }; 
-                  if (updatedQuestion.nextDate && isNaN(new Date(updatedQuestion.nextDate).getTime())) { 
-                    updatedQuestion.nextDate = q.nextDate; 
-                  } 
-                  if (questionData.lastAnswered && isNaN(updatedQuestion.lastAnswered?.getTime())) { 
-                    updatedQuestion.lastAnswered = null; 
-                  } 
+
+                  // nextDateの処理を修正 - 文字列で保存
+                  if (questionData.nextDate) {
+                    try {
+                      const nextDateObj = new Date(questionData.nextDate);
+                      if (!isNaN(nextDateObj.getTime())) {
+                        nextDateObj.setHours(0, 0, 0, 0);
+                        updatedQuestion.nextDate = nextDateObj.toISOString();
+                        console.log("nextDate処理成功:", updatedQuestion.nextDate);
+                      } else {
+                        console.error("nextDate変換失敗:", questionData.nextDate);
+                        updatedQuestion.nextDate = q.nextDate; // 元の値を保持
+                      }
+                    } catch (e) {
+                      console.error("nextDate処理エラー:", e);
+                      updatedQuestion.nextDate = q.nextDate; // 元の値を保持
+                    }
+                  }
+                  
+                  // lastAnsweredの処理
+                  if (questionData.lastAnswered) {
+                    try {
+                      const lastAnsweredObj = new Date(questionData.lastAnswered);
+                      if (!isNaN(lastAnsweredObj.getTime())) {
+                        updatedQuestion.lastAnswered = lastAnsweredObj;
+                      } else {
+                        console.error("lastAnswered変換失敗:", questionData.lastAnswered);
+                        updatedQuestion.lastAnswered = null;
+                      }
+                    } catch (e) {
+                      console.error("lastAnswered処理エラー:", e);
+                      updatedQuestion.lastAnswered = null;
+                    }
+                  } else {
+                    updatedQuestion.lastAnswered = null;
+                  }
+                  
+                  // 数値フィールドの検証
                   if (typeof updatedQuestion.answerCount !== 'number' || isNaN(updatedQuestion.answerCount) || updatedQuestion.answerCount < 0) { 
                     updatedQuestion.answerCount = 0; 
                   } 
                   if (typeof updatedQuestion.correctRate !== 'number' || isNaN(updatedQuestion.correctRate) || updatedQuestion.correctRate < 0 || updatedQuestion.correctRate > 100) { 
                     updatedQuestion.correctRate = 0;
                   } 
+                  
                   console.log("最終更新データ:", updatedQuestion); 
                   return updatedQuestion; 
                 } 
@@ -557,14 +646,24 @@ const getQuestionsForDate = (date) => {
           }) 
         }; 
       }); 
+      
+      // 変更を保存した旨をコンソールに表示
+      console.log("問題編集を保存しました");
+      
       return newSubjects; 
     }); 
+    
     setEditingQuestion(null); 
   };
 
   // ★ 新しい一括編集関数 (変更なし) ★
   const saveBulkEditItems = (itemsToUpdate, specificQuestionIds = null) => { 
     console.log("一括編集実行 (App.js):", itemsToUpdate, "対象:", specificQuestionIds || selectedQuestions); 
+    
+    // nextDateのデバッグ
+    if (itemsToUpdate.nextDate) {
+      console.log("一括編集 - 受け取ったnextDate:", itemsToUpdate.nextDate);
+    }
     
     // 個別の問題IDリストが指定されていなければ、選択された問題IDリストを使用
     const targetQuestionIds = specificQuestionIds || selectedQuestions;
@@ -577,6 +676,20 @@ const getQuestionsForDate = (date) => {
     if (!itemsToUpdate || Object.keys(itemsToUpdate).length === 0) { 
       return; 
     } 
+    
+    // nextDateの前処理
+    if (itemsToUpdate.nextDate) {
+      try {
+        const nextDateObj = new Date(itemsToUpdate.nextDate);
+        if (!isNaN(nextDateObj.getTime())) {
+          nextDateObj.setHours(0, 0, 0, 0);
+          itemsToUpdate.nextDate = nextDateObj.toISOString();
+          console.log("一括編集 - nextDate処理済み:", itemsToUpdate.nextDate);
+        }
+      } catch (e) {
+        console.error("一括編集 - nextDate処理エラー:", e);
+      }
+    }
     
     let updatedCount = 0; 
     setSubjects(prevSubjects => { 
@@ -594,9 +707,7 @@ const getQuestionsForDate = (date) => {
                   let value = itemsToUpdate[key]; 
                   console.log(`Updating ${q.id}: ${key} = ${value}`); 
                   if (key === 'nextDate') { 
-                    const dateValue = value ? new Date(value) : null; 
-                    updatedQuestion[key] = (dateValue && !isNaN(dateValue.getTime())) ? dateValue.toISOString() : null; 
-                    if (!updatedQuestion[key] && value) console.warn(`無効な日付(nextDate):`, value); 
+                    updatedQuestion[key] = value; // 前処理済みのISO文字列
                   } else if (key === 'lastAnswered') { 
                     const dateValue = value ? new Date(value) : null; 
                     updatedQuestion[key] = (dateValue && !isNaN(dateValue.getTime())) ? dateValue : null; 
@@ -637,8 +748,25 @@ const getQuestionsForDate = (date) => {
     console.log("一括編集完了"); 
   };
 
-  // ★ 古い一括編集保存 (変更なし) ★
-  const saveBulkEdit = (date) => { console.log("古い saveBulkEdit が呼ばれました。saveBulkEditItems を使用します。"); const targetDate = new Date(date); if (isNaN(targetDate.getTime())) { console.error("無効日付:", date); return; } targetDate.setHours(0, 0, 0, 0); const targetDateString = targetDate.toISOString(); saveBulkEditItems({ nextDate: targetDateString }); };
+  // ★ 古い一括編集保存 (修正) ★
+  const saveBulkEdit = (date) => { 
+    console.log("一括編集 saveBulkEdit 呼び出し:", date); 
+    
+    // 日付の検証と正規化
+    try {
+      const targetDate = new Date(date); 
+      if (isNaN(targetDate.getTime())) { 
+        console.error("無効日付:", date); 
+        return; 
+      } 
+      targetDate.setHours(0, 0, 0, 0); 
+      
+      // 新しい一括編集関数を呼び出し
+      saveBulkEditItems({ nextDate: targetDate }); 
+    } catch (e) {
+      console.error("一括編集日付処理エラー:", e);
+    }
+  };
 
   // ★ 一括編集 選択切り替え (変更なし) ★
   const toggleQuestionSelection = (questionId) => { setSelectedQuestions(prev => { if (prev.includes(questionId)) { return prev.filter(id => id !== questionId); } else { return [...prev, questionId]; } }); };
