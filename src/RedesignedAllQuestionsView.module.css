@@ -1,11 +1,17 @@
 /* src/RedesignedAllQuestionsView.module.css */
-/* モダンなカードデザイン版 + フィルター機能強化版 */
+/* モダンなカードデザイン版 + フィルター機能強化版 + モバイル最適化 */
 
 .container { 
-  padding: 1.5rem; 
+  padding: 1rem; 
   max-width: 72rem; 
   margin: 0 auto; 
   padding-bottom: 6rem;
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding: 1.5rem;
+  }
 }
 
 /* 検索フィルターエリア */
@@ -13,7 +19,7 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 @media (min-width: 768px) {
@@ -21,6 +27,7 @@
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
+    margin-bottom: 2rem;
   }
 }
 
@@ -45,6 +52,7 @@
   font-size: 0.9rem;
   transition: all 0.2s ease;
   background-color: white;
+  height: 48px; /* モバイルでのタップターゲットサイズを確保 */
 }
 
 .searchInput:focus {
@@ -70,8 +78,13 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0.25rem;
+  padding: 0.5rem; /* タップターゲットサイズ増加 */
   border-radius: 9999px;
+  min-width: 44px; /* モバイルでのタップターゲットサイズを確保 */
+  min-height: 44px; /* モバイルでのタップターゲットサイズを確保 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .clearSearchButton:hover {
@@ -81,20 +94,24 @@
 
 .controlButtons {
   display: flex;
+  flex-wrap: wrap; /* モバイルでの折り返しを許可 */
   gap: 0.5rem;
+  width: 100%;
 }
 
 @media (min-width: 768px) {
   .controlButtons {
     width: auto;
+    flex-wrap: nowrap;
   }
 }
 
 .addButton {
   display: flex;
   align-items: center;
+  justify-content: center; /* モバイル向け中央揃え */
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1rem; /* タップエリア拡大 */
   border-radius: 0.375rem;
   font-size: 0.875rem;
   font-weight: 500;
@@ -103,6 +120,14 @@
   border: none;
   cursor: pointer;
   transition: background-color 0.2s;
+  min-height: 48px; /* モバイルでのタップターゲットサイズを確保 */
+  width: 100%; /* モバイルでは全幅表示 */
+}
+
+@media (min-width: 768px) {
+  .addButton {
+    width: auto;
+  }
 }
 
 .addButton:hover {
@@ -112,8 +137,9 @@
 .controlButton {
   display: flex;
   align-items: center;
+  justify-content: center; /* モバイル向け中央揃え */
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1rem; /* タップエリア拡大 */
   border-radius: 0.375rem;
   font-size: 0.875rem;
   font-weight: 500;
@@ -122,6 +148,14 @@
   color: #4b5563;
   cursor: pointer;
   transition: background-color 0.2s;
+  flex: 1; /* モバイルでは均等に拡大 */
+  min-height: 48px; /* モバイルでのタップターゲットサイズを確保 */
+}
+
+@media (min-width: 768px) {
+  .controlButton {
+    flex: 0 1 auto;
+  }
 }
 
 .controlButton:hover {
@@ -182,12 +216,19 @@
 /* フィルターパネル */
 .filterPanel {
   background-color: white;
-  padding: 1.5rem;
+  padding: 1rem; /* モバイルでは余白を少し減らす */
   border-radius: 0.75rem;
   border: 1px solid #e5e7eb;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   margin-bottom: 2rem;
   animation: fadeIn 0.3s ease-out;
+  overflow-x: auto; /* 横スクロールを許可 */
+}
+
+@media (min-width: 768px) {
+  .filterPanel {
+    padding: 1.5rem;
+  }
 }
 
 /* フィルターセクション */
@@ -238,6 +279,7 @@
   font-size: 0.875rem;
   background-color: white;
   transition: all 0.2s ease;
+  min-height: 44px; /* モバイルでのタップターゲットサイズを確保 */
 }
 
 .filterSelect:focus {
@@ -266,6 +308,7 @@
   font-size: 0.875rem;
   background-color: white;
   transition: all 0.2s ease;
+  min-height: 44px; /* モバイルでのタップターゲットサイズを確保 */
 }
 
 .rangeInput:focus {
@@ -283,6 +326,7 @@
   font-size: 0.875rem;
   background-color: white;
   transition: all 0.2s ease;
+  min-height: 44px; /* モバイルでのタップターゲットサイズを確保 */
 }
 
 .dateInput:focus {
@@ -636,110 +680,98 @@
 
 /* 問題カードリスト */
 .questionCardList {
-  padding: 1.25rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  background-color: rgba(249, 250, 251, 0.5);
-}
-
-/* 問題カード - モダンなデザイン */
-.questionCard {
-  background-color: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e5e7eb;
-  border-left-width: 4px;
-  display: flex;
-  align-items: center;
-  padding: 1rem 1.25rem;
+  display: grid;
+  grid-template-columns: 1fr; /* モバイルでは1列 */
   gap: 1rem;
-  transition: all 0.2s ease;
-  flex-wrap: wrap;
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;
 }
 
-.questionCard:hover {
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-}
-
-.questionCheckbox {
-  width: 1.25rem;
-  height: 1.25rem;
-  color: #4f46e5;
-  border-color: #d1d5db;
-  border-radius: 0.25rem;
-  flex-shrink: 0;
-}
-
-.questionId {
-  font-weight: 700;
-  font-size: 0.9375rem;
-  color: #1f2937;
-  flex-shrink: 0;
-  width: 7rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-@media (min-width: 768px) {
-  .questionId {
-    width: 8rem;
+@media (min-width: 640px) {
+  .questionCardList {
+    grid-template-columns: repeat(2, 1fr); /* タブレットでは2列 */
   }
 }
 
-/* 問題ステータスグリッド */
+@media (min-width: 1024px) {
+  .questionCardList {
+    grid-template-columns: repeat(3, 1fr); /* デスクトップでは3列 */
+  }
+}
+
+.questionCard {
+  position: relative;
+  border-radius: 0.75rem;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s;
+}
+
+/* タップ操作用にボタンやチェックボックスの範囲拡大 */
+.questionCheckbox {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  margin: 0;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .questionCheckbox {
+    width: 28px; /* モバイルでタップ領域拡大 */
+    height: 28px;
+  }
+}
+
 .statusGrid {
-  flex-grow: 1;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem 1rem;
-  font-size: 0.8125rem;
+  grid-template-columns: repeat(1, 1fr); /* モバイルでは1列 */
+  gap: 0.75rem;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .statusGrid {
+    grid-template-columns: repeat(2, 1fr); /* タブレットでは2列 */
+  }
 }
 
 @media (min-width: 1024px) {
   .statusGrid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, 1fr); /* デスクトップでも2列 */
   }
 }
 
 .statusItem {
   display: flex;
   align-items: center;
-  color: #4b5563;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  min-height: 28px; /* ラベルの高さを確保 */
 }
 
-.statusItem svg {
-  width: 1rem;
-  height: 1rem;
-  margin-right: 0.375rem;
-  color: #9ca3af;
-  flex-shrink: 0;
-}
-
-.statusItem span {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* コメント表示ボックス */
-.commentBox {
-  flex-basis: 100%;
-  font-size: 0.875rem;
-  color: #4b5563;
-  background-color: #f9fafb;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  position: relative;
+.editButton {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  border: none;
+  background-color: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem; /* タップエリア拡大 */
+  height: 2.5rem; /* タップエリア拡大 */
+  border-radius: 9999px;
 }
 
 /* ハイライトされたテキスト */
@@ -859,24 +891,6 @@
   font-weight: 600;
 }
 
-/* 編集ボタン */
-.editButton {
-  margin-left: 0.5rem;
-  padding: 0.5rem;
-  color: #9ca3af;
-  border-radius: 9999px;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-.editButton:hover {
-  color: #4f46e5;
-  background-color: #eef2ff;
-}
-
 /* アニメーション */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
@@ -885,4 +899,13 @@
 
 .animate-fadeIn {
   animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* タッチフレンドリーなフィルター要素 */
+.filterSelect, .rangeInput, .dateInput, .checkbox {
+  min-height: 44px; /* モバイルでのタップターゲットサイズを確保 */
+}
+
+.filterSelect, .rangeInput, .dateInput {
+  font-size: 16px; /* モバイルでのズーム防止 */
 }
