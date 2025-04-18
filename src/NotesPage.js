@@ -6,7 +6,7 @@ import Italic from '@tiptap/extension-italic';
 import Heading from '@tiptap/extension-heading';
 import BulletList from '@tiptap/extension-bullet-list';
 import OrderedList from '@tiptap/extension-ordered-list';
-import { Bold as BoldIcon, Italic as ItalicIcon, Heading1, Heading2, List, ListOrdered, RotateCcw, RotateCw, Save, X, Book } from 'lucide-react';
+import { Bold as BoldIcon, Italic as ItalicIcon, Heading1, Heading2, List, ListOrdered, RotateCcw, RotateCw, Save, X, Book, Edit } from 'lucide-react';
 import styles from './NotesPage.module.css';
 
 // エディタのメニューバーコンポーネント
@@ -146,6 +146,13 @@ const TiptapEditor = ({ content, onUpdate, placeholder, onSave, onCancel, isEdit
   );
 };
 
+// 科目名を取得するヘルパー関数
+const getSubjectName = (subject) => {
+  if (!subject) return '無名科目';
+  // subjectNameが存在する場合はそれを使用し、存在しない場合はnameを使用
+  return subject.subjectName || subject.name || '無名科目';
+};
+
 // NotesPageコンポーネント
 const NotesPage = ({ subjects, saveSubjectNote }) => {
   const [selectedSubject, setSelectedSubject] = useState(
@@ -181,6 +188,13 @@ const NotesPage = ({ subjects, saveSubjectNote }) => {
     return subject?.notes || '';
   };
 
+  // 選択されている科目オブジェクトを取得する関数
+  const getSelectedSubject = () => {
+    if (!selectedSubject) return null;
+    const subject = subjects.find(subject => subject.id === selectedSubject);
+    return subject || null; // 見つからない場合は明示的にnullを返す
+  };
+
   // 編集モードに切り替える
   const handleEdit = () => {
     setEditedContent(getSelectedSubjectNotes());
@@ -210,42 +224,61 @@ const NotesPage = ({ subjects, saveSubjectNote }) => {
   };
 
   // 科目選択時の処理
-  const handleSubjectSelect = (subjectId) => {
+  const handleSubjectSelect = (subject) => {
+    if (!subject || !subject.id) {
+      console.error('無効な科目が選択されました');
+      return;
+    }
+    
     if (isEditing) {
       if (window.confirm('編集中の内容が保存されていません。変更を破棄して科目を切り替えますか？')) {
-        setSelectedSubject(subjectId);
+        setSelectedSubject(subject.id);
         setIsEditing(false);
         setEditedContent('');
       }
     } else {
-      setSelectedSubject(subjectId);
+      setSelectedSubject(subject.id);
     }
   };
 
+  // 選択中の科目
+  const selectedSubjectObj = getSelectedSubject();
+
   return (
-    <div className={styles['notes-page']}>
-      <div className={styles['page-header']}>
-        <h2 className={styles['page-title']}><Book size={24} className={styles['page-icon']} /> 科目別ノート</h2>
-        <p className={styles['page-description']}>各科目の要点や学習のコツを記録しましょう</p>
+    <div className={styles.notesPageContainer}>
+      <div className={styles.header}>
+        <h2>
+          {selectedSubjectObj 
+            ? `${getSubjectName(selectedSubjectObj)}のノート` 
+            : '科目を選択してください'}
+        </h2>
+        {selectedSubjectObj && !isEditing && (
+          <button className={styles.editButton} onClick={() => setIsEditing(true)}>
+            <Edit size={16} />
+            編集
+          </button>
+        )}
+        {isEditing && (
+          <button className={styles.saveButton} onClick={handleSave}>
+            <Save size={16} />
+            保存
+          </button>
+        )}
       </div>
-      
-      {/* モバイル用科目セレクター */}
-      {isMobile && (
-        <div className={styles['mobileSubjectSelector']}>
-          <select 
-            className={styles['mobileSelect']}
-            value={selectedSubject || ''}
-            onChange={(e) => handleSubjectSelect(e.target.value)}
-          >
-            <option value="" disabled>科目を選択してください</option>
-            {subjects.map(subject => (
-              <option key={subject.id} value={subject.id}>
-                {subject.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+
+      <div className={styles.mobileSelector}>
+        <select
+          value={selectedSubject || ''}
+          onChange={(e) => setSelectedSubject(e.target.value)}
+        >
+          <option value="">科目を選択</option>
+          {subjects.map((subject) => (
+            <option key={subject.id} value={subject.id}>
+              {subject.name}
+            </option>
+          ))}
+        </select>
+      </div>
       
       <div className={styles['notes-container']}>
         {/* デスクトップ用サイドバー */}
@@ -257,9 +290,9 @@ const NotesPage = ({ subjects, saveSubjectNote }) => {
                 <div
                   key={subject.id}
                   className={`${styles['subject-item']} ${selectedSubject === subject.id ? styles.selected : ''}`}
-                  onClick={() => handleSubjectSelect(subject.id)}
+                  onClick={() => handleSubjectSelect(subject)}
                 >
-                  {subject.name}
+                  {getSubjectName(subject)}
                 </div>
               ))}
             </div>
@@ -270,8 +303,8 @@ const NotesPage = ({ subjects, saveSubjectNote }) => {
           {selectedSubject ? (
             <>
               <div className={styles['notes-header']}>
-                <h3>{subjects.find(s => s.id === selectedSubject)?.name} のノート</h3>
-                {!isEditing && (
+                <h3>{selectedSubjectObj ? `${getSubjectName(selectedSubjectObj)} のノート` : '科目を選択してください'}</h3>
+                {!isEditing && selectedSubjectObj && (
                   <button 
                     className={styles['edit-button']}
                     onClick={handleEdit}
