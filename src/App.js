@@ -3,7 +3,7 @@
 // generateInitialData 内の科目データ定義の省略を元に戻し、
 // useMemo を使って今日の問題リストを計算するように修正。
 
-import React, { useState, useEffect, useMemo } from 'react'; // useMemo をインポート
+import React, { useState, useEffect, useMemo, useCallback } from 'react'; // useMemo をインポート
 // lucide-react のインポート
 import { Calendar, ChevronLeft, ChevronRight, List, Check, X, AlertTriangle, Info, Search, ChevronsUpDown } from 'lucide-react';
 // 他のコンポーネントインポート
@@ -23,6 +23,9 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { setupGlobalErrorHandlers } from './utils/error-logger';
 import { isStorageAvailable, getStorageItem, setStorageItem, studyDataValidator, historyDataValidator } from './utils/storage';
 import { NotificationProvider } from './contexts/NotificationContext';
+import MainView from './MainView';
+import './App.css';
+import './index.css';
 
 // 問題生成関数 (IDゼロパディング、understanding='理解○' 固定)
 function generateQuestions(prefix, start, end) {
@@ -125,13 +128,14 @@ const getAllQuestions = (subjectsData) => {
 // ★ メインビュー切り替え ★
 function App() {
   const [subjects, setSubjects] = useState([]);
+  const [answerHistory, setAnswerHistory] = useState([]);
   const [activeTab, setActiveTab] = useState('today');
   const [expandedSubjects, setExpandedSubjects] = useState({});
   const [expandedChapters, setExpandedChapters] = useState({});
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [bulkEditMode, setBulkEditMode] = useState(false);
   const [selectedQuestions, setSelectedQuestions] = useState([]);
-  const [answerHistory, setAnswerHistory] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(null); // 一括編集用の選択日付
   const [showExportReminder, setShowExportReminder] = useState(false);
   const [daysSinceLastExport, setDaysSinceLastExport] = useState(null);
   // エラー関連の状態
@@ -959,183 +963,108 @@ const saveSubjectNote = (subjectId, noteContent) => {
   setSubjects(prevSubjects => {
     return prevSubjects.map(subject => {
       if (subject.id === subjectId) {
-        // 該当する科目のnotesプロパティを更新
-        return {
-          ...subject,
-          notes: noteContent
-        };
+        return { ...subject, note: noteContent };
       }
       return subject;
     });
   });
 };
 
-// ★ メインビュー切り替え ★
-const MainView = ({ subjects, ...otherProps }) => {
-  // 新規問題を追加する関数
-  const addQuestion = (newQuestion) => {
-    setSubjects(prevSubjects => {
-      const updatedSubjects = [...prevSubjects];
-      let targetSubject;
-      let targetChapter;
+// 新規問題を追加する関数
+const addQuestion = (newQuestion) => {
+  setSubjects(prevSubjects => {
+    const updatedSubjects = [...prevSubjects];
+    let targetSubject;
+    let targetChapter;
+    
+    // 新規科目の処理
+    if (newQuestion.newSubject && newQuestion.newSubject.isNew) {
+      // 新しい科目IDを生成（既存の最大ID + 1）
+      const maxSubjectId = Math.max(...updatedSubjects.map(subject => Number(subject.id) || 0));
+      const newSubjectId = maxSubjectId + 1;
       
-      // 新規科目の処理
-      if (newQuestion.newSubject && newQuestion.newSubject.isNew) {
-        // 新しい科目IDを生成（既存の最大ID + 1）
-        const maxSubjectId = Math.max(...updatedSubjects.map(subject => Number(subject.id) || 0));
-        const newSubjectId = maxSubjectId + 1;
-        
-        // 新しい科目オブジェクトを作成
-        const newSubjectObj = {
-          id: newSubjectId,
-          subjectId: newSubjectId,
-          subjectName: newQuestion.newSubject.name,
-          name: newQuestion.newSubject.name,
-          chapters: []
-        };
-        
-        updatedSubjects.push(newSubjectObj);
-        targetSubject = newSubjectObj;
-        
-        // 新規科目用の章も追加する必要がある
-        const newChapterId = 1; // 新規科目の場合は章IDを1から始める
-        const newChapterObj = {
-          id: newChapterId,
-          chapterId: newChapterId,
-          chapterName: "未分類",
-          name: "未分類",
-          questions: []
-        };
-        
-        targetSubject.chapters.push(newChapterObj);
-        targetChapter = newChapterObj;
-      } else {
-        // 既存の科目から対象を検索
-        targetSubject = updatedSubjects.find(s => s.id.toString() === newQuestion.subjectId.toString());
-        
-        if (!targetSubject) {
-          console.error("対象の科目が見つかりません");
-          return prevSubjects;
-        }
-      }
-      
-      // 新規章の処理
-      if (newQuestion.newChapter && newQuestion.newChapter.isNew) {
-        // 新しい章IDを生成（対象科目内の既存の最大ID + 1）
-        const maxChapterId = Math.max(...targetSubject.chapters.map(chapter => Number(chapter.id) || 0), 0);
-        const newChapterId = maxChapterId + 1;
-        
-        // 新しい章オブジェクトを作成
-        const newChapterObj = {
-          id: newChapterId,
-          chapterId: newChapterId,
-          chapterName: newQuestion.newChapter.name,
-          name: newQuestion.newChapter.name,
-          questions: []
-        };
-        
-        targetSubject.chapters.push(newChapterObj);
-        targetChapter = newChapterObj;
-      } else if (!targetChapter) {
-        // 既存の章から対象を検索
-        targetChapter = targetSubject.chapters.find(c => c.id.toString() === newQuestion.chapterId.toString());
-        
-        if (!targetChapter) {
-          console.error("対象の章が見つかりません");
-          return prevSubjects;
-        }
-      }
-      
-      // 新規問題オブジェクトを作成
-      const questionObj = {
-        id: newQuestion.id,
-        number: newQuestion.number,
-        understanding: newQuestion.understanding,
-        nextDate: newQuestion.nextDate,
-        comment: newQuestion.comment,
-        correctRate: 0,
-        answerCount: 0,
-        lastAnswered: null,
-        history: []
+      // 新しい科目オブジェクトを作成
+      const newSubjectObj = {
+        id: newSubjectId,
+        subjectId: newSubjectId,
+        subjectName: newQuestion.newSubject.name,
+        name: newQuestion.newSubject.name,
+        chapters: []
       };
       
-      // 章に問題を追加
-      targetChapter.questions.push(questionObj);
+      updatedSubjects.push(newSubjectObj);
+      targetSubject = newSubjectObj;
       
-      // トースト通知表示（将来的に実装）
-      console.log(`問題 ${newQuestion.id} を追加しました`);
+      // 新規科目用の章も追加する必要がある
+      const newChapterId = 1; // 新規科目の場合は章IDを1から始める
+      const newChapterObj = {
+        id: newChapterId,
+        chapterId: newChapterId,
+        chapterName: "未分類",
+        name: "未分類",
+        questions: []
+      };
       
-      return updatedSubjects;
-    });
-  };
-  
-  const Views = {
-    today: <TodayView subjects={subjects} formatDate={formatDate} handleQuestionEdit={handleQuestionDateChange} onRecordAnswer={recordAnswer} answerHistory={answerHistory} />,
-    all: <RedesignedAllQuestionsView 
-      subjects={subjects} 
-      formatDate={formatDate} 
-      expandedSubjects={otherProps.expandedSubjects} 
-      expandedChapters={otherProps.expandedChapters} 
-      toggleSubject={toggleSubject} 
-      toggleChapter={toggleChapter} 
-      onDateChange={handleQuestionDateChange} 
-      bulkEdit={otherProps.bulkEditMode} 
-      onToggleBulkEdit={() => otherProps.setBulkEditMode(!otherProps.bulkEditMode)} 
-      selectedQuestions={otherProps.selectedQuestions} 
-      onToggleQuestionSelection={toggleQuestionSelection} 
-      onSaveBulkEdit={otherProps.saveBulkEdit} 
-      onSaveBulkEditItems={otherProps.saveBulkEditItems}
-      setEditingQuestion={otherProps.setEditingQuestion}
-      onAddQuestion={addQuestion}
-    />,
-    schedule: <ScheduleView data={{ questions: getAllQuestions(subjects) }} scheduleQuestion={handleQuestionDateChange} />,
-    settings: <SettingsPage onResetAllData={resetAllData} onResetAnswerStatusOnly={resetAnswerStatusOnly} onImport={handleDataImport} onExport={handleDataExport} exportTimestamp={localStorage.getItem('lastExportTimestamp')} formatDate={formatDate} totalQuestionCount={calculateTotalQuestionCount(subjects)} />,
-    stats: <StatsPage subjects={subjects} formatDate={formatDate} answerHistory={answerHistory} />,
-    enhanced: <EnhancedStatsPage subjects={subjects} formatDate={formatDate} answerHistory={answerHistory} saveComment={saveComment} />,
-    ambiguous: <AmbiguousTrendsPage subjects={subjects} formatDate={formatDate} answerHistory={answerHistory} saveComment={saveComment} saveBulkEditItems={otherProps.saveBulkEditItems} setEditingQuestion={otherProps.setEditingQuestion} />,
-    notes: <ErrorBoundary><NotesPage subjects={subjects} saveSubjectNote={saveSubjectNote} /></ErrorBoundary>,
-  };
-
-  return (
-    <NotificationProvider>
-      <div className="app-container">
-        <TopNavigation activeTab={otherProps.activeTab} setActiveTab={(tab) => otherProps.setActiveTab(tab)} />
-        
-        {/* ストレージエラー通知 */}
-        {otherProps.hasStorageError && (
-          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 mx-4 mt-4">
-            <div className="flex items-center">
-              <AlertTriangle className="h-5 w-5 mr-2" />
-              <p>
-                ローカルストレージにアクセスできないため、データが保存されません。
-                シークレットモードを使用している場合は通常モードに切り替えるか、ブラウザの設定を確認してください。
-              </p>
-            </div>
-          </div>
-        )}
-        
-        {otherProps.showExportReminder && (
-          <ReminderNotification 
-            daysSinceLastExport={otherProps.daysSinceLastExport}
-            onGoToSettings={handleGoToSettings}
-            onDismiss={handleDismissReminder}
-          />
-        )}
-        <div className="p-0 sm:p-4">
-          {Views[otherProps.activeTab] || Views.today}
-          {otherProps.editingQuestion && (
-            <QuestionEditModal
-              question={otherProps.editingQuestion}
-              onSave={otherProps.saveQuestionEdit}
-              onCancel={() => otherProps.setEditingQuestion(null)}
-              formatDate={formatDate}
-            />
-          )}
-        </div>
-        <div id="notification-area" className="fixed bottom-4 right-4 z-30"></div>
-      </div>
-    </NotificationProvider>
-  );
+      targetSubject.chapters.push(newChapterObj);
+      targetChapter = newChapterObj;
+    } else {
+      // 既存の科目から対象を検索
+      targetSubject = updatedSubjects.find(s => s.id.toString() === newQuestion.subjectId.toString());
+      
+      if (!targetSubject) {
+        console.error("対象の科目が見つかりません");
+        return prevSubjects;
+      }
+    }
+    
+    // 新規章の処理
+    if (newQuestion.newChapter && newQuestion.newChapter.isNew) {
+      // 新しい章IDを生成（対象科目内の既存の最大ID + 1）
+      const maxChapterId = Math.max(...targetSubject.chapters.map(chapter => Number(chapter.id) || 0), 0);
+      const newChapterId = maxChapterId + 1;
+      
+      // 新しい章オブジェクトを作成
+      const newChapterObj = {
+        id: newChapterId,
+        chapterId: newChapterId,
+        chapterName: newQuestion.newChapter.name,
+        name: newQuestion.newChapter.name,
+        questions: []
+      };
+      
+      targetSubject.chapters.push(newChapterObj);
+      targetChapter = newChapterObj;
+    } else if (!targetChapter) {
+      // 既存の章から対象を検索
+      targetChapter = targetSubject.chapters.find(c => c.id.toString() === newQuestion.chapterId.toString());
+      
+      if (!targetChapter) {
+        console.error("対象の章が見つかりません");
+        return prevSubjects;
+      }
+    }
+    
+    // 新規問題オブジェクトを作成
+    const questionObj = {
+      id: newQuestion.id,
+      number: newQuestion.number,
+      understanding: newQuestion.understanding,
+      nextDate: newQuestion.nextDate,
+      comment: newQuestion.comment,
+      correctRate: 0,
+      answerCount: 0,
+      lastAnswered: null,
+      history: []
+    };
+    
+    // 章に問題を追加
+    targetChapter.questions.push(questionObj);
+    
+    // トースト通知表示（将来的に実装）
+    console.log(`問題 ${newQuestion.id} を追加しました`);
+    
+    return updatedSubjects;
+  });
 };
 
 // ★ アプリ全体のレンダリング (エラー状態対応) ★
@@ -1167,7 +1096,49 @@ return (
             />
           )}
           <div className="p-0 sm:p-4">
-            <MainView subjects={subjects} {...{ activeTab, setActiveTab, expandedSubjects, setExpandedSubjects, expandedChapters, setExpandedChapters, editingQuestion, setEditingQuestion, bulkEditMode, setBulkEditMode, selectedQuestions, setSelectedQuestions, answerHistory, setAnswerHistory, showExportReminder, setShowExportReminder, daysSinceLastExport, formatDate }} />
+            <MainView 
+              subjects={subjects} 
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              expandedSubjects={expandedSubjects}
+              setExpandedSubjects={setExpandedSubjects}
+              expandedChapters={expandedChapters}
+              setExpandedChapters={setExpandedChapters}
+              editingQuestion={editingQuestion}
+              setEditingQuestion={setEditingQuestion}
+              bulkEditMode={bulkEditMode}
+              setBulkEditMode={setBulkEditMode}
+              selectedQuestions={selectedQuestions}
+              setSelectedQuestions={setSelectedQuestions}
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+              answerHistory={answerHistory}
+              setAnswerHistory={setAnswerHistory}
+              showExportReminder={showExportReminder}
+              setShowExportReminder={setShowExportReminder}
+              daysSinceLastExport={daysSinceLastExport}
+              formatDate={formatDate}
+              saveQuestionEdit={saveQuestionEdit}
+              saveBulkEdit={saveBulkEdit}
+              saveBulkEditItems={saveBulkEditItems}
+              saveComment={saveComment}
+              handleQuestionDateChange={handleQuestionDateChange}
+              toggleSubject={toggleSubject}
+              toggleChapter={toggleChapter}
+              toggleQuestionSelection={toggleQuestionSelection}
+              handleGoToSettings={handleGoToSettings}
+              handleDismissReminder={handleDismissReminder}
+              resetAllData={resetAllData}
+              resetAnswerStatusOnly={resetAnswerStatusOnly}
+              handleDataImport={handleDataImport}
+              handleDataExport={handleDataExport}
+              getAllQuestions={getAllQuestions}
+              addQuestion={addQuestion}
+              saveSubjectNote={saveSubjectNote}
+              calculateTotalQuestionCount={calculateTotalQuestionCount}
+              hasStorageError={hasStorageError}
+              recordAnswer={recordAnswer}
+            />
           </div>
           <div id="notification-area" className="fixed bottom-4 right-4 z-30"></div>
         </div>
