@@ -252,18 +252,6 @@ const NotesPage = ({ subjects, saveSubjectNote }) => {
             ? `${getSubjectName(selectedSubjectObj)}のノート` 
             : '科目を選択してください'}
         </h2>
-        {selectedSubjectObj && !isEditing && (
-          <button className={styles.editButton} onClick={() => setIsEditing(true)}>
-            <Edit size={16} />
-            編集
-          </button>
-        )}
-        {isEditing && (
-          <button className={styles.saveButton} onClick={handleSave}>
-            <Save size={16} />
-            保存
-          </button>
-        )}
       </div>
 
       <div className={styles.mobileSelector}>
