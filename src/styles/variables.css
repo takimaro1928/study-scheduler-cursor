@@ -1,0 +1,209 @@
+/**
+ * スタイル変数定義
+ * アプリケーション全体で使用される共通のスタイル変数
+ */
+
+:root {
+  /* カラーパレット - プライマリ */
+  --color-primary: #4a6da7;
+  --color-primary-rgb: 74, 109, 167;
+  --color-primary-light: #6b8cbe;
+  --color-primary-light-rgb: 107, 140, 190;
+  --color-primary-dark: #385782;
+  --color-primary-dark-rgb: 56, 87, 130;
+  --color-primary-100: #e3ebf6;
+  --color-primary-200: #c7d6ed;
+  --color-primary-300: #9bb3db;
+  --color-primary-400: #6b8cbe;
+  --color-primary-500: #4a6da7;
+  --color-primary-600: #385782;
+  --color-primary-700: #2d4668;
+  --color-primary-800: #1f304a;
+  --color-primary-900: #101927;
+  
+  /* カラーパレット - セカンダリ */
+  --color-secondary: #50b3a2;
+  --color-secondary-rgb: 80, 179, 162;
+  --color-secondary-light: #72c7b8;
+  --color-secondary-light-rgb: 114, 199, 184;
+  --color-secondary-dark: #3e9082;
+  --color-secondary-dark-rgb: 62, 144, 130;
+  --color-secondary-100: #e6f5f3;
+  --color-secondary-200: #c6e9e3;
+  --color-secondary-300: #a2d9cf;
+  --color-secondary-400: #72c7b8;
+  --color-secondary-500: #50b3a2;
+  --color-secondary-600: #3e9082;
+  --color-secondary-700: #2e6c62;
+  --color-secondary-800: #204840;
+  --color-secondary-900: #112421;
+  
+  /* カラーパレット - アクセント */
+  --color-accent: #f78c6c;
+  --color-accent-rgb: 247, 140, 108;
+  --color-accent-light: #ff9d82;
+  --color-accent-light-rgb: 255, 157, 130;
+  --color-accent-dark: #e17a5c;
+  --color-accent-dark-rgb: 225, 122, 92;
+  
+  /* カラーパレット - ステータス */
+  --color-success: #4caf50;
+  --color-success-rgb: 76, 175, 80;
+  --color-warning: #ff9800;
+  --color-warning-rgb: 255, 152, 0;
+  --color-error: #f44336;
+  --color-error-rgb: 244, 67, 54;
+  --color-info: #2196f3;
+  --color-info-rgb: 33, 150, 243;
+  
+  /* グレースケール */
+  --color-black: #000000;
+  --color-black-rgb: 0, 0, 0;
+  --color-gray-900: #212121;
+  --color-gray-900-rgb: 33, 33, 33;
+  --color-gray-800: #424242;
+  --color-gray-800-rgb: 66, 66, 66;
+  --color-gray-700: #616161;
+  --color-gray-700-rgb: 97, 97, 97;
+  --color-gray-600: #757575;
+  --color-gray-600-rgb: 117, 117, 117;
+  --color-gray-500: #9e9e9e;
+  --color-gray-500-rgb: 158, 158, 158;
+  --color-gray-400: #bdbdbd;
+  --color-gray-400-rgb: 189, 189, 189;
+  --color-gray-300: #e0e0e0;
+  --color-gray-300-rgb: 224, 224, 224;
+  --color-gray-200: #eeeeee;
+  --color-gray-200-rgb: 238, 238, 238;
+  --color-gray-100: #f5f5f5;
+  --color-gray-100-rgb: 245, 245, 245;
+  --color-gray-50: #fafafa;
+  --color-gray-50-rgb: 250, 250, 250;
+  --color-white: #ffffff;
+  --color-white-rgb: 255, 255, 255;
+  
+  /* 背景色 */
+  --color-background: var(--color-white);
+  --color-background-alt: var(--color-gray-50);
+  --color-background-card: var(--color-white);
+  
+  /* テキスト色 */
+  --color-text: var(--color-gray-900);
+  --color-text-secondary: var(--color-gray-700);
+  --color-text-tertiary: var(--color-gray-500);
+  --color-text-disabled: var(--color-gray-400);
+  --color-text-inverted: var(--color-white);
+  
+  /* ボーダー色 */
+  --color-border: var(--color-gray-300);
+  --color-border-light: var(--color-gray-200);
+  --color-border-focus: var(--color-primary);
+  
+  /* 間隔 (スペーシング) */
+  --spacing-xxs: 0.125rem; /* 2px */
+  --spacing-xs: 0.25rem;   /* 4px */
+  --spacing-sm: 0.5rem;    /* 8px */
+  --spacing-md: 1rem;      /* 16px */
+  --spacing-lg: 1.5rem;    /* 24px */
+  --spacing-xl: 2rem;      /* 32px */
+  --spacing-xxl: 3rem;     /* 48px */
+  --spacing-xxxl: 4rem;    /* 64px */
+  
+  /* レスポンシブ間隔 */
+  --app-padding-x: var(--spacing-md);
+  --app-padding-y: var(--spacing-md);
+  --content-padding: var(--spacing-md);
+  
+  @media (min-width: 768px) {
+    --app-padding-x: var(--spacing-lg);
+    --app-padding-y: var(--spacing-lg);
+    --content-padding: var(--spacing-lg);
+  }
+  
+  @media (min-width: 1200px) {
+    --app-padding-x: var(--spacing-xl);
+    --app-padding-y: var(--spacing-xl);
+  }
+  
+  /* ボーダー */
+  --border-radius-sm: 0.25rem; /* 4px */
+  --border-radius-md: 0.5rem;  /* 8px */
+  --border-radius-lg: 1rem;    /* 16px */
+  --border-radius-xl: 1.5rem;  /* 24px */
+  --border-radius-full: 9999px;
+  
+  --border-width-thin: 1px;
+  --border-width-regular: 2px;
+  --border-width-thick: 3px;
+  
+  /* タイポグラフィ */
+  --font-family: 'Inter', 'Helvetica Neue', 'Arial', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  --font-family-mono: 'Monaco', 'Consolas', 'Courier New', monospace;
+  --font-family-jp: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', Meiryo, sans-serif;
+  
+  --font-size-xxs: 0.625rem;  /* 10px */
+  --font-size-xs: 0.75rem;    /* 12px */
+  --font-size-sm: 0.875rem;   /* 14px */
+  --font-size-md: 1rem;       /* 16px */
+  --font-size-lg: 1.125rem;   /* 18px */
+  --font-size-xl: 1.25rem;    /* 20px */
+  --font-size-xxl: 1.5rem;    /* 24px */
+  --font-size-3xl: 1.875rem;  /* 30px */
+  --font-size-4xl: 2.25rem;   /* 36px */
+  --font-size-5xl: 3rem;      /* 48px */
+  
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+  --line-height-loose: 2;
+  
+  /* シャドウ */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+  --shadow-outline: 0 0 0 3px rgba(var(--color-primary-rgb), 0.25);
+  
+  /* トランジション */
+  --transition-fast: 150ms;
+  --transition-normal: 250ms;
+  --transition-slow: 350ms;
+  --transition-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --transition-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --transition-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Z-index レイヤー */
+  --z-index-dropdown: 1000;
+  --z-index-sticky: 1020;
+  --z-index-fixed: 1030;
+  --z-index-modal-backdrop: 1040;
+  --z-index-modal: 1050;
+  --z-index-popover: 1060;
+  --z-index-tooltip: 1070;
+  --z-index-toast: 1080;
+  
+  /* タッチターゲットのサイズ (モバイル向け) */
+  --touch-target-size: 44px;
+  
+  /* コンテンツの最大幅 */
+  --content-max-width: 1200px;
+  --content-narrow-width: 768px;
+  --content-medium-width: 992px;
+  
+  /* グリッド */
+  --grid-columns: 12;
+  --grid-gutter: var(--spacing-md);
+  
+  /* アニメーション */
+  --animation-duration-short: 0.15s;
+  --animation-duration-normal: 0.3s;
+  --animation-duration-long: 0.5s;
+} 
