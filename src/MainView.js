@@ -9,7 +9,7 @@ import EnhancedStatsPage from './EnhancedStatsPage';
 import AmbiguousTrendsPage from './AmbiguousTrendsPage';
 import NotesPage from './NotesPage';
 import QuestionEditModal from './QuestionEditModal';
-import ErrorBoundary from './utils/ErrorBoundary';
+import ErrorBoundary from './components/ErrorBoundary';
 import ReminderNotification from './ReminderNotification';
 import { NotificationProvider } from './contexts/NotificationContext';
 import TopNavigation from './components/TopNavigation';
