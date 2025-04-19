@@ -1411,3 +1411,145 @@ table {
 .reason-option {
   width: 100%;
 }
+
+/* モダンなボタンの基本スタイル */
+.modern-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 16px;
+  transition: all 0.2s ease-in-out;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 理解度ボタンコンテナ */
+.understanding-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+/* 理解済みボタン - 緑系 */
+.understanding-button-modern {
+  background-color: #10b981;
+  color: white;
+  flex: 1;
+}
+
+.understanding-button-modern:hover {
+  background-color: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* 曖昧ボタン - オレンジ系 */
+.ambiguous-button-modern {
+  background-color: #f59e0b;
+  color: white;
+  flex: 1;
+  position: relative;
+}
+
+.ambiguous-button-modern:hover {
+  background-color: #d97706;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+.ambiguous-button-modern.active {
+  background-color: #b45309;
+}
+
+.icon-toggle {
+  position: absolute;
+  right: 12px;
+  transition: transform 0.2s ease;
+}
+
+.ambiguous-button-modern.active .icon-toggle {
+  transform: rotate(180deg);
+}
+
+/* 理由選択パネル - モダンバージョン */
+.reason-panel-modern {
+  background-color: #fffbeb;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #fcd34d;
+}
+
+.reason-panel-title-modern {
+  font-weight: 600;
+  font-size: 16px;
+  color: #92400e;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #fef3c7;
+}
+
+.reason-options-container {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.reason-option-modern {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: white;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.reason-option-modern:hover {
+  background-color: #fef9c3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.reason-option-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reason-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: #fbbf24;
+  color: white;
+  border-radius: 50%;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.reason-text {
+  font-size: 15px;
+  color: #78350f;
+}
+
+.reason-badge {
+  background-color: #fef3c7;
+  color: #92400e;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
