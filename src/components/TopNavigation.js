@@ -43,6 +43,14 @@ const TopNavigation = ({ activeTab, setActiveTab }) => {
     { id: 'menu', label: 'メニュー', icon: <Menu size={20} />, onClick: () => setIsMenuOpen(true) }
   ];
 
+  // デスクトップ用水平ナビゲーション（よく使われる項目）
+  const desktopNavItems = [
+    { id: 'today', label: '今日の問題', icon: <Clock size={18} /> },
+    { id: 'schedule', label: 'スケジュール', icon: <Calendar size={18} /> },
+    { id: 'all', label: '全問題一覧', icon: <List size={18} /> },
+    { id: 'notes', label: 'ノート', icon: <Book size={18} /> },
+  ];
+
   return (
     <>
       {/* ヘッダー */}
@@ -63,6 +71,43 @@ const TopNavigation = ({ activeTab, setActiveTab }) => {
           <span style={{ fontSize: '1.25rem', marginRight: '8px' }}>📚</span>
           <span style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#1f2937' }}>学習マネージャー</span>
         </div>
+
+        {/* デスクトップ用水平ナビゲーション */}
+        {!isMobile && (
+          <div style={{
+            display: 'flex',
+            flexGrow: 1,
+            justifyContent: 'center',
+            marginLeft: '40px',
+            marginRight: '40px'
+          }}>
+            {desktopNavItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  backgroundColor: 'transparent',
+                  color: activeTab === item.id ? '#4f46e5' : '#6b7280',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '8px 16px',
+                  margin: '0 4px',
+                  borderRadius: '8px',
+                  fontWeight: activeTab === item.id ? 600 : 500,
+                  transition: 'all 0.2s ease',
+                  backgroundColor: activeTab === item.id ? '#eef2ff' : 'transparent'
+                }}
+              >
+                <div style={{ marginRight: '8px' }}>{item.icon}</div>
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* ハンバーガーメニューボタン */}
         <button
           onClick={() => setIsMenuOpen(true)}
           style={{
@@ -70,8 +115,13 @@ const TopNavigation = ({ activeTab, setActiveTab }) => {
             border: 'none',
             cursor: 'pointer',
             color: '#4b5563',
-            display: isMobile ? 'none' : 'block' // モバイル時は非表示
+            display: 'block',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            transition: 'background-color 0.2s ease'
           }}
+          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+          onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
           aria-label="メインメニューを開く"
         >
           <Menu size={24} />
