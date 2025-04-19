@@ -4,7 +4,7 @@
 // 表示部分で科目名・章名を安全に表示するように修正。
 
 import React, { useState } from 'react';
-import { Check, X, AlertTriangle, ChevronsUpDown } from 'lucide-react';
+import { Check, X, AlertTriangle, ChevronsUpDown, CheckCircle } from 'lucide-react';
 // import styles from './TodayView.module.css'; // CSS Modules を使う場合はこの行のコメントを解除し、下の className を styles.*** 形式に変更してください
 
 // props で getTodayQuestions の代わりに todayQuestions を受け取る
@@ -116,56 +116,52 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate }) => {
                     </div>
                   )}
 
-                  {/* --- 理解度ボタンエリア --- */}
+                  {/* --- 理解度ボタンエリア (モダンデザイン) --- */}
                   {questionState.showComprehension && (
                     <div>
                       <div className="section-title"><span className="section-dot"></span>理解度を選択</div>
-                      <div className="understanding-container">
+                      <div className="understanding-buttons">
                         <button
                           onClick={() => handleUnderstandClick(question.id)}
-                          className="understanding-button"
+                          className="modern-button understanding-button-modern"
                         >
-                          <Check /> 理解済み
+                          <CheckCircle size={18} />
+                          <span>理解済み</span>
                         </button>
                         <button
                           onClick={() => handleAmbiguousClick(question.id)}
-                          className={`ambiguous-button ${isAmbiguousPanelOpen ? 'active' : ''}`}
+                          className={`modern-button ambiguous-button-modern ${isAmbiguousPanelOpen ? 'active' : ''}`}
                         >
-                          <div style={{display: 'flex', alignItems: 'center'}}>
-                            <AlertTriangle/>
-                            <span className="study-button-text">曖昧</span>
-                          </div>
-                          <ChevronsUpDown />
+                          <AlertTriangle size={18} />
+                          <span>曖昧</span>
+                          <ChevronsUpDown size={16} className="icon-toggle" />
                         </button>
                       </div>
                     </div>
                   )}
                 </div> {/* End of card content */}
 
-                {/* --- 曖昧理由選択パネル --- */}
+                {/* --- 曖昧理由選択パネル (モダンデザイン) --- */}
                 {isAmbiguousPanelOpen && (
-                  <div>
-                     <div className="reason-panel">
-                       <div className="reason-panel-header">
-                         <div className="reason-panel-title">曖昧だった理由を選択してください:</div>
-                       </div>
-                       <div>
-                         {ambiguousReasons.map((reason, index) => (
-                           <button
-                             key={index}
-                             onClick={() => selectAmbiguousReason(question.id, reason)}
-                             className="reason-option"
-                           >
-                             <div className="reason-option__content">
-                               <span className="reason-option__dot"></span>
-                               <span className="reason-option__text">{reason}</span>
-                             </div>
-                             {/* 「8日後」の表示は固定で良いか、あるいは理由によって変えるか */}
-                             <span className="reason-option__badge">8日後</span>
-                           </button>
-                         ))}
-                       </div>
-                     </div>
+                  <div className="reason-panel-modern">
+                    <div className="reason-panel-title-modern">
+                      曖昧だった理由を選択してください:
+                    </div>
+                    <div className="reason-options-container">
+                      {ambiguousReasons.map((reason, index) => (
+                        <button
+                          key={index}
+                          onClick={() => selectAmbiguousReason(question.id, reason)}
+                          className="reason-option-modern"
+                        >
+                          <div className="reason-option-content">
+                            <span className="reason-number">{index + 1}</span>
+                            <span className="reason-text">{reason}</span>
+                          </div>
+                          <span className="reason-badge">8日後</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div> // 問題カード end
