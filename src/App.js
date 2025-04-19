@@ -1137,6 +1137,7 @@ return (
               calculateTotalQuestionCount={calculateTotalQuestionCount}
               hasStorageError={hasStorageError}
               recordAnswer={recordAnswer}
+              getQuestionsForDate={getQuestionsForDate}
             />
           </div>
           <div id="notification-area" className="fixed bottom-4 right-4 z-30"></div>
