@@ -56,10 +56,16 @@ const MainView = ({
   saveSubjectNote,
   calculateTotalQuestionCount,
   hasStorageError,
-  recordAnswer
+  recordAnswer,
+  getQuestionsForDate
 }) => {
   const Views = {
-    today: <TodayView subjects={subjects} formatDate={formatDate} handleQuestionEdit={handleQuestionDateChange} onRecordAnswer={recordAnswer} answerHistory={answerHistory} />,
+    today: <TodayView 
+      todayQuestions={getQuestionsForDate(new Date())} 
+      formatDate={formatDate} 
+      recordAnswer={recordAnswer} 
+      answerHistory={answerHistory}
+    />,
     all: <RedesignedAllQuestionsView 
       subjects={subjects} 
       formatDate={formatDate} 
