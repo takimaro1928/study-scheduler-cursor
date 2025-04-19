@@ -253,20 +253,6 @@ const NotesPage = ({ subjects, saveSubjectNote }) => {
             : '科目を選択してください'}
         </h2>
       </div>
-
-      <div className={styles.mobileSelector}>
-        <select
-          value={selectedSubject || ''}
-          onChange={(e) => setSelectedSubject(e.target.value)}
-        >
-          <option value="">科目を選択</option>
-          {subjects.map((subject) => (
-            <option key={subject.id} value={subject.id}>
-              {subject.name}
-            </option>
-          ))}
-        </select>
-      </div>
       
       <div className={styles['notes-container']}>
         {/* デスクトップ用サイドバー */}
