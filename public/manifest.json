@@ -1,0 +1,54 @@
+{
+  "short_name": "学習スケジューラー",
+  "name": "学習スケジューラー - 記憶定着のためのアプリ",
+  "description": "間隔反復学習法に基づいたシンプルな学習スケジューラー",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#4f46e5",
+  "background_color": "#f9fafb",
+  "orientation": "portrait",
+  "categories": ["education", "productivity"],
+  "lang": "ja",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "screenshots": [
+    {
+      "src": "screenshot1.png",
+      "sizes": "1280x720",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "今日の問題",
+      "short_name": "今日の問題",
+      "description": "今日の学習予定の問題を表示",
+      "url": "/?tab=today"
+    },
+    {
+      "name": "スケジュール",
+      "short_name": "スケジュール",
+      "description": "学習スケジュールを表示",
+      "url": "/?tab=schedule"
+    }
+  ]
+} 
