@@ -49,6 +49,9 @@ const TopNavigation = ({ activeTab, setActiveTab }) => {
     { id: 'schedule', label: 'スケジュール', icon: <Calendar size={18} /> },
     { id: 'all', label: '全問題一覧', icon: <List size={18} /> },
     { id: 'notes', label: 'ノート', icon: <Book size={18} /> },
+    { id: 'stats', label: '学習統計', icon: <BookOpen size={18} /> },
+    { id: 'ambiguous', label: '曖昧分析', icon: <AlertTriangle size={18} /> },
+    { id: 'settings', label: '設定', icon: <Settings size={18} /> },
   ];
 
   return (
