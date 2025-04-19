@@ -24,7 +24,7 @@ import { setupGlobalErrorHandlers } from './utils/error-logger';
 import { isStorageAvailable, getStorageItem, setStorageItem, studyDataValidator, historyDataValidator } from './utils/storage';
 import { NotificationProvider } from './contexts/NotificationContext';
 import MainView from './MainView';
-import './index.css';
+import './App.css';
 
 // 問題生成関数 (IDゼロパディング、understanding='理解○' 固定)
 function generateQuestions(prefix, start, end) {
