@@ -147,7 +147,7 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate }) => {
                     <div className="reason-panel-title-modern">
                       曖昧だった理由を選択してください:
                     </div>
-                    <div className="reason-options-container">
+                    <div className="reason-options-list">
                       {ambiguousReasons.map((reason, index) => (
                         <button
                           key={index}
@@ -155,7 +155,7 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate }) => {
                           className="reason-option-modern"
                         >
                           <div className="reason-option-content">
-                            <span className="reason-number">{index + 1}</span>
+                            <span className="reason-dot"></span>
                             <span className="reason-text">{reason}</span>
                           </div>
                           <span className="reason-badge">8日後</span>
