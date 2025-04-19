@@ -158,7 +158,14 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate }) => {
                             <span className="reason-dot"></span>
                             <span className="reason-text">{reason}</span>
                           </div>
-                          <span className="reason-badge">8日後</span>
+                          <span className="reason-badge">
+                            {reason === '偶然正解した' ? '2日後' :
+                             reason === '正解の選択肢は理解していたが、他の選択肢の意味が分かっていなかった' ? '3日後' :
+                             reason === '合っていたが、別の理由を思い浮かべていた' ? '3日後' :
+                             reason === '自信はなかったけど、これかなとは思っていた' ? '4日後' :
+                             reason === '問題を覚えてしまっていた' ? '5日後' :
+                             '4日後'}
+                          </span>
                         </button>
                       ))}
                     </div>
