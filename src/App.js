@@ -25,6 +25,7 @@ import { isStorageAvailable, getStorageItem, setStorageItem, studyDataValidator,
 import { NotificationProvider } from './contexts/NotificationContext';
 import MainView from './MainView';
 import './index.css';
+import OfflineIndicator from './components/OfflineIndicator';
 
 // 問題生成関数 (IDゼロパディング、understanding='理解○' 固定)
 function generateQuestions(prefix, start, end) {
@@ -423,7 +424,7 @@ const getQuestionsForDate = (date) => {
             return { 
               ...chapter, 
               id: chapter.id, 
-              name: chapter.name, 
+              name: chapter.name,
               questions: chapter.questions.map(q => { 
                 if (q?.id === questionId) { 
                   const question = { ...q }; 
@@ -432,9 +433,34 @@ const getQuestionsForDate = (date) => {
                   let nextDate = new Date(); 
                   let newInterval = ''; 
                   
-                  if (understanding.startsWith('曖昧△')) { 
-                    nextDate.setDate(today.getDate() + 8); 
-                    newInterval = '8日'; 
+                  // 曖昧な理解の場合、理由ごとに次回の復習日を調整
+                  if (understanding.startsWith('曖昧△')) {
+                    // 曖昧な理由に基づいて日数を決定
+                    const reason = understanding.split(':')[1] || '';
+                    let daysToAdd = 4; // デフォルトは4日後
+                    
+                    if (reason === '偶然正解した') {
+                      daysToAdd = 2; // 最も短い復習間隔
+                      newInterval = '2日';
+                    } else if (reason === '正解の選択肢は理解していたが、他の選択肢の意味が分かっていなかった') {
+                      daysToAdd = 3;
+                      newInterval = '3日';
+                    } else if (reason === '合っていたが、別の理由を思い浮かべていた') {
+                      daysToAdd = 3;
+                      newInterval = '3日';
+                    } else if (reason === '自信はなかったけど、これかなとは思っていた') {
+                      daysToAdd = 4;
+                      newInterval = '4日';
+                    } else if (reason === '問題を覚えてしまっていた') {
+                      daysToAdd = 5;
+                      newInterval = '5日';
+                    } else if (reason === 'その他') {
+                      daysToAdd = 4;
+                      newInterval = '4日';
+                    }
+                    
+                    nextDate.setDate(today.getDate() + daysToAdd);
+                    console.log(`曖昧理由「${reason}」のため、${daysToAdd}日後に設定`);
                   } else if (isCorrect && understanding === '理解○') { 
                     const isFirstCorrect = question.understanding === '未学習'; 
                     const baseInterval = isFirstCorrect ? '1日' : (previousUnderstanding?.startsWith('曖昧△') ? '14日' : (question.interval || '1日')); 
@@ -465,7 +491,7 @@ const getQuestionsForDate = (date) => {
                         newInterval = '2ヶ月'; 
                         break; 
                     } 
-                  } else { 
+                  } else {
                     nextDate.setDate(today.getDate() + 1); 
                     newInterval = '1日'; 
                   } 
@@ -1071,6 +1097,7 @@ return (
   <ErrorBoundary>
     <NotificationProvider>
       <div className="App">
+        <OfflineIndicator />
         <div className="min-h-screen bg-gray-50">
           <TopNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
           
