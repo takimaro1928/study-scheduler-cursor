@@ -8,7 +8,7 @@ import StatsPage from './StatsPage';
 import EnhancedStatsPage from './EnhancedStatsPage';
 import AmbiguousTrendsPage from './AmbiguousTrendsPage';
 import NotesPage from './NotesPage';
-import QuestionEditModal from './components/QuestionEditModal';
+import QuestionEditModal from './QuestionEditModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import ReminderNotification from './ReminderNotification';
 import { NotificationProvider } from './contexts/NotificationContext';
