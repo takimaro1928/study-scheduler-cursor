@@ -8,6 +8,7 @@ import StatsPage from './StatsPage';
 import EnhancedStatsPage from './EnhancedStatsPage';
 import AmbiguousTrendsPage from './AmbiguousTrendsPage';
 import NotesPage from './NotesPage';
+import SMEExamPage from './SMEExamPage';
 import QuestionEditModal from './QuestionEditModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import ReminderNotification from './ReminderNotification';
@@ -55,110 +56,144 @@ const MainView = ({
   editingQuestion,
   saveQuestionEdit
 }) => {
-  const Views = {
-    today: <TodayView 
-      todayQuestions={getQuestionsForDate(new Date())} 
-      formatDate={formatDate} 
-      recordAnswer={recordAnswer} 
-      answerHistory={answerHistory}
-    />,
-    all: <RedesignedAllQuestionsView 
-      subjects={subjects} 
-      formatDate={formatDate} 
-      expandedSubjects={expandedSubjects} 
-      expandedChapters={expandedChapters} 
-      toggleSubject={toggleSubject} 
-      toggleChapter={toggleChapter} 
-      setEditingQuestion={setEditingQuestion}
-      setBulkEditMode={setBulkEditMode}
-      bulkEditMode={bulkEditMode}
-      selectedQuestions={selectedQuestions}
-      toggleQuestionSelection={toggleQuestionSelection} 
-      onDateChange={handleQuestionDateChange} 
-      saveBulkEdit={saveBulkEdit}
-      onToggleBulkEdit={() => setBulkEditMode(!bulkEditMode)} 
-      onSaveBulkEditItems={saveBulkEditItems}
-      onAddQuestion={addQuestion}
-      filterText={filterText}
-      setFilterText={setFilterText}
-      showAnswered={showAnswered}
-      setShowAnswered={setShowAnswered}
-    />,
-    schedule: <ScheduleView 
-      data={{ questions: getAllQuestions(subjects) }} 
-      scheduleQuestion={handleQuestionDateChange} 
-    />,
-    settings: <SettingsPage 
-      onResetAllData={resetAllData} 
-      onResetAnswerStatusOnly={resetAnswerStatusOnly} 
-      onImport={handleDataImport} 
-      onExport={handleDataExport}
-      onBackup={handleBackupData}
-      onRestore={handleRestoreData}
-      exportTimestamp={localStorage.getItem('lastExportTimestamp')} 
-      formatDate={formatDate} 
-      totalQuestionCount={calculateTotalQuestionCount(subjects)} 
-    />,
-    stats: <StatsPage 
-      subjects={subjects} 
-      formatDate={formatDate} 
-      answerHistory={answerHistory} 
-    />,
-    enhanced: <EnhancedStatsPage 
-      subjects={subjects} 
-      formatDate={formatDate} 
-      answerHistory={answerHistory} 
-      saveComment={saveComment} 
-    />,
-    ambiguous: <AmbiguousTrendsPage 
-      subjects={subjects} 
-      formatDate={formatDate} 
-      answerHistory={answerHistory} 
-      saveComment={saveComment} 
-      saveBulkEditItems={saveBulkEditItems} 
-      setEditingQuestion={setEditingQuestion} 
-    />,
-    notes: <ErrorBoundary>
-      <NotesPage 
-        subjects={subjects} 
-        saveSubjectNote={saveSubjectNote} 
-      />
-    </ErrorBoundary>,
+  
+  // 現在の曜日を取得する関数
+  const getDayOfWeek = () => {
+    const days = ['日', '月', '火', '水', '木', '金', '土'];
+    const today = new Date();
+    return days[today.getDay()];
+  };
+
+  // 画面切り替え
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'all':
+        return (
+          <ErrorBoundary>
+            <RedesignedAllQuestionsView
+              subjects={subjects}
+              expandedSubjects={expandedSubjects}
+              expandedChapters={expandedChapters}
+              toggleSubject={toggleSubject}
+              toggleChapter={toggleChapter}
+              setEditingQuestion={setEditingQuestion}
+              bulkEditMode={bulkEditMode}
+              setBulkEditMode={setBulkEditMode}
+              selectedQuestions={selectedQuestions}
+              toggleQuestionSelection={toggleQuestionSelection}
+              saveBulkEdit={saveBulkEdit}
+              saveBulkEditItems={saveBulkEditItems}
+              saveComment={saveComment}
+              handleQuestionDateChange={handleQuestionDateChange}
+              filterText={filterText}
+              setFilterText={setFilterText}
+              showAnswered={showAnswered}
+              setShowAnswered={setShowAnswered}
+              formatDate={formatDate}
+              addQuestion={addQuestion}
+              answerHistory={answerHistory}
+            />
+          </ErrorBoundary>
+        );
+      case 'today':
+        return (
+          <ErrorBoundary>
+            <TodayView
+              todayQuestions={getQuestionsForDate(new Date())}
+              answerHistory={answerHistory}
+              recordAnswer={recordAnswer}
+              saveComment={saveComment}
+              formatDate={formatDate}
+            />
+          </ErrorBoundary>
+        );
+      case 'schedule':
+        return (
+          <ErrorBoundary>
+            <ScheduleView
+              subjects={subjects}
+              handleQuestionDateChange={handleQuestionDateChange}
+              formatDate={formatDate}
+            />
+          </ErrorBoundary>
+        );
+      case 'settings':
+        return (
+          <ErrorBoundary>
+            <SettingsPage
+              resetAllData={resetAllData}
+              resetAnswerStatusOnly={resetAnswerStatusOnly}
+              handleDataImport={handleDataImport}
+              handleDataExport={handleDataExport}
+              handleBackupData={handleBackupData}
+              handleRestoreData={handleRestoreData}
+              subjects={subjects}
+              getAllQuestions={getAllQuestions}
+              hasStorageError={hasStorageError}
+              calculateTotalQuestionCount={calculateTotalQuestionCount}
+            />
+          </ErrorBoundary>
+        );
+      case 'stats':
+        return (
+          <ErrorBoundary>
+            <EnhancedStatsPage
+              subjects={subjects}
+              answerHistory={answerHistory}
+              formatDate={formatDate}
+            />
+          </ErrorBoundary>
+        );
+      case 'ambiguous':
+        return (
+          <ErrorBoundary>
+            <AmbiguousTrendsPage
+              subjects={subjects}
+              answerHistory={answerHistory}
+              formatDate={formatDate}
+            />
+          </ErrorBoundary>
+        );
+      case 'notes':
+        return (
+          <ErrorBoundary>
+            <NotesPage
+              subjects={subjects}
+              saveSubjectNote={saveSubjectNote}
+            />
+          </ErrorBoundary>
+        );
+      case 'smeExam':
+        return (
+          <ErrorBoundary>
+            <SMEExamPage />
+          </ErrorBoundary>
+        );
+      default:
+        return <div>ページが見つかりません</div>;
+    }
   };
 
   return (
     <NotificationProvider>
-      <div className="app-container">
-        <TopNavigation activeTab={activeTab} setActiveTab={(tab) => setActiveTab(tab)} />
-        
-        {/* ストレージエラー通知 */}
-        {hasStorageError && (
-          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 mx-4 mt-4">
-            <div className="flex items-center">
-              <AlertTriangle className="h-5 w-5 mr-2" />
-              <p>
-                ローカルストレージにアクセスできないため、データが保存されません。
-                シークレットモードを使用している場合は通常モードに切り替えるか、ブラウザの設定を確認してください。
-              </p>
-            </div>
-          </div>
-        )}
-        
-        <div className="p-0 sm:p-4">
-          {Views[activeTab] || Views.today}
-          
-          {/* 編集モーダル - 復元 */}
-          {editingQuestion && (
-            <QuestionEditModal
-              question={editingQuestion}
-              onSave={saveQuestionEdit}
-              onCancel={() => setEditingQuestion(null)}
-              formatDate={formatDate}
-            />
-          )}
-        </div>
-        <div id="notification-area" className="fixed bottom-4 right-4 z-30"></div>
+      <TopNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
+      
+      {/* メイン表示部分 */}
+      <div style={{ padding: '0 16px', maxWidth: '1200px', margin: '0 auto' }}>
+        {renderContent()}
       </div>
+      
+      {/* 質問編集モーダル */}
+      {editingQuestion && (
+        <QuestionEditModal
+          question={editingQuestion}
+          onClose={() => setEditingQuestion(null)}
+          onSave={saveQuestionEdit}
+        />
+      )}
+      
+      {/* リマインダー通知 */}
+      <ReminderNotification />
     </NotificationProvider>
   );
 };
