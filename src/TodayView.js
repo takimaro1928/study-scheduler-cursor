@@ -3,8 +3,9 @@
 // props で getTodayQuestions の代わりに todayQuestions を受け取り、
 // 表示部分で科目名・章名を安全に表示するように修正。
 
-import React, { useState } from 'react';
-import { Check, X, AlertTriangle, ChevronsUpDown, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Check, X, AlertTriangle, ChevronsUpDown, CheckCircle, ChevronUp, ChevronDown } from 'lucide-react';
+import { Button, Badge, Tooltip } from 'reactstrap';
 // import styles from './TodayView.module.css'; // CSS Modules を使う場合はこの行のコメントを解除し、下の className を styles.*** 形式に変更してください
 
 // props で getTodayQuestions の代わりに todayQuestions を受け取る
@@ -90,7 +91,7 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate }) => {
                 <div className="study-card-content">
                   {/* 問題情報 - ★ nullish coalescing (?? '?') を使って安全に表示 */}
                   <div className="subject-name">{question.subjectName || question.subject?.name || '?'}</div>
-　　　　　　　　　　　<div className="chapter-name">{question.chapterName || question.chapter?.name || '?'}</div>
+                  <div className="chapter-name">{question.chapterName || question.chapter?.name || '?'}</div>
                   <div className="question-badge">
                     問題 {question.id}
                   </div>
@@ -99,18 +100,18 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate }) => {
                   {!questionState.showComprehension && (
                     <div>
                       <div className="section-title"><span className="section-dot"></span>解答結果</div>
-                      <div className="answer-button-container">
+                      <div className="answer-buttons-container mt-3">
                         <button
+                          className={`answer-button correct-button ${questionState.showComprehension === true ? 'selected' : ''}`}
                           onClick={() => handleAnswerClick(question.id, true)}
-                          className="correct-button"
                         >
-                          <Check /> 正解
+                          正解
                         </button>
                         <button
+                          className={`answer-button incorrect-button ${questionState.showComprehension === false ? 'selected' : ''}`}
                           onClick={() => handleAnswerClick(question.id, false)}
-                          className="incorrect-button"
                         >
-                          <X /> 不正解
+                          不正解
                         </button>
                       </div>
                     </div>
@@ -120,21 +121,18 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate }) => {
                   {questionState.showComprehension && (
                     <div>
                       <div className="section-title"><span className="section-dot"></span>理解度を選択</div>
-                      <div className="understanding-buttons">
+                      <div className="understanding-buttons-container mt-3">
                         <button
+                          className={`answer-button correct-button ${questionState.showComprehension === true ? 'selected' : ''}`}
                           onClick={() => handleUnderstandClick(question.id)}
-                          className="modern-button understanding-button-modern"
                         >
-                          <CheckCircle size={18} />
-                          <span>理解済み</span>
+                          理解済み {questionState.showComprehension === true && <ChevronUp className="ml-auto" size={16} />}
                         </button>
                         <button
+                          className={`answer-button incorrect-button ${questionState.showComprehension === false ? 'selected' : ''}`}
                           onClick={() => handleAmbiguousClick(question.id)}
-                          className={`modern-button ambiguous-button-modern ${isAmbiguousPanelOpen ? 'active' : ''}`}
                         >
-                          <AlertTriangle size={18} />
-                          <span>曖昧</span>
-                          <ChevronsUpDown size={16} className="icon-toggle" />
+                          曖昧 {isAmbiguousPanelOpen ? <ChevronUp className="ml-auto" size={16} /> : <ChevronDown className="ml-auto" size={16} />}
                         </button>
                       </div>
                     </div>
