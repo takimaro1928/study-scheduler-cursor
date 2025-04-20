@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search, Filter, Edit, Clock, Calendar as CalendarIcon, CheckCircle, XCircle, AlertTriangle, Info,
-  ChevronRight, ChevronDown, ChevronUp, X as XIcon, FilePlus, Sliders, PlusCircle, Check
+  ChevronRight, ChevronDown, ChevronUp, X as XIcon, FilePlus, Sliders, PlusCircle, Check, File as FileIcon
 } from 'lucide-react';
 import styles from './RedesignedAllQuestionsView.module.css'; // CSSモジュール
 import AddQuestionModal from './AddQuestionModal';
@@ -789,7 +789,7 @@ const RedesignedAllQuestionsView = ({
       {filteredSubjects.length === 0 ? (
         <div className={styles.noResults}>
           <div className={styles.noResultsIcon}>
-            <FilePlus size={36} />
+            <FileIcon size={36} />
           </div>
           <p className={styles.noResultsMessage}>
             {searchTerm || activeFiltersCount > 0 ? 
