@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search, Filter, Edit, Clock, Calendar as CalendarIcon, CheckCircle, XCircle, AlertTriangle, Info,
-  ChevronRight, ChevronDown, ChevronUp, X as XIcon, FilePlus, Sliders, PlusCircle
+  ChevronRight, ChevronDown, ChevronUp, X as XIcon, FilePlus, Sliders, PlusCircle, Check
 } from 'lucide-react';
 import styles from './RedesignedAllQuestionsView.module.css'; // CSSモジュール
 import AddQuestionModal from './AddQuestionModal';
@@ -803,187 +803,225 @@ const RedesignedAllQuestionsView = ({
           )}
         </div>
       ) : (
-        <div className={styles.listContainer}>
-          {filteredSubjects.map(subject => {
-            // 科目ごとのカラー取得
-            const subjectColorValue = getSubjectColorCode(subject.name || subject.subjectName);
-            
-            // 科目内の全問題のIDリスト
-            const allQuestionIdsInSubject = [];
-            subject.chapters?.forEach(chapter => {
-              chapter.questions?.forEach(question => {
-                allQuestionIdsInSubject.push(question.id);
-              });
-            });
-            
-           // 全て選択されているかチェック
-            const isAllSelectedInSubject = allQuestionIdsInSubject.length > 0 && 
-              allQuestionIdsInSubject.every(id => selectedQuestions.includes(id));
+        <div className={styles.subjectsList}>
+          {/* 検索結果が空の場合のメッセージ */}
+          {filteredSubjects.length === 0 && (
+            <div className={styles.noDataMessage}>
+              <FileIcon size={32} />
+              <p>表示できる問題がありません</p>
+              <p className={styles.hintText}>検索条件を変更するか、新しい問題を追加してください</p>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className={styles.addButton}
+              >
+                <PlusCircle size={18} />
+                新規問題追加
+              </button>
+            </div>
+          )}
 
-            return (
-              <div key={subject.id} className={styles.subjectAccordion}>
-                <div 
-                  className={styles.subjectHeader}
-                  style={{ borderLeftColor: subjectColorValue }}
-                  onClick={() => toggleSubject(subject.id)}
-                >
+          {/* サブジェクトリスト */}
+          {filteredSubjects.map((subject) => (
+            <div key={subject.id} className={styles.subjectItem}>
+              <div
+                className={styles.subjectHeader}
+                onClick={() => toggleSubject(subject.id)}
+              >
+                <div className={styles.subjectHeaderLeft}>
                   {bulkEditMode && (
-                    <input
-                      type="checkbox"
-                      className={styles.subjectCheckbox}
-                      checked={isAllSelectedInSubject}
-                      onChange={() => toggleSelectAllForSubject(subject)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
+                    <div 
+                      className={styles.selectBox}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSelectAllForSubject(subject);
+                      }}
+                    >
+                      <Check
+                        size={18}
+                        className={`${styles.checkIcon} ${
+                          subject.chapters.every(chapter =>
+                            chapter.questions.every(question =>
+                              selectedQuestions.includes(question.id)
+                            )
+                          )
+                            ? styles.checkIconActive
+                            : ''
+                        }`}
+                      />
+                    </div>
                   )}
-                  <div
-                    className={`${styles.subjectChevron} ${
-                      expandedSubjects[subject.id] ? styles.subjectChevronOpen : ''
-                    }`}
-                  >
-                    <ChevronRight size={20} />
-                  </div>
-                  <h3 className={styles.subjectTitle}>
-                    <HighlightedText 
-                      text={subject.name || subject.subjectName || '未分類'} 
-                      searchTerm={searchTerm}
-                    />
+                  <div className={styles.subjectColorTag} style={{ backgroundColor: getSubjectColorCode(subject.name) }} />
+                  <h3 className={styles.subjectName}>
+                    <HighlightedText text={subject.name} searchTerm={searchTerm} />
                   </h3>
-                  <div className={styles.subjectCountBadge}>
-                    {subject.chapters.reduce(
-                      (sum, chapter) => sum + chapter.questions.length,
-                      0
-                    )}問
+                  <div className={styles.subjectMeta}>
+                    <span className={styles.questionCount}>
+                      {subject.chapters.reduce((acc, chapter) => acc + chapter.questions.length, 0)}問
+                    </span>
                   </div>
                 </div>
-                
-                {expandedSubjects[subject.id] && (
-                  <div className={styles.subjectContent}>
-                    {subject.chapters.map(chapter => (
-                      <div key={chapter.id} className={styles.chapterAccordion}>
-                        <div
-                          className={styles.chapterHeader}
-                          onClick={() => toggleChapter(chapter.id)}
-                        >
-                          <div
-                            className={`${styles.chapterChevron} ${
-                              expandedChapters[chapter.id] ? styles.chapterChevronOpen : ''
-                            }`}
-                          >
-                            <ChevronRight size={16} />
-                          </div>
-                          <h4 className={styles.chapterTitle}>
-                            <HighlightedText 
-                              text={chapter.name || chapter.chapterName || '未分類'} 
-                              searchTerm={searchTerm}
-                            />
+
+                <div className={styles.subjectHeaderRight}>
+                  {expandedSubjects[subject.id] ? (
+                    <ChevronUp size={20} />
+                  ) : (
+                    <ChevronDown size={20} />
+                  )}
+                </div>
+              </div>
+
+              {expandedSubjects[subject.id] && (
+                <div className={styles.subjectContent}>
+                  {subject.chapters.map((chapter) => (
+                    <div key={chapter.id} className={styles.chapterItem}>
+                      <div
+                        className={styles.chapterHeader}
+                        onClick={() => toggleChapter(chapter.id)}
+                      >
+                        <div className={styles.chapterHeaderLeft}>
+                          {bulkEditMode && (
+                            <div 
+                              className={styles.selectBox}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                chapter.questions.forEach(question => {
+                                  if (!selectedQuestions.includes(question.id)) {
+                                    toggleQuestionSelection(question.id);
+                                  }
+                                });
+                              }}
+                            >
+                              <Check
+                                size={16}
+                                className={`${styles.checkIcon} ${
+                                  chapter.questions.every(question =>
+                                    selectedQuestions.includes(question.id)
+                                  )
+                                    ? styles.checkIconActive
+                                    : ''
+                                }`}
+                              />
+                            </div>
+                          )}
+                          <h4 className={styles.chapterName}>
+                            <HighlightedText text={chapter.name} searchTerm={searchTerm} />
                           </h4>
-                          <div className={styles.chapterCountBadge}>
-                            {chapter.questions.length}問
+                          <div className={styles.chapterMeta}>
+                            <span className={styles.questionCount}>{chapter.questions.length}問</span>
                           </div>
                         </div>
-                        
-                        {expandedChapters[chapter.id] && (
-                          <div className={styles.questionCardList}>
-                            {chapter.questions.map(question => {
-                              const understanding = getUnderstandingStyle(question.understanding);
-                              const borderStyle = { borderLeftColor: subjectColorValue };
-                              
-                              return (
-                                <div
-                                  key={question.id}
-                                  className={styles.questionCard}
-                                  style={borderStyle}
+
+                        <div className={styles.chapterHeaderRight}>
+                          {expandedChapters[chapter.id] ? (
+                            <ChevronUp size={16} />
+                          ) : (
+                            <ChevronDown size={16} />
+                          )}
+                        </div>
+                      </div>
+
+                      {expandedChapters[chapter.id] && (
+                        <div className={styles.questionsList}>
+                          {chapter.questions.map((question) => (
+                            <div
+                              key={question.id}
+                              className={`${styles.questionItem} ${
+                                selectedQuestions.includes(question.id) ? styles.selectedQuestion : ''
+                              }`}
+                            >
+                              {bulkEditMode ? (
+                                <div 
+                                  className={styles.selectBox}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleQuestionSelection(question.id);
+                                  }}
                                 >
-                                  {bulkEditMode && (
-                                    <input
-                                      type="checkbox"
-                                      className={styles.questionCheckbox}
-                                      checked={selectedQuestions.includes(question.id)}
-                                      onChange={() => toggleQuestionSelection(question.id)}
-                                    />
-                                  )}
+                                  <Check
+                                    size={16}
+                                    className={`${styles.checkIcon} ${
+                                      selectedQuestions.includes(question.id) ? styles.checkIconActive : ''
+                                    }`}
+                                  />
+                                </div>
+                              ) : (
+                                <div className={styles.questionNumber}>{question.number}</div>
+                              )}
+
+                              <div 
+                                className={styles.questionContent}
+                                onClick={() => {
+                                  if (bulkEditMode) {
+                                    toggleQuestionSelection(question.id);
+                                  } else {
+                                    setEditingQuestion(question);
+                                  }
+                                }}
+                              >
+                                <div className={styles.statusGrid}>
+                                  <div className={styles.statusItem} title="次回予定日">
+                                    <Clock size={16} />
+                                    <span>{formatDate(question.nextDate)}</span>
+                                  </div>
                                   
-                                  <div className={styles.questionId} title={question.id}>
+                                  <div className={styles.statusItem} title="復習間隔">
+                                    <CalendarIcon size={16} />
+                                    <span>{question.interval || '未設定'}</span>
+                                  </div>
+                                  
+                                  <div
+                                    className={`${styles.statusItem} ${getUnderstandingStyle(question.understanding).badgeClass}`}
+                                    title={`理解度: ${question.understanding || '未設定'}`}
+                                  >
+                                    {getUnderstandingStyle(question.understanding).icon}
+                                    <span>
+                                      {question.understanding?.includes(':')
+                                        ? question.understanding.split(':')[0]
+                                        : question.understanding || '未設定'}
+                                    </span>
+                                  </div>
+                                  
+                                  <div
+                                    className={styles.statusItem}
+                                    title={`正解率: ${question.correctRate || 0}% (${
+                                      question.answerCount || 0
+                                    }回解答)`}
+                                  >
+                                    <div className={styles.rateBarContainer}>
+                                      <div className={styles.rateBar}>
+                                        <div
+                                          className={`${styles.rateBarInner} ${getCorrectRateColorClass(
+                                            question.correctRate || 0
+                                          )}`}
+                                          style={{ width: `${question.correctRate || 0}%` }}
+                                        />
+                                      </div>
+                                      <span className={styles.rateText}>
+                                        {question.correctRate || 0}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {question.comment && (
+                                  <div className={styles.commentBox} title={question.comment}>
                                     <HighlightedText 
-                                      text={question.id} 
+                                      text={question.comment} 
                                       searchTerm={searchTerm}
                                     />
                                   </div>
-                                  
-                                  <div className={styles.statusGrid}>
-                                    <div className={styles.statusItem} title="次回予定日">
-                                      <Clock size={16} />
-                                      <span>{formatDate(question.nextDate)}</span>
-                                    </div>
-                                    
-                                    <div className={styles.statusItem} title="復習間隔">
-                                      <CalendarIcon size={16} />
-                                      <span>{question.interval || '未設定'}</span>
-                                    </div>
-                                    
-                                    <div
-                                      className={`${styles.statusItem} ${understanding.badgeClass}`}
-                                      title={`理解度: ${question.understanding || '未設定'}`}
-                                    >
-                                      {understanding.icon}
-                                      <span>
-                                        {question.understanding?.includes(':')
-                                          ? question.understanding.split(':')[0]
-                                          : question.understanding || '未設定'}
-                                      </span>
-                                    </div>
-                                    
-                                    <div
-                                      className={styles.statusItem}
-                                      title={`正解率: ${question.correctRate || 0}% (${
-                                        question.answerCount || 0
-                                      }回解答)`}
-                                    >
-                                      <div className={styles.rateBarContainer}>
-                                        <div className={styles.rateBar}>
-                                          <div
-                                            className={`${styles.rateBarInner} ${getCorrectRateColorClass(
-                                              question.correctRate || 0
-                                            )}`}
-                                            style={{ width: `${question.correctRate || 0}%` }}
-                                          />
-                                        </div>
-                                        <span className={styles.rateText}>
-                                          {question.correctRate || 0}%
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  
-                                  {question.comment && (
-                                    <div className={styles.commentBox} title={question.comment}>
-                                      <HighlightedText 
-                                        text={question.comment} 
-                                        searchTerm={searchTerm}
-                                      />
-                                    </div>
-                                  )}
-                                  
-                                  <button
-                                    onClick={() => setEditingQuestion(question)}
-                                    className={styles.editButton}
-                                    title="編集"
-                                  >
-                                    <Edit size={18} />
-                                  </button>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>
