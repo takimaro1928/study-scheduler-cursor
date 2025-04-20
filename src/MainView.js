@@ -51,7 +51,9 @@ const MainView = ({
   calculateTotalQuestionCount,
   hasStorageError,
   recordAnswer,
-  getQuestionsForDate
+  getQuestionsForDate,
+  editingQuestion,
+  saveQuestionEdit
 }) => {
   const Views = {
     today: <TodayView 
@@ -144,7 +146,16 @@ const MainView = ({
         
         <div className="p-0 sm:p-4">
           {Views[activeTab] || Views.today}
-          {/* 編集モーダル */}
+          
+          {/* 編集モーダル - 復元 */}
+          {editingQuestion && (
+            <QuestionEditModal
+              question={editingQuestion}
+              onSave={saveQuestionEdit}
+              onCancel={() => setEditingQuestion(null)}
+              formatDate={formatDate}
+            />
+          )}
         </div>
         <div id="notification-area" className="fixed bottom-4 right-4 z-30"></div>
       </div>
