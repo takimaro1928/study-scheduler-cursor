@@ -2,35 +2,29 @@
 import React, { useState, useRef } from 'react';
 import { 
   Settings, Trash2, AlertTriangle, RefreshCw, 
-  Download, Upload, Check, X
+  Download, Upload, Check, X, Database
 } from 'lucide-react';
+import DataBackupRestore from './components/DataBackupRestore';
 import styles from './SettingsPage.module.css';
 
 const SettingsPage = ({ 
-  onResetData, 
+  onResetAllData,
   onResetAnswerStatusOnly,
-  onDataImport,       // 新規: インポート関数
-  subjects = [],      // 新規: エクスポート用の科目データ
-  answerHistory = []  // 新規: エクスポート用の解答履歴
+  onImport,
+  onExport,
+  onBackup,
+  onRestore,
+  exportTimestamp,
+  formatDate,
+  totalQuestionCount = 0
 }) => {
-  // リセットボタンのハンドラはそのまま
+  // リセットボタンのハンドラ
   const handleResetClick = () => {
-    // 既存のコード
-    const confirmReset = window.confirm(
-      "本当にすべての学習データ（解答履歴含む）をリセットしますか？\nこの操作は元に戻せません。"
-    );
-    
-    if (confirmReset) {
-      console.log("データリセットを実行します。");
-      onResetData();
-    } else {
-      console.log("データリセットはキャンセルされました。");
-    }
+    onResetAllData();
   };
 
   // 回答状況のみリセットボタンのハンドラ
   const handleResetAnswerStatusOnly = () => {
-    console.log("回答状況のみリセットを実行します。");
     onResetAnswerStatusOnly();
   };
 
@@ -39,47 +33,6 @@ const SettingsPage = ({
   const [importError, setImportError] = useState('');
   const [importSuccess, setImportSuccess] = useState(false);
   const fileInputRef = useRef(null); // ファイル入力要素の参照
-
-  // エクスポート機能のハンドラ
-  const handleExportData = () => {
-    try {
-      // エクスポートするデータの準備
-      const exportData = {
-        exportDate: new Date().toISOString(),
-        appVersion: "1.0.0", // アプリのバージョン（任意）
-        subjects: subjects,
-        answerHistory: answerHistory
-      };
-      
-      // JSONに変換
-      const jsonString = JSON.stringify(exportData, null, 2);
-      
-      // Blobオブジェクトを作成
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      
-      // ダウンロードリンクを作成
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      
-      // ファイル名設定（日付を含む）
-      const dateStr = new Date().toISOString().split('T')[0];
-      link.download = `study-scheduler-data-${dateStr}.json`;
-      
-      // ダウンロードを実行
-      document.body.appendChild(link);
-      link.click();
-      
-      // 後片付け
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      
-      console.log("データエクスポート完了");
-    } catch (error) {
-      console.error("エクスポート処理中にエラー:", error);
-      alert("エクスポート中にエラーが発生しました。");
-    }
-  };
 
   // ファイル選択時のハンドラ
   const handleFileChange = (e) => {
@@ -129,7 +82,7 @@ const SettingsPage = ({
         }
         
         // App.jsの関数にデータを渡す
-        const success = onDataImport(importedData);
+        const success = onImport(importedData);
         
         if (success) {
           // インポート成功
@@ -159,13 +112,54 @@ const SettingsPage = ({
     reader.readAsText(importFile);
   };
 
+  // 最終エクスポート日の表示フォーマット
+  const getLastExportDate = () => {
+    if (!exportTimestamp) return "なし";
+    try {
+      const date = new Date(parseInt(exportTimestamp, 10));
+      if (isNaN(date.getTime())) return "無効な日付";
+      return formatDate(date);
+    } catch (e) {
+      console.error("日付変換エラー:", e);
+      return "エラー";
+    }
+  };
+
   return (
     <div className={styles.container}>
       <h2 className={styles.title}>
         <Settings size={20} className={styles.titleIcon} /> 設定
       </h2>
 
-      {/* データエクスポート/インポートセクション (新規追加) */}
+      {/* データ状態セクション */}
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>学習データ状態</h3>
+        <div className={styles.statsContainer}>
+          <div className={styles.statsItem}>
+            <span className={styles.statsLabel}>総問題数</span>
+            <span className={styles.statsValue}>{totalQuestionCount}問</span>
+          </div>
+          <div className={styles.statsItem}>
+            <span className={styles.statsLabel}>最終エクスポート</span>
+            <span className={styles.statsValue}>{getLastExportDate()}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* バックアップと復元セクション */}
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>
+          <Database size={18} className="mr-2" /> バックアップと復元
+        </h3>
+        <div className={styles.backupContainer}>
+          <DataBackupRestore 
+            onBackup={onBackup} 
+            onRestore={onRestore}
+          />
+        </div>
+      </div>
+
+      {/* データエクスポート/インポートセクション */}
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>データエクスポート/インポート</h3>
         
@@ -178,7 +172,7 @@ const SettingsPage = ({
               バックアップとして保存したり、他のデバイスに移行する際に使用できます。
             </p>
           </div>
-          <button onClick={handleExportData} className={styles.exportButton}>
+          <button onClick={onExport} className={styles.exportButton}>
             <Download size={16} /> データをエクスポート
           </button>
         </div>
@@ -198,70 +192,72 @@ const SettingsPage = ({
               <input
                 type="file"
                 ref={fileInputRef}
-                accept=".json"
+                accept=".json,application/json"
                 onChange={handleFileChange}
                 className={styles.fileInput}
               />
               
               <button 
-                onClick={handleImportData} 
+                onClick={handleImportData}
                 disabled={!importFile}
                 className={`${styles.importButton} ${!importFile ? styles.importButtonDisabled : ''}`}
               >
-                <Upload size={16} /> データをインポート
+                <Upload size={16} /> インポートを実行
               </button>
             </div>
             
             {importError && (
-              <div className={styles.errorMessage}>
-                <X size={16} style={{ marginRight: '0.5rem' }} />
+              <div className={styles.importError}>
+                <X size={16} className={styles.errorIcon} />
                 {importError}
               </div>
             )}
             
             {importSuccess && (
-              <div className={styles.successMessage}>
-                <Check size={16} style={{ marginRight: '0.5rem' }} />
-                データを正常にインポートしました！
+              <div className={styles.importSuccess}>
+                <Check size={16} className={styles.successIcon} />
+                データのインポートに成功しました！
               </div>
             )}
           </div>
         </div>
       </div>
 
-      <hr className={styles.divider} />
-
-      {/* 既存のデータ管理セクション */}
+      {/* データリセットセクション */}
       <div className={styles.section}>
-        <h3 className={styles.sectionTitle}>データ管理</h3>
+        <h3 className={styles.sectionTitle}>データリセット</h3>
         
-        {/* 回答状況のみリセットボタン */}
-        <div className={styles.resetOption}>
+        <div className={styles.dataOption}>
           <div>
-            <h4 className={styles.resetOptionTitle}>回答状況のみリセット</h4>
+            <h4 className={styles.dataOptionTitle}>
+              <AlertTriangle size={16} className={styles.warningIcon} />
+              回答状況のみリセット
+            </h4>
             <p className={styles.description}>
-              問題リストを維持したまま、解答回数、正解率、理解度、日付などの回答状況のみをリセットします。
-              コメントは削除されません。
+              問題リストを維持したまま、回答状況（理解度・正解率・次回解答日）のみをリセットします。
+              問題自体は削除されません。
             </p>
           </div>
-          <button onClick={handleResetAnswerStatusOnly} className={`${styles.resetButton} ${styles.resetAnswerButton}`}>
+          <button onClick={handleResetAnswerStatusOnly} className={styles.warningButton}>
             <RefreshCw size={16} /> 回答状況をリセット
           </button>
         </div>
         
         <hr className={styles.divider} />
         
-        {/* 完全リセットボタン */}
-        <div className={styles.resetOption}>
+        <div className={styles.dataOption}>
           <div>
-            <h4 className={styles.resetOptionTitle}>完全リセット</h4>
+            <h4 className={styles.dataOptionTitle}>
+              <AlertTriangle size={16} className={styles.dangerIcon} />
+              全データリセット
+            </h4>
             <p className={styles.description}>
-              学習データ（各問題の解答回数、日付、理解度など）と解答履歴をすべて削除し、
-              アプリケーションを初期状態（全問題が「未学習」の状態）に戻します。
+              すべての学習データ（科目・問題・解答履歴）を完全に削除し、初期状態に戻します。
+              この操作は元に戻せません。
             </p>
           </div>
-          <button onClick={handleResetClick} className={styles.resetButton}>
-            <AlertTriangle size={16} /> 学習データを完全リセット
+          <button onClick={handleResetClick} className={styles.dangerButton}>
+            <Trash2 size={16} /> すべてのデータを削除
           </button>
         </div>
       </div>
