@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Calendar, List, Info, BookOpen, Settings, Menu, X, AlertTriangle, Book } from 'lucide-react';
+import { Clock, Calendar, List, Info, BookOpen, Settings, Menu, X, AlertTriangle, Book, BookOpen as BookOpenIcon } from 'lucide-react';
 
 const TopNavigation = ({ activeTab, setActiveTab }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -31,6 +31,7 @@ const TopNavigation = ({ activeTab, setActiveTab }) => {
     { id: 'notes', label: 'ノート', icon: <Book size={20} /> },
     { id: 'stats', label: '学習統計', icon: <BookOpen size={20} /> },
     { id: 'ambiguous', label: '曖昧分析', icon: <AlertTriangle size={20} /> },
+    { id: 'smeExam', label: '中小企業診断士', icon: <BookOpenIcon size={20} /> },
     { id: 'settings', label: '設定', icon: <Settings size={20} /> },
   ];
 
@@ -39,7 +40,7 @@ const TopNavigation = ({ activeTab, setActiveTab }) => {
     { id: 'today', label: '今日', icon: <Clock size={20} /> },
     { id: 'all', label: '全問題', icon: <List size={20} /> },
     { id: 'notes', label: 'ノート', icon: <Book size={20} /> },
-    { id: 'stats', label: '統計', icon: <BookOpen size={20} /> },
+    { id: 'smeExam', label: '診断士', icon: <BookOpenIcon size={20} /> },
     { id: 'menu', label: 'メニュー', icon: <Menu size={20} />, onClick: () => setIsMenuOpen(true) }
   ];
 
@@ -51,6 +52,7 @@ const TopNavigation = ({ activeTab, setActiveTab }) => {
     { id: 'notes', label: 'ノート', icon: <Book size={18} /> },
     { id: 'stats', label: '学習統計', icon: <BookOpen size={18} /> },
     { id: 'ambiguous', label: '曖昧分析', icon: <AlertTriangle size={18} /> },
+    { id: 'smeExam', label: '中小企業診断士', icon: <BookOpenIcon size={18} /> },
     { id: 'settings', label: '設定', icon: <Settings size={18} /> },
   ];
 
