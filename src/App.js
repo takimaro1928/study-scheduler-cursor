@@ -1240,7 +1240,7 @@ const handleRestoreData = async (backupData) => {
               </div>
             </div>
           )}
-          
+　　　　
     {showExportReminder && (
       <ReminderNotification 
         daysSinceLastExport={daysSinceLastExport}
@@ -1287,6 +1287,8 @@ const handleRestoreData = async (backupData) => {
               hasStorageError={hasStorageError}
               recordAnswer={recordAnswer}
               getQuestionsForDate={getQuestionsForDate}
+              editingQuestion={editingQuestion}
+              saveQuestionEdit={saveQuestionEdit}
             />
       </div>
       <div id="notification-area" className="fixed bottom-4 right-4 z-30"></div>
