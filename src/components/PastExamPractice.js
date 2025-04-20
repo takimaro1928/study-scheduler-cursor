@@ -128,125 +128,217 @@ const PastExamPractice = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {/* 左側のパネル - PDFビューア */}
-      <div className="md:col-span-2">
-        {pdfUrl ? (
-          <PDFViewer
-            pdfUrl={pdfUrl}
-            title={examTitle}
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-96 border-2 border-dashed rounded-lg p-6 bg-gray-50">
-            <p className="mb-4 text-gray-500">PDFファイルをアップロードしてください</p>
-            <label className="px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition shadow-md font-medium flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-              </svg>
-              PDFを選択
-              <input type="file" accept=".pdf" className="hidden" onChange={handlePdfUpload} />
-            </label>
-          </div>
-        )}
-      </div>
-
-      {/* 右側のパネル - 設定と解答エリア */}
-      <div className="flex flex-col">
-        {/* 試験名入力 */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">試験名:</label>
-          <input
-            type="text"
-            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-            value={examTitle}
-            onChange={(e) => setExamTitle(e.target.value)}
-            placeholder="試験名を入力"
-          />
-        </div>
-
-        {/* タイマー */}
-        <div className="mb-4 p-3 bg-gray-100 rounded-lg flex justify-between items-center shadow-sm">
-          <div className="text-xl font-bold">{formatTime(timer)}</div>
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-gray-800">{examTitle}</h2>
           <div className="flex space-x-2">
             <button
-              className={`px-4 py-2 rounded-md text-white font-medium transition shadow-sm flex items-center ${isTimerRunning ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}
               onClick={toggleTimer}
+              className={`px-4 py-2 rounded-lg font-medium text-sm flex items-center ${
+                isTimerRunning
+                  ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                  : 'bg-green-100 text-green-700 hover:bg-green-200'
+              } transition-all duration-200`}
             >
-              {isTimerRunning 
-               ? (<><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>停止</>) 
-               : (<><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                  </svg>開始</>)}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 mr-1.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              {isTimerRunning ? 'タイマー停止' : 'タイマー開始'}
             </button>
             <button
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md font-medium transition shadow-sm flex items-center"
               onClick={resetTimer}
+              className="px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-medium text-sm flex items-center transition-all duration-200"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 mr-1.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
               </svg>
               リセット
             </button>
           </div>
         </div>
 
-        {/* 事例設定 */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">事例設定:</label>
-          <div className="grid grid-cols-2 gap-2 mb-2">
-            {cases.map(caseItem => (
-              <div key={caseItem.id} className="flex items-center space-x-2 border rounded p-2 bg-white shadow-sm">
-                <span className="whitespace-nowrap font-medium">{caseItem.name}</span>
-                <div className="flex items-center ml-auto">
-                  <label className="text-xs mr-1">問題数:</label>
-                  <select 
-                    className="p-1 border rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                    value={caseItem.questions.length}
-                    onChange={(e) => handleCaseQuestionCountChange(caseItem.id, parseInt(e.target.value))}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium text-gray-800">PDF表示</h3>
+              <div className="flex items-center">
+                <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full mr-2">
+                  {formatTime(timer)}
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handlePdfUpload}
+                    className="hidden"
+                    id="pdf-upload"
+                  />
+                  <label
+                    htmlFor="pdf-upload"
+                    className="text-xs bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-2.5 py-1 rounded-full font-medium cursor-pointer transition-colors duration-200"
                   >
-                    {[1, 2, 3, 4, 5].map(num => (
-                      <option key={num} value={num}>{num}</option>
-                    ))}
-                  </select>
-                </div>
+                    PDFアップロード
+                  </label>
+                </label>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 設問選択 */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">設問選択:</label>
-          <div className="grid grid-cols-2 gap-2">
-            {cases.map(caseItem => (
-              <React.Fragment key={caseItem.id}>
-                {caseItem.questions.map(questionNum => (
-                  <button
-                    key={`${caseItem.id}-${questionNum}`}
-                    className={`p-2 text-sm border rounded-md transition shadow-sm
-                      ${selectedCase.id === caseItem.id && selectedQuestion === questionNum 
-                        ? 'bg-blue-100 border-blue-500 font-medium text-blue-800' 
-                        : 'hover:bg-gray-100 bg-white'}`}
-                    onClick={() => handleQuestionChange(caseItem.id, questionNum)}
+            </div>
+            <div className="w-full h-96 border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+              {pdfUrl ? (
+                <PDFViewer url={pdfUrl} />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-16 w-16 text-gray-300 mb-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
-                    {caseItem.name} 設問{questionNum}
-                  </button>
-                ))}
-              </React.Fragment>
-            ))}
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  <p className="text-gray-500 text-center px-8">
+                    PDFがアップロードされていません。<br />
+                    「PDFアップロード」ボタンからファイルを選択してください。
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="font-medium text-gray-800 mb-3">過去問選択</h3>
+            <div className="space-y-4">
+              {sampleExams.map(exam => (
+                <div key={exam.id} className="border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-gray-700">{exam.title}</h4>
+                      <button 
+                        onClick={() => {
+                          setExamTitle(exam.title);
+                          setPdfUrl(exam.pdfUrl);
+                        }}
+                        className="text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 px-2.5 py-1 rounded-full font-medium transition-colors duration-200"
+                      >
+                        選択
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4">
+                    <div className="mb-4">
+                      <h5 className="text-sm font-medium text-gray-700 mb-2">事例選択</h5>
+                      <div className="grid grid-cols-4 gap-2">
+                        {exam.questions.map((caseData, caseIdx) => (
+                          <div key={caseIdx} className="col-span-1">
+                            <button
+                              className={`w-full py-2 px-3 text-sm rounded-lg font-medium transition-all duration-200 ${
+                                selectedCase === caseData.id
+                                  ? 'bg-indigo-600 text-white shadow-md'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                              onClick={() => {
+                                setSelectedCase(caseData.id);
+                                setSelectedQuestion(1);
+                                saveCurrentAnswer();
+                              }}
+                            >
+                              事例{caseData.id}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {selectedCase && (
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <h5 className="text-sm font-medium text-gray-700">設問選択</h5>
+                          <div className="flex items-center space-x-1">
+                            <label className="text-xs text-gray-500">設問数</label>
+                            <select
+                              className="text-xs border border-gray-300 rounded p-1 bg-white"
+                              value={
+                                exam.questions.find(q => q.id === selectedCase)?.questionCount || 3
+                              }
+                              onChange={e => 
+                                handleCaseQuestionCountChange(
+                                  selectedCase, 
+                                  parseInt(e.target.value)
+                                )
+                              }
+                            >
+                              {[1, 2, 3, 4, 5].map(num => (
+                                <option key={num} value={num}>
+                                  {num}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-5 gap-2">
+                          {Array.from(
+                            { length: exam.questions.find(q => q.id === selectedCase)?.questionCount || 3 },
+                            (_, i) => i + 1
+                          ).map(qNum => (
+                            <button
+                              key={qNum}
+                              className={`py-2 px-3 text-sm rounded-lg font-medium transition-all duration-200 ${
+                                selectedQuestion === qNum
+                                  ? 'bg-indigo-600 text-white shadow-md'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                              onClick={() => handleQuestionChange(selectedCase, qNum)}
+                            >
+                              設問{qNum}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* 解答エリア */}
         <div className="flex-grow mb-4">
-          <div className="flex justify-between items-center mb-1">
-            <label className="block text-sm font-medium">解答:</label>
-            <span className="text-xs text-gray-500">{answerText.length}文字</span>
+          <div className="flex justify-between items-center mb-2">
+            <label className="block text-sm font-medium text-gray-700">解答:</label>
+            <span className="text-xs bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full font-medium">{answerText.length}文字</span>
           </div>
           <textarea
-            className="w-full h-64 p-2 border rounded resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+            className="w-full h-64 p-3 border rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition shadow-sm"
             value={answerText}
             onChange={(e) => setAnswerText(e.target.value)}
             placeholder="ここに解答を入力してください..."
@@ -255,7 +347,7 @@ const PastExamPractice = () => {
 
         {/* 保存ボタン */}
         <button
-          className="w-full p-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition shadow-md flex items-center justify-center"
+          className="w-full p-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center"
           onClick={handleSaveAnswer}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
