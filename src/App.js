@@ -26,6 +26,15 @@ import { NotificationProvider } from './contexts/NotificationContext';
 import MainView from './MainView';
 import './index.css';
 import OfflineIndicator from './components/OfflineIndicator';
+import * as indexedDB from './utils/indexedDB';
+import { 
+  isIndexedDBSupported, 
+  getStudyDataWithFallback, 
+  getAnswerHistoryWithFallback, 
+  saveStudyData, 
+  saveAnswerHistory 
+} from './utils/indexedDB';
+import { createBackup, restoreFromBackup } from './utils/backup-restore';
 
 // 問題生成関数 (IDゼロパディング、understanding='理解○' 固定)
 function generateQuestions(prefix, start, end) {
@@ -151,10 +160,8 @@ function App() {
     }
   }, []);
   
-  // ★ 初期データロード処理 (エラーハンドリング強化) ★
+  // ★ 初期データ読み込み処理 (IndexedDB対応) ★
   useEffect(() => {
-    console.log("初期データロード開始 (Ver. サンプルデータ優先)");
-    
     try {
       // ストレージ使用不可の場合は初期データを生成
       if (hasStorageError) {
@@ -163,61 +170,76 @@ function App() {
         return;
       }
       
-      // 学習データのロード
-      const studyDataToSet = getStorageItem('studyData', null, studyDataValidator);
-      
-      if (studyDataToSet) {
-        // データ形式の互換性チェック (変更なし)
-        studyDataToSet.forEach(subject => { 
-          // notes プロパティが存在しない場合初期化
-          if (typeof subject.notes === 'undefined') {
-            subject.notes = "<p></p>";
-          }
-          
-          subject?.chapters?.forEach(chapter => { 
-            chapter?.questions?.forEach(q => { 
-              if (q) { 
-                if (q.lastAnswered && !(q.lastAnswered instanceof Date)) { 
-                  const parsedDate = new Date(q.lastAnswered); 
-                  q.lastAnswered = !isNaN(parsedDate) ? parsedDate : null; 
-                } 
-                if (typeof q.understanding === 'undefined') { 
-                  q.understanding = '理解○'; 
-                } 
-                if (typeof q.comment === 'undefined') { 
-                  q.comment = ''; 
-                } 
+      // 学習データのロード (IndexedDBを優先、フォールバックとしてLocalStorage)
+      getStudyDataWithFallback()
+        .then(studyDataToSet => {
+          if (studyDataToSet && Array.isArray(studyDataToSet)) {
+            // データ形式の互換性チェック
+            studyDataToSet.forEach(subject => { 
+              // notes プロパティが存在しない場合初期化
+              if (typeof subject.notes === 'undefined') {
+                subject.notes = "<p></p>";
+              }
+              
+              subject?.chapters?.forEach(chapter => { 
+                chapter?.questions?.forEach(q => { 
+                  if (q) { 
+                    if (q.lastAnswered && !(q.lastAnswered instanceof Date)) { 
+                      const parsedDate = new Date(q.lastAnswered); 
+                      q.lastAnswered = !isNaN(parsedDate) ? parsedDate : null; 
+                    } 
+                    if (typeof q.understanding === 'undefined') { 
+                      q.understanding = '理解○'; 
+                    } 
+                    if (typeof q.comment === 'undefined') { 
+                      q.comment = ''; 
+                    } 
+                  } 
+                }); 
+              }); 
+            });
+            setSubjects(studyDataToSet);
+            console.log('学習データを読み込み完了');
+            
+            // 展開状態の初期設定
+            const initialExpandedSubjectsState = {};
+            studyDataToSet.forEach(subject => { 
+              if (subject?.id) { 
+                initialExpandedSubjectsState[subject.id] = false; 
               } 
             }); 
-          }); 
+            if (studyDataToSet.length > 0 && studyDataToSet[0]?.id) { 
+              initialExpandedSubjectsState[studyDataToSet[0].id] = true; 
+            }
+            setExpandedSubjects(initialExpandedSubjectsState);
+          } else {
+            const initialData = generateInitialData();
+            setSubjects(initialData);
+            console.log('保存データがないため初期学習データを生成');
+          }
+        })
+        .catch(error => {
+          console.error("学習データ読み込みエラー:", error);
+          setSubjects(generateInitialData());
         });
-        setSubjects(studyDataToSet);
-        console.log('学習データをLocalStorageから読み込み完了');
-      } else {
-        const initialData = generateInitialData();
-        setSubjects(initialData);
-        console.log('LocalStorageにデータがないため初期学習データを生成');
-      }
 
-      // 履歴データのロード
-      const historyDataToSet = getStorageItem('studyHistory', [], historyDataValidator);
-      setAnswerHistory(historyDataToSet);
-      console.log('解答履歴読み込み完了');
+      // 履歴データのロード (IndexedDBを優先、フォールバックとしてLocalStorage)
+      getAnswerHistoryWithFallback()
+        .then(historyDataToSet => {
+          if (Array.isArray(historyDataToSet)) {
+            setAnswerHistory(historyDataToSet);
+            console.log('解答履歴読み込み完了');
+          } else {
+            setAnswerHistory([]);
+            console.log('解答履歴がないか無効なため、空の配列を設定');
+          }
+        })
+        .catch(error => {
+          console.error("解答履歴読み込みエラー:", error);
+          setAnswerHistory([]);
+        });
 
-      // 展開状態の初期設定
-      const initialExpandedSubjectsState = {};
-      if (Array.isArray(studyDataToSet)) { 
-        studyDataToSet.forEach(subject => { 
-          if (subject?.id) { 
-            initialExpandedSubjectsState[subject.id] = false; 
-          } 
-        }); 
-        if (studyDataToSet.length > 0 && studyDataToSet[0]?.id) { 
-          initialExpandedSubjectsState[studyDataToSet[0].id] = true; 
-        } 
-      }
-      setExpandedSubjects(initialExpandedSubjectsState);
-      console.log("初期データロード完了");
+      console.log("初期データロード処理開始");
     } catch (error) {
       console.error("初期データロード中に予期せぬエラーが発生しました:", error);
       // エラー発生時も初期データを設定してアプリが機能するようにする
@@ -225,30 +247,55 @@ function App() {
     }
   }, [hasStorageError]);
 
-  // ★ データ保存処理 (エラーハンドリング強化) ★
+  // ★ データ保存処理 (IndexedDB対応) ★
   useEffect(() => {
     // ストレージが使用不可の場合はスキップ
     if (hasStorageError || !isStorageAvailable()) {
       return;
     }
     
-    try { 
-      const dataToSave = JSON.stringify(subjects, (key, value) => { 
-        if (key === 'lastAnswered' && value instanceof Date) { 
-          return value.toISOString(); 
-        } 
-        return value; 
-      }); 
-      
-      setStorageItem('studyData', subjects);
-    } catch (e) { 
-      console.error("学習データ保存失敗:", e); 
+    // 学習データが有効な場合のみ保存処理
+    if (Array.isArray(subjects) && subjects.length > 0) {
+      try { 
+        // IndexedDBに保存（優先）
+        saveStudyData(subjects)
+          .then(() => {
+            console.log("学習データをIndexedDBに保存しました");
+          })
+          .catch(error => {
+            console.error("IndexedDBへの学習データ保存に失敗:", error);
+            // フォールバックとしてLocalStorageに保存
+            const dataToSave = JSON.stringify(subjects, (key, value) => { 
+              if (key === 'lastAnswered' && value instanceof Date) { 
+                return value.toISOString(); 
+              } 
+              return value; 
+            });
+            setStorageItem('studyData', subjects);
+            console.log("学習データをLocalStorageに保存しました（フォールバック）");
+          });
+      } catch (e) { 
+        console.error("学習データ保存失敗:", e); 
+      }
     }
     
-    try { 
-      setStorageItem('studyHistory', answerHistory);
-    } catch (e) { 
-      console.error("解答履歴保存失敗:", e); 
+    // 履歴データが有効な場合のみ保存処理
+    if (Array.isArray(answerHistory)) {
+      try { 
+        // IndexedDBに保存（優先）
+        saveAnswerHistory(answerHistory)
+          .then(() => {
+            console.log("解答履歴をIndexedDBに保存しました");
+          })
+          .catch(error => {
+            console.error("IndexedDBへの解答履歴保存に失敗:", error);
+            // フォールバックとしてLocalStorageに保存
+            setStorageItem('studyHistory', answerHistory);
+            console.log("解答履歴をLocalStorageに保存しました（フォールバック）");
+          });
+      } catch (e) { 
+        console.error("解答履歴保存失敗:", e); 
+      }
     }
   }, [subjects, answerHistory, hasStorageError]);
 
@@ -804,7 +851,41 @@ const getQuestionsForDate = (date) => {
    const formatDate = (date) => { if (!date) return '----/--/--'; try { const d = (date instanceof Date) ? date : new Date(date); if (isNaN(d.getTime())) return '無効日付'; const year = d.getFullYear(); const month = d.getMonth() + 1; const day = d.getDate(); return `${year}/${month.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}`; } catch(e) { console.error("formatDateエラー:", e, date); return 'エラー'; } };
 
   // ★ 完全リセット関数 (既存) ★
-  const resetAllData = () => { console.log("全学習データのリセットを実行します..."); if (window.confirm("本当にすべての学習データ（解答履歴含む）をリセットしますか？\nこの操作は元に戻せません。")) { try { localStorage.removeItem('studyData'); localStorage.removeItem('studyHistory'); console.log("LocalStorageのデータを削除しました。"); alert("学習データをリセットしました。ページをリロードして初期データを再生成します。"); window.location.reload(); } catch (error) { console.error("データリセット中にエラーが発生しました:", error); alert("データのリセット中にエラーが発生しました。"); } } else { console.log("データリセットはキャンセルされました。"); } };
+  const resetAllData = () => {
+    console.log("全学習データのリセットを実行します...");
+    if (window.confirm("本当にすべての学習データ（解答履歴含む）をリセットしますか？\nこの操作は元に戻せません。")) {
+      try {
+        // IndexedDBのデータをクリア
+        indexedDB.clearAllData()
+          .then(() => {
+            console.log("IndexedDBのデータを削除しました。");
+            // LocalStorageも削除
+            localStorage.removeItem('studyData');
+            localStorage.removeItem('studyHistory');
+            console.log("LocalStorageのデータも削除しました。");
+            
+            alert("学習データをリセットしました。ページをリロードして初期データを再生成します。");
+            window.location.reload();
+          })
+          .catch(error => {
+            console.error("IndexedDBデータのリセット中にエラーが発生しました:", error);
+            
+            // フォールバック: LocalStorage削除を試みる
+            localStorage.removeItem('studyData');
+            localStorage.removeItem('studyHistory');
+            console.log("LocalStorageのデータを削除しました。");
+            
+            alert("データをリセットしました。ページをリロードして初期データを再生成します。");
+            window.location.reload();
+          });
+      } catch (error) {
+        console.error("データリセット中にエラーが発生しました:", error);
+        alert("データのリセット中にエラーが発生しました。");
+      }
+    } else {
+      console.log("データリセットはキャンセルされました。");
+    }
+  };
 
   // ★★★ 回答状況のみリセット関数 (新規追加) ★★★
   const resetAnswerStatusOnly = () => {
@@ -1092,6 +1173,49 @@ const addQuestion = (newQuestion) => {
   });
 };
 
+// ★ バックアップ処理関数 ★
+const handleBackupData = async () => {
+  console.log("バックアップ処理を開始します...");
+  try {
+    await createBackup();
+    return true; // バックアップ成功
+  } catch (error) {
+    console.error("バックアップ処理中にエラー:", error);
+    alert("バックアップ中にエラーが発生しました：" + error.message);
+    return false; // バックアップ失敗
+  }
+};
+
+// ★ 復元処理関数 ★
+const handleRestoreData = async (backupData) => {
+  console.log("データ復元処理を開始します...");
+  
+  // 念のため確認ダイアログを表示
+  if (!window.confirm("バックアップからデータを復元しますか？\n現在のデータは上書きされます。")) {
+    return false;
+  }
+  
+  try {
+    await restoreFromBackup(backupData);
+    
+    // UI状態を更新するためにデータを再読み込み
+    const subjects = await indexedDB.getStudyDataWithFallback();
+    const answerHistory = await indexedDB.getAnswerHistoryWithFallback();
+    
+    setSubjects(subjects);
+    setAnswerHistory(answerHistory);
+    
+    alert("データの復元が完了しました。アプリを再読み込みします。");
+    window.location.reload();
+    
+    return true; // 復元成功
+  } catch (error) {
+    console.error("データ復元処理中にエラー:", error);
+    alert("復元中にエラーが発生しました：" + error.message);
+    return false; // 復元失敗
+  }
+};
+
 // ★ アプリ全体のレンダリング (エラー状態対応) ★
 return (
   <ErrorBoundary>
@@ -1117,47 +1241,42 @@ return (
           {showExportReminder && (
             <ReminderNotification 
               daysSinceLastExport={daysSinceLastExport}
-              onGoToSettings={handleGoToSettings}
               onDismiss={handleDismissReminder}
+              onGoToSettings={handleGoToSettings}
             />
           )}
-          <div className="p-0 sm:p-4">
+          
+          <div className="container mx-auto px-4 pt-4 pb-20">
             <MainView 
-              subjects={subjects} 
               activeTab={activeTab}
               setActiveTab={setActiveTab}
+              subjects={subjects}
+              setSubjects={setSubjects}
+              answerHistory={answerHistory}
+              toggleSubject={toggleSubject}
+              toggleChapter={toggleChapter}
               expandedSubjects={expandedSubjects}
-              setExpandedSubjects={setExpandedSubjects}
               expandedChapters={expandedChapters}
-              setExpandedChapters={setExpandedChapters}
-              editingQuestion={editingQuestion}
+              selectedQuestions={selectedQuestions}
+              toggleQuestionSelection={toggleQuestionSelection}
               setEditingQuestion={setEditingQuestion}
               bulkEditMode={bulkEditMode}
               setBulkEditMode={setBulkEditMode}
-              selectedQuestions={selectedQuestions}
-              setSelectedQuestions={setSelectedQuestions}
-              selectedDate={selectedDate}
-              setSelectedDate={setSelectedDate}
-              answerHistory={answerHistory}
-              setAnswerHistory={setAnswerHistory}
-              showExportReminder={showExportReminder}
-              setShowExportReminder={setShowExportReminder}
-              daysSinceLastExport={daysSinceLastExport}
-              formatDate={formatDate}
-              saveQuestionEdit={saveQuestionEdit}
               saveBulkEdit={saveBulkEdit}
               saveBulkEditItems={saveBulkEditItems}
-              saveComment={saveComment}
               handleQuestionDateChange={handleQuestionDateChange}
-              toggleSubject={toggleSubject}
-              toggleChapter={toggleChapter}
-              toggleQuestionSelection={toggleQuestionSelection}
-              handleGoToSettings={handleGoToSettings}
-              handleDismissReminder={handleDismissReminder}
+              saveComment={saveComment}
+              filterText={filterText} 
+              setFilterText={setFilterText}
+              showAnswered={showAnswered}
+              setShowAnswered={setShowAnswered}
               resetAllData={resetAllData}
               resetAnswerStatusOnly={resetAnswerStatusOnly}
+              formatDate={formatDate}
               handleDataImport={handleDataImport}
               handleDataExport={handleDataExport}
+              handleBackupData={handleBackupData}
+              handleRestoreData={handleRestoreData}
               getAllQuestions={getAllQuestions}
               addQuestion={addQuestion}
               saveSubjectNote={saveSubjectNote}
