@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getDatabaseStats } from '../utils/indexedDB';
+import { Save, UploadCloud, Database, AlertCircle, Check } from 'lucide-react';
 
 const DataBackupRestore = ({ onBackup, onRestore }) => {
   const [backupStatus, setBackupStatus] = useState(null);
@@ -99,82 +100,141 @@ const DataBackupRestore = ({ onBackup, onRestore }) => {
   };
 
   return (
-    <div className="p-4 bg-white rounded shadow-md">
-      <h2 className="text-lg font-bold mb-4">データバックアップと復元</h2>
+    <div className="rounded-lg shadow-lg bg-white overflow-hidden">
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-4 text-white">
+        <h2 className="text-lg font-bold flex items-center">
+          <Database className="mr-2 h-5 w-5" /> データバックアップと復元
+        </h2>
+      </div>
       
       {/* データベース統計情報 */}
       {stats && (
-        <div className="mb-4 p-2 bg-gray-50 rounded">
-          <h3 className="font-medium text-sm mb-1">データベース状態</h3>
-          <p className="text-xs text-gray-700">
-            合計エントリ数: {stats.totalEntries}
-          </p>
-          <div className="text-xs text-gray-600 mt-1">
-            {Object.entries(stats.stores).map(([store, info]) => (
-              <div key={store}>
-                {store}: {info.entries}件
+        <div className="p-4 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+            <Database className="mr-2 h-4 w-4 text-blue-500" /> データベース状態
+          </h3>
+          
+          <div className="flex justify-between items-center bg-gray-50 p-3 rounded-md">
+            <div>
+              <div className="text-sm font-medium text-gray-800">
+                合計エントリ数: <span className="text-blue-600">{stats.totalEntries}</span>
               </div>
-            ))}
+              <div className="grid grid-cols-2 gap-x-8 mt-2">
+                {Object.entries(stats.stores).map(([store, info]) => (
+                  <div key={store} className="text-xs text-gray-600 flex items-center">
+                    <span className="w-3 h-3 rounded-full bg-blue-400 mr-1.5"></span>
+                    <span className="font-medium">{store}:</span> {info.entries}件
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
       
-      {/* バックアップセクション */}
-      <div className="mb-6">
-        <div className="flex items-center mb-2">
-          <button 
-            onClick={handleBackup}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
-          >
-            バックアップ作成
-          </button>
-          {backupStatus && (
-            <span className={`ml-3 text-sm ${backupStatus === '完了' ? 'text-green-600' : 'text-gray-600'}`}>
-              {backupStatus}
-            </span>
-          )}
-        </div>
-        <p className="text-xs text-gray-500">
-          現在の学習データと解答履歴を全てバックアップします。
-        </p>
-      </div>
-      
-      {/* 復元セクション */}
-      <div>
-        <h3 className="font-medium text-sm mb-2">データ復元</h3>
-        <div className="flex flex-col gap-2">
-          <div>
-            <input
-              id="restore-file-input"
-              type="file"
-              accept=".json"
-              onChange={handleFileChange}
-              className="text-xs"
-            />
-          </div>
+      <div className="p-4">
+        {/* バックアップセクション */}
+        <div className="mb-6 bg-blue-50 p-4 rounded-lg">
+          <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+            <Save className="mr-2 h-4 w-4 text-blue-500" /> バックアップ作成
+          </h3>
+          
+          <p className="text-xs text-gray-600 mb-3">
+            現在の学習データと解答履歴を全てバックアップします。データは端末にダウンロードされます。
+          </p>
+          
           <div className="flex items-center">
-            <button
-              onClick={handleRestore}
-              disabled={!restoreFile}
-              className={`text-sm px-3 py-1 rounded ${
-                restoreFile
-                  ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
+            <button 
+              onClick={handleBackup}
+              className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-150 ease-in-out"
             >
-              復元実行
+              <Save className="mr-2 h-4 w-4" />
+              バックアップ作成
             </button>
-            {restoreStatus && (
-              <span className={`ml-3 text-sm ${
-                restoreStatus === '復元完了' ? 'text-green-600' : 'text-orange-600'
+            
+            {backupStatus && (
+              <div className={`ml-3 flex items-center ${
+                backupStatus === '完了' 
+                  ? 'text-green-600 bg-green-50 px-3 py-1 rounded-full' 
+                  : 'text-gray-600'
               }`}>
-                {restoreStatus}
-              </span>
+                {backupStatus === '完了' ? (
+                  <><Check className="h-4 w-4 mr-1" /> {backupStatus}</>
+                ) : (
+                  backupStatus
+                )}
+              </div>
             )}
           </div>
-          <p className="text-xs text-red-500 mt-1">
-            ※復元を実行すると現在のデータは上書きされます
+        </div>
+        
+        {/* 復元セクション */}
+        <div className="bg-indigo-50 p-4 rounded-lg">
+          <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+            <UploadCloud className="mr-2 h-4 w-4 text-indigo-500" /> データ復元
+          </h3>
+          
+          <p className="text-xs text-gray-600 mb-3">
+            バックアップファイルからデータを復元します。現在のデータは上書きされます。
           </p>
+          
+          <div className="flex flex-col gap-3">
+            <div className="relative">
+              <input
+                id="restore-file-input"
+                type="file"
+                accept=".json"
+                onChange={handleFileChange}
+                className="block w-full text-sm text-gray-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-md file:border-0
+                  file:text-sm file:font-medium
+                  file:bg-indigo-100 file:text-indigo-700
+                  hover:file:bg-indigo-200
+                  cursor-pointer"
+              />
+            </div>
+            
+            <div className="flex items-center">
+              <button
+                onClick={handleRestore}
+                disabled={!restoreFile}
+                className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors duration-150 ease-in-out ${
+                  restoreFile
+                    ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                <UploadCloud className="mr-2 h-4 w-4" />
+                復元実行
+              </button>
+              
+              {restoreStatus && (
+                <div className={`ml-3 flex items-center text-sm ${
+                  restoreStatus === '復元完了' 
+                    ? 'text-green-600 bg-green-50 px-3 py-1 rounded-full' 
+                    : restoreStatus.includes('エラー') 
+                      ? 'text-red-600 bg-red-50 px-3 py-1 rounded-full' 
+                      : 'text-gray-600'
+                }`}>
+                  {restoreStatus === '復元完了' ? (
+                    <><Check className="h-4 w-4 mr-1" /> {restoreStatus}</>
+                  ) : restoreStatus.includes('エラー') ? (
+                    <><AlertCircle className="h-4 w-4 mr-1" /> {restoreStatus}</>
+                  ) : (
+                    restoreStatus
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {!restoreStatus && (
+              <p className="text-xs text-red-500 flex items-center mt-1">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                復元を実行すると現在のデータは上書きされます
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>
