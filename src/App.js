@@ -145,11 +145,14 @@ function App() {
   const [bulkEditMode, setBulkEditMode] = useState(false);
   const [selectedQuestions, setSelectedQuestions] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null); // 一括編集用の選択日付
-  const [showExportReminder, setShowExportReminder] = useState(false);
+　const [showExportReminder, setShowExportReminder] = useState(false);
   const [daysSinceLastExport, setDaysSinceLastExport] = useState(null);
   // エラー関連の状態
   const [hasStorageError, setHasStorageError] = useState(false);
-  
+  // フィルタリング用の状態
+  const [filterText, setFilterText] = useState('');
+  const [showAnswered, setShowAnswered] = useState(false);
+    
   // グローバルエラーハンドラーの設定
   useEffect(() => {
     setupGlobalErrorHandlers();
@@ -202,7 +205,7 @@ function App() {
             console.log('学習データを読み込み完了');
             
             // 展開状態の初期設定
-            const initialExpandedSubjectsState = {};
+    const initialExpandedSubjectsState = {};
             studyDataToSet.forEach(subject => { 
               if (subject?.id) { 
                 initialExpandedSubjectsState[subject.id] = false; 
@@ -211,7 +214,7 @@ function App() {
             if (studyDataToSet.length > 0 && studyDataToSet[0]?.id) { 
               initialExpandedSubjectsState[studyDataToSet[0].id] = true; 
             }
-            setExpandedSubjects(initialExpandedSubjectsState);
+    setExpandedSubjects(initialExpandedSubjectsState);
           } else {
             const initialData = generateInitialData();
             setSubjects(initialData);
@@ -299,41 +302,41 @@ function App() {
     }
   }, [subjects, answerHistory, hasStorageError]);
 
-  useEffect(() => {
-    // エクスポートリマインダーチェック
-    const checkExportReminder = () => {
-      const lastExportTimestamp = localStorage.getItem('lastExportTimestamp');
-      const reminderDismissedTimestamp = localStorage.getItem('reminderDismissedTimestamp');
-      
-      const now = new Date().getTime();
-      const dismissedTime = reminderDismissedTimestamp ? parseInt(reminderDismissedTimestamp, 10) : 0;
-      const dismissedDaysAgo = Math.floor((now - dismissedTime) / (1000 * 60 * 60 * 24));
-      
-      // 通知を閉じてから3日以内は表示しない
-      if (dismissedDaysAgo < 3) {
-        return;
-      }
-      
-      if (!lastExportTimestamp) {
-        // 一度もエクスポートしていない場合
-        setDaysSinceLastExport(null);
-        setShowExportReminder(true);
-      } else {
-        const lastExportTime = parseInt(lastExportTimestamp, 10);
-        const daysSinceExport = Math.floor((now - lastExportTime) / (1000 * 60 * 60 * 24));
-        
-        // 14日以上経過していたらリマインダー表示
-        if (daysSinceExport >= 14) {
-          setDaysSinceLastExport(daysSinceExport);
-          setShowExportReminder(true);
-        }
-      }
-    };
+useEffect(() => {
+  // エクスポートリマインダーチェック
+  const checkExportReminder = () => {
+    const lastExportTimestamp = localStorage.getItem('lastExportTimestamp');
+    const reminderDismissedTimestamp = localStorage.getItem('reminderDismissedTimestamp');
     
-    checkExportReminder();
-  }, []);
-
-  const todayQuestionsList = useMemo(() => {
+    const now = new Date().getTime();
+    const dismissedTime = reminderDismissedTimestamp ? parseInt(reminderDismissedTimestamp, 10) : 0;
+    const dismissedDaysAgo = Math.floor((now - dismissedTime) / (1000 * 60 * 60 * 24));
+    
+    // 通知を閉じてから3日以内は表示しない
+    if (dismissedDaysAgo < 3) {
+      return;
+    }
+    
+    if (!lastExportTimestamp) {
+      // 一度もエクスポートしていない場合
+      setDaysSinceLastExport(null);
+      setShowExportReminder(true);
+    } else {
+      const lastExportTime = parseInt(lastExportTimestamp, 10);
+      const daysSinceExport = Math.floor((now - lastExportTime) / (1000 * 60 * 60 * 24));
+      
+      // 14日以上経過していたらリマインダー表示
+      if (daysSinceExport >= 14) {
+        setDaysSinceLastExport(daysSinceExport);
+        setShowExportReminder(true);
+      }
+    }
+  };
+  
+  checkExportReminder();
+}, []);
+    
+const todayQuestionsList = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayTime = today.getTime();
@@ -997,7 +1000,7 @@ const handleDataImport = (importedData) => {
   } catch (error) {
     console.error("データインポート処理中にエラー:", error);
     return false; // インポート失敗
-  }
+　}
 };
 
 // リマインダー関連のハンドラ関数（App関数内の適切な位置に追加）
@@ -1217,14 +1220,14 @@ const handleRestoreData = async (backupData) => {
 };
 
 // ★ アプリ全体のレンダリング (エラー状態対応) ★
-return (
+  return (
   <ErrorBoundary>
     <NotificationProvider>
       <div className="App">
         <OfflineIndicator />
-        <div className="min-h-screen bg-gray-50">
-          <TopNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
-          
+    <div className="min-h-screen bg-gray-50">
+      <TopNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
+　　　　
           {/* ストレージエラー通知 */}
           {hasStorageError && (
             <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 mx-4 mt-4">
@@ -1238,10 +1241,10 @@ return (
             </div>
           )}
           
-          {showExportReminder && (
-            <ReminderNotification 
-              daysSinceLastExport={daysSinceLastExport}
-              onDismiss={handleDismissReminder}
+    {showExportReminder && (
+      <ReminderNotification 
+        daysSinceLastExport={daysSinceLastExport}
+        onDismiss={handleDismissReminder}
               onGoToSettings={handleGoToSettings}
             />
           )}
@@ -1272,7 +1275,7 @@ return (
               setShowAnswered={setShowAnswered}
               resetAllData={resetAllData}
               resetAnswerStatusOnly={resetAnswerStatusOnly}
-              formatDate={formatDate}
+             formatDate={formatDate}
               handleDataImport={handleDataImport}
               handleDataExport={handleDataExport}
               handleBackupData={handleBackupData}
@@ -1285,13 +1288,13 @@ return (
               recordAnswer={recordAnswer}
               getQuestionsForDate={getQuestionsForDate}
             />
-          </div>
-          <div id="notification-area" className="fixed bottom-4 right-4 z-30"></div>
-        </div>
+      </div>
+      <div id="notification-area" className="fixed bottom-4 right-4 z-30"></div>
+    </div>
       </div>
     </NotificationProvider>
   </ErrorBoundary>
-);
+  );
 }
 
 export default App;
