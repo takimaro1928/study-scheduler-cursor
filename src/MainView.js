@@ -8,7 +8,7 @@ import StatsPage from './StatsPage';
 import EnhancedStatsPage from './EnhancedStatsPage';
 import AmbiguousTrendsPage from './AmbiguousTrendsPage';
 import NotesPage from './NotesPage';
-import QuestionEditModal from './QuestionEditModal';
+import QuestionEditModal from './components/QuestionEditModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import ReminderNotification from './ReminderNotification';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -16,41 +16,35 @@ import TopNavigation from './components/TopNavigation';
 
 // ★ メインビュー切り替え ★
 const MainView = ({ 
-  subjects, 
+  subjects,
+  setSubjects,
+  answerHistory,
   activeTab, 
   setActiveTab, 
-  expandedSubjects, 
-  setExpandedSubjects, 
-  expandedChapters, 
-  setExpandedChapters, 
-  editingQuestion, 
+  expandedSubjects,
+  expandedChapters,
   setEditingQuestion, 
   bulkEditMode, 
   setBulkEditMode, 
-  selectedQuestions, 
-  setSelectedQuestions,
-  selectedDate,
-  setSelectedDate,
-  answerHistory, 
-  setAnswerHistory, 
-  showExportReminder, 
-  setShowExportReminder, 
-  daysSinceLastExport, 
-  formatDate,
-  saveQuestionEdit,
+  selectedQuestions,
+  toggleQuestionSelection,
   saveBulkEdit,
   saveBulkEditItems,
   saveComment,
   handleQuestionDateChange,
   toggleSubject,
   toggleChapter,
-  toggleQuestionSelection,
-  handleGoToSettings,
-  handleDismissReminder,
+  filterText,
+  setFilterText,
+  showAnswered,
+  setShowAnswered,
   resetAllData,
   resetAnswerStatusOnly,
+  formatDate,
   handleDataImport,
   handleDataExport,
+  handleBackupData,
+  handleRestoreData,
   getAllQuestions,
   addQuestion,
   saveSubjectNote,
@@ -77,22 +71,57 @@ const MainView = ({
       setBulkEditMode={setBulkEditMode}
       bulkEditMode={bulkEditMode}
       selectedQuestions={selectedQuestions}
-      setSelectedQuestions={setSelectedQuestions}
+      toggleQuestionSelection={toggleQuestionSelection} 
       onDateChange={handleQuestionDateChange} 
       saveBulkEdit={saveBulkEdit}
-      selectedDate={selectedDate}
-      setSelectedDate={setSelectedDate}
-      toggleQuestionSelection={toggleQuestionSelection} 
       onToggleBulkEdit={() => setBulkEditMode(!bulkEditMode)} 
       onSaveBulkEditItems={saveBulkEditItems}
       onAddQuestion={addQuestion}
+      filterText={filterText}
+      setFilterText={setFilterText}
+      showAnswered={showAnswered}
+      setShowAnswered={setShowAnswered}
     />,
-    schedule: <ScheduleView data={{ questions: getAllQuestions(subjects) }} scheduleQuestion={handleQuestionDateChange} />,
-    settings: <SettingsPage onResetAllData={resetAllData} onResetAnswerStatusOnly={resetAnswerStatusOnly} onImport={handleDataImport} onExport={handleDataExport} exportTimestamp={localStorage.getItem('lastExportTimestamp')} formatDate={formatDate} totalQuestionCount={calculateTotalQuestionCount(subjects)} />,
-    stats: <StatsPage subjects={subjects} formatDate={formatDate} answerHistory={answerHistory} />,
-    enhanced: <EnhancedStatsPage subjects={subjects} formatDate={formatDate} answerHistory={answerHistory} saveComment={saveComment} />,
-    ambiguous: <AmbiguousTrendsPage subjects={subjects} formatDate={formatDate} answerHistory={answerHistory} saveComment={saveComment} saveBulkEditItems={saveBulkEditItems} setEditingQuestion={setEditingQuestion} />,
-    notes: <ErrorBoundary><NotesPage subjects={subjects} saveSubjectNote={saveSubjectNote} /></ErrorBoundary>,
+    schedule: <ScheduleView 
+      data={{ questions: getAllQuestions(subjects) }} 
+      scheduleQuestion={handleQuestionDateChange} 
+    />,
+    settings: <SettingsPage 
+      onResetAllData={resetAllData} 
+      onResetAnswerStatusOnly={resetAnswerStatusOnly} 
+      onImport={handleDataImport} 
+      onExport={handleDataExport}
+      onBackup={handleBackupData}
+      onRestore={handleRestoreData}
+      exportTimestamp={localStorage.getItem('lastExportTimestamp')} 
+      formatDate={formatDate} 
+      totalQuestionCount={calculateTotalQuestionCount(subjects)} 
+    />,
+    stats: <StatsPage 
+      subjects={subjects} 
+      formatDate={formatDate} 
+      answerHistory={answerHistory} 
+    />,
+    enhanced: <EnhancedStatsPage 
+      subjects={subjects} 
+      formatDate={formatDate} 
+      answerHistory={answerHistory} 
+      saveComment={saveComment} 
+    />,
+    ambiguous: <AmbiguousTrendsPage 
+      subjects={subjects} 
+      formatDate={formatDate} 
+      answerHistory={answerHistory} 
+      saveComment={saveComment} 
+      saveBulkEditItems={saveBulkEditItems} 
+      setEditingQuestion={setEditingQuestion} 
+    />,
+    notes: <ErrorBoundary>
+      <NotesPage 
+        subjects={subjects} 
+        saveSubjectNote={saveSubjectNote} 
+      />
+    </ErrorBoundary>,
   };
 
   return (
@@ -113,23 +142,9 @@ const MainView = ({
           </div>
         )}
         
-        {showExportReminder && (
-          <ReminderNotification 
-            daysSinceLastExport={daysSinceLastExport}
-            onGoToSettings={handleGoToSettings}
-            onDismiss={handleDismissReminder}
-          />
-        )}
         <div className="p-0 sm:p-4">
           {Views[activeTab] || Views.today}
-          {editingQuestion && (
-            <QuestionEditModal
-              question={editingQuestion}
-              onSave={saveQuestionEdit}
-              onCancel={() => setEditingQuestion(null)}
-              formatDate={formatDate}
-            />
-          )}
+          {/* 編集モーダル */}
         </div>
         <div id="notification-area" className="fixed bottom-4 right-4 z-30"></div>
       </div>
