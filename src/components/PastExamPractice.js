@@ -139,7 +139,10 @@ const PastExamPractice = () => {
         ) : (
           <div className="flex flex-col items-center justify-center h-96 border-2 border-dashed rounded-lg p-6 bg-gray-50">
             <p className="mb-4 text-gray-500">PDFファイルをアップロードしてください</p>
-            <label className="px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition">
+            <label className="px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition shadow-md font-medium flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
               PDFを選択
               <input type="file" accept=".pdf" className="hidden" onChange={handlePdfUpload} />
             </label>
@@ -154,7 +157,7 @@ const PastExamPractice = () => {
           <label className="block text-sm font-medium mb-1">試験名:</label>
           <input
             type="text"
-            className="w-full p-2 border rounded"
+            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
             value={examTitle}
             onChange={(e) => setExamTitle(e.target.value)}
             placeholder="試験名を入力"
@@ -162,19 +165,28 @@ const PastExamPractice = () => {
         </div>
 
         {/* タイマー */}
-        <div className="mb-4 p-3 bg-gray-100 rounded-lg flex justify-between items-center">
+        <div className="mb-4 p-3 bg-gray-100 rounded-lg flex justify-between items-center shadow-sm">
           <div className="text-xl font-bold">{formatTime(timer)}</div>
           <div className="flex space-x-2">
             <button
-              className={`px-4 py-2 rounded-md text-white font-medium transition ${isTimerRunning ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}
+              className={`px-4 py-2 rounded-md text-white font-medium transition shadow-sm flex items-center ${isTimerRunning ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}
               onClick={toggleTimer}
             >
-              {isTimerRunning ? '停止' : '開始'}
+              {isTimerRunning 
+               ? (<><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>停止</>) 
+               : (<><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                  </svg>開始</>)}
             </button>
             <button
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md font-medium transition"
+              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md font-medium transition shadow-sm flex items-center"
               onClick={resetTimer}
             >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+              </svg>
               リセット
             </button>
           </div>
@@ -185,12 +197,12 @@ const PastExamPractice = () => {
           <label className="block text-sm font-medium mb-2">事例設定:</label>
           <div className="grid grid-cols-2 gap-2 mb-2">
             {cases.map(caseItem => (
-              <div key={caseItem.id} className="flex items-center space-x-2 border rounded p-2">
-                <span className="whitespace-nowrap">{caseItem.name}</span>
+              <div key={caseItem.id} className="flex items-center space-x-2 border rounded p-2 bg-white shadow-sm">
+                <span className="whitespace-nowrap font-medium">{caseItem.name}</span>
                 <div className="flex items-center ml-auto">
                   <label className="text-xs mr-1">問題数:</label>
                   <select 
-                    className="p-1 border rounded text-sm"
+                    className="p-1 border rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                     value={caseItem.questions.length}
                     onChange={(e) => handleCaseQuestionCountChange(caseItem.id, parseInt(e.target.value))}
                   >
@@ -213,10 +225,10 @@ const PastExamPractice = () => {
                 {caseItem.questions.map(questionNum => (
                   <button
                     key={`${caseItem.id}-${questionNum}`}
-                    className={`p-2 text-sm border rounded-md transition
+                    className={`p-2 text-sm border rounded-md transition shadow-sm
                       ${selectedCase.id === caseItem.id && selectedQuestion === questionNum 
-                        ? 'bg-blue-100 border-blue-500 font-medium' 
-                        : 'hover:bg-gray-100'}`}
+                        ? 'bg-blue-100 border-blue-500 font-medium text-blue-800' 
+                        : 'hover:bg-gray-100 bg-white'}`}
                     onClick={() => handleQuestionChange(caseItem.id, questionNum)}
                   >
                     {caseItem.name} 設問{questionNum}
@@ -234,7 +246,7 @@ const PastExamPractice = () => {
             <span className="text-xs text-gray-500">{answerText.length}文字</span>
           </div>
           <textarea
-            className="w-full h-64 p-2 border rounded resize-none"
+            className="w-full h-64 p-2 border rounded resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
             value={answerText}
             onChange={(e) => setAnswerText(e.target.value)}
             placeholder="ここに解答を入力してください..."
@@ -243,10 +255,13 @@ const PastExamPractice = () => {
 
         {/* 保存ボタン */}
         <button
-          className="w-full p-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition"
+          className="w-full p-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition shadow-md flex items-center justify-center"
           onClick={handleSaveAnswer}
         >
-          解答を保存
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
+          </svg>
+          解答を保存する
         </button>
       </div>
     </div>
