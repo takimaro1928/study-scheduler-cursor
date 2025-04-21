@@ -1,10 +1,31 @@
 import React from 'react';
+import { Toaster } from 'react-hot-toast';
 import FlashcardsContainer from './components/FlashcardsContainer';
 import './index.css';
 
 const SMEExamPage = () => {
   return (
     <div className="container mx-auto px-4 py-6">
+      <Toaster position="top-right" toastOptions={{
+        duration: 3000,
+        style: {
+          background: '#363636',
+          color: '#fff',
+        },
+        success: {
+          duration: 3000,
+          style: {
+            background: '#4caf50',
+          },
+        },
+        error: {
+          duration: 4000,
+          style: {
+            background: '#f44336',
+          },
+        },
+      }} />
+      
       <h1 className="text-2xl font-bold mb-6">中小企業診断士2次試験対策</h1>
       
       <FlashcardsContainer />
