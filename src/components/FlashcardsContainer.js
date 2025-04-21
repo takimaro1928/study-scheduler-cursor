@@ -1431,6 +1431,122 @@ const FlashcardsContainer = () => {
     }
   };
 
+  // 学習モード表示関数
+  const renderStudyMode = () => {
+    if (!studyMode) return null;
+    
+    const currentCard = studyCards[currentCardIndex];
+    if (!currentCard) return null;
+    
+    // テスト結果表示
+    if (showTestResults) {
+      const correctCount = testAnswers.filter(answer => answer.isCorrect).length;
+      const totalCount = testAnswers.length;
+      const percentage = Math.round((correctCount / totalCount) * 100);
+      
+      return (
+        <div className="test-results">
+          <h3 className="test-results-title">テスト結果</h3>
+          <div className="test-results-content">
+            <p className="test-score">正解率: {percentage}%</p>
+            <p className="test-details">{totalCount}問中{correctCount}問正解</p>
+          </div>
+          <button 
+            className="control-button" 
+            onClick={() => {
+              setStudyMode(null);
+              setShowTestResults(false);
+            }}
+          >
+            戻る
+          </button>
+        </div>
+      );
+    }
+    
+    // 文章モード
+    if (studyMode === 'sentence') {
+      // 文章モードの実装（省略）
+      return null;
+    }
+    
+    // 復習モードとテストモード
+    return (
+      <div className="study-mode-container">
+        <div className="study-card">
+          <div className="study-card-content">
+            <div className="card-front">
+              <h3 className="card-term">{currentCard.term}</h3>
+            </div>
+            
+            {showAnswer && (
+              <div className="card-back">
+                <div className="card-definition">{currentCard.definition}</div>
+              </div>
+            )}
+            
+            <div className="card-controls">
+              {studyMode === 'review' && (
+                <button 
+                  className="control-button"
+                  onClick={handleToggleAnswer}
+                >
+                  {showAnswer ? '隠す' : '答えを見る'}
+                </button>
+              )}
+              
+              {studyMode === 'test' && !showAnswer && (
+                <div className="answer-buttons-container">
+                  <button
+                    className="answer-button correct-button"
+                    onClick={() => handleTestAnswer(true)}
+                  >
+                    知っている
+                  </button>
+                  <button
+                    className="answer-button incorrect-button"
+                    onClick={() => handleTestAnswer(false)}
+                  >
+                    分からない
+                  </button>
+                </div>
+              )}
+              
+              {(studyMode === 'review' || (studyMode === 'test' && showAnswer)) && (
+                <div className="navigation-controls">
+                  <button
+                    className="control-button"
+                    onClick={handlePrevCard}
+                    disabled={currentCardIndex === 0}
+                  >
+                    前へ
+                  </button>
+                  <button
+                    className="control-button"
+                    onClick={handleNextCard}
+                  >
+                    次へ
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="study-progress">
+          {currentCardIndex + 1} / {studyCards.length}
+        </div>
+        
+        <button 
+          className="control-button exit-button"
+          onClick={handleExitStudyMode}
+        >
+          終了
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="flashcards-container">
       <div className="flashcards-header">
@@ -1439,6 +1555,9 @@ const FlashcardsContainer = () => {
       </div>
 
       {renderStatsDashboard()}
+      
+      {/* 学習モード表示 */}
+      {renderStudyMode()}
 
       {/* ... existing code ... */}
     </div>
