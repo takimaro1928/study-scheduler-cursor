@@ -15,6 +15,12 @@ import {
   importFlashcardData,
   getFlashcardCounts
 } from '../utils/indexedDB';
+import { toast } from 'react-hot-toast';
+
+// ユニークIDの生成
+const generateId = () => {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+};
 
 // サンプルのフラッシュカードデータ
 const sampleDecks = [
@@ -54,21 +60,41 @@ const sampleDecks = [
 ];
 
 const FlashcardsContainer = () => {
-  // 状態管理
+  // 状態変数
+  const [loading, setLoading] = useState(false);
   const [cards, setCards] = useState([]);
+  const [newCard, setNewCard] = useState({
+    question: '',
+    answer: '',
+    genres: [],
+    tags: [],
+    difficulty: 'normal',
+    status: 'unlearned'
+  });
+  const [editingCard, setEditingCard] = useState(null);
+  const [showEditCardForm, setShowEditCardForm] = useState(false);
   const [genres, setGenres] = useState([]);
   const [tags, setTags] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({
+    status: 'all',
+    difficulty: 'all',
+    genres: [],
+    tags: [],
+    sortBy: 'createdAt',
+    sortOrder: 'desc'
+  });
+  const [cardCounts, setCardCounts] = useState({
+    total: 0,
+    learned: 0,
+    learning: 0,
+    unlearned: 0
+  });
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
   
   // 新規カード追加用の状態
   const [showAddCardForm, setShowAddCardForm] = useState(false);
-  const [newCard, setNewCard] = useState({
-    term: '',
-    description: '',
-    genres: [],
-    tags: []
-  });
   
   // 新規ジャンル/タグ追加用の状態
   const [showAddGenreForm, setShowAddGenreForm] = useState(false);
@@ -77,16 +103,11 @@ const FlashcardsContainer = () => {
   const [newTagName, setNewTagName] = useState('');
   
   // 検索・フィルタリング用の状態
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
-  
-  // 編集用の状態
-  const [editingCard, setEditingCard] = useState(null);
-  const [cardCounts, setCardCounts] = useState({ total: 0, learned: 0, unlearned: 0 });
   
   // 学習モード用の状態
   const [studyMode, setStudyMode] = useState(false);
@@ -110,20 +131,16 @@ const FlashcardsContainer = () => {
   // ファイルアップロードに使用する非表示のinput要素への参照
   const fileInputRef = useRef(null);
   
-  // ファイル選択ダイアログをトリガー
-  const triggerFileInput = () => {
-    fileInputRef.current.click();
-  };
-  
   // 学習統計状態
   const [showStats, setShowStats] = useState(false);
   const [stats, setStats] = useState(null);
+  const [showStatsModal, setShowStatsModal] = useState(false);
   
   // 初期データのロード
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        setIsLoading(true);
+        setLoading(true);
         
         // カードデータの取得
         const cardsData = await getAllFlashcards();
@@ -141,11 +158,11 @@ const FlashcardsContainer = () => {
         const counts = await getFlashcardCounts();
         setCardCounts(counts);
         
-        setIsLoading(false);
+        setLoading(false);
       } catch (err) {
         console.error('データのロードに失敗しました:', err);
         setError('データのロードに失敗しました。ブラウザをリロードしてみてください。');
-        setIsLoading(false);
+        setLoading(false);
       }
     };
     
@@ -175,10 +192,10 @@ const FlashcardsContainer = () => {
   // 検索結果を更新
   useEffect(() => {
     const updateFilteredCards = async () => {
-      setIsLoading(true);
+      setLoading(true);
       const filtered = await getFilteredCards();
       setCards(filtered);
-      setIsLoading(false);
+      setLoading(false);
     };
     
     updateFilteredCards();
@@ -188,80 +205,90 @@ const FlashcardsContainer = () => {
   const handleAddCard = async () => {
     // カード数チェック (500枚制限)
     if (cards.length >= 500) {
-      alert('カード数が上限の500枚に達しています。新しいカードを追加するには、既存のカードを削除してください。');
+      toast.error('カード数が上限の500枚に達しています。新しいカードを追加するには、既存のカードを削除してください。');
       return;
     }
     
-    if (!newCard.term.trim() || !newCard.description.trim()) {
-      alert('用語と説明は必須項目です');
+    if (!newCard.question.trim() || !newCard.answer.trim()) {
+      toast.error('問題と回答は必須項目です');
       return;
     }
     
     // 選択されたジャンルが3つ以上ないことを確認
     if (newCard.genres && newCard.genres.length > 3) {
-      alert('ジャンルは最大3つまで設定できます');
+      toast.error('ジャンルは最大3つまで設定できます');
       return;
     }
     
     try {
       const cardToSave = {
         ...newCard,
+        id: generateId(),
         createdAt: new Date().toISOString(),
         lastStudied: null,
-        studyStatus: 'unlearned'
+        studyCount: 0,
+        correctCount: 0,
+        incorrectCount: 0
       };
       
       await saveFlashcard(cardToSave);
       
       // 入力フォームをリセット
       setNewCard({
-        term: '',
-        description: '',
+        question: '',
+        answer: '',
         genres: [],
-        tags: []
+        tags: [],
+        difficulty: 'normal',
+        status: 'unlearned'
       });
       
       setShowAddCardForm(false);
       
       // カード一覧を更新
-      const updatedCards = await getAllFlashcards();
+      const updatedCards = [...cards, cardToSave];
       setCards(updatedCards);
       
       // カード数を更新
       const counts = await getFlashcardCounts();
       setCardCounts(counts);
+      
+      toast.success('カードが追加されました');
     } catch (err) {
       console.error('カードの保存に失敗しました:', err);
-      alert('カードの保存に失敗しました。もう一度やり直してください。');
+      toast.error('カードの保存に失敗しました。もう一度やり直してください。');
     }
   };
   
   // カードの削除
   const handleDeleteCard = async (cardId) => {
-    if (!cardId) return;
-    
-    const confirmed = window.confirm('このカードを削除してもよろしいですか？この操作は元に戻せません。');
-    if (!confirmed) return;
+    // カード削除の確認
+    if (!window.confirm('このカードを削除してもよろしいですか？')) {
+      return;
+    }
     
     try {
+      // カードの削除
       await deleteFlashcard(cardId);
       
-      // 編集中のカードが削除された場合は編集をキャンセル
+      // 削除したカードが現在編集中のカードなら、編集モードを終了
       if (editingCard && editingCard.id === cardId) {
         setEditingCard(null);
         setShowEditCardForm(false);
       }
       
-      // カード一覧を更新
-      const updatedCards = await getAllFlashcards();
+      // カードリストを更新
+      const updatedCards = cards.filter(card => card.id !== cardId);
       setCards(updatedCards);
       
-      // カード数を更新
+      // カード数の更新
       const counts = await getFlashcardCounts();
       setCardCounts(counts);
+      
+      toast.success('カードが削除されました');
     } catch (err) {
       console.error('カードの削除に失敗しました:', err);
-      alert('カードの削除に失敗しました。もう一度やり直してください。');
+      toast.error('カードの削除に失敗しました');
     }
   };
   
@@ -528,10 +555,44 @@ const FlashcardsContainer = () => {
     setShowTestResults(false);
   };
 
-  // 編集フォームを開く
-  const handleStartEdit = (card) => {
-    setEditingCard({...card});
-    setShowEditCardForm(true);
+  // カード編集処理
+  const handleEditCard = async () => {
+    if (!editingCard) return;
+
+    // 入力検証
+    if (!editingCard.question.trim() || !editingCard.answer.trim()) {
+      toast.error('問題と回答は必須です');
+      return;
+    }
+
+    if (editingCard.genres.length > 3) {
+      toast.error('ジャンルは最大3つまで選択可能です');
+      return;
+    }
+
+    try {
+      // カードを更新
+      await saveFlashcard(editingCard);
+      
+      // カードリストを更新
+      const updatedCards = cards.map(card => 
+        card.id === editingCard.id ? editingCard : card
+      );
+      setCards(updatedCards);
+      
+      // 編集モードを終了
+      setEditingCard(null);
+      setShowEditCardForm(false);
+      
+      toast.success('カードを更新しました');
+      
+      // カウントを更新
+      const counts = await getFlashcardCounts();
+      setCardCounts(counts);
+    } catch (error) {
+      console.error('カードの更新に失敗しました:', error);
+      toast.error('カードの更新に失敗しました');
+    }
   };
   
   // カード入力フォームの更新
@@ -639,7 +700,7 @@ const FlashcardsContainer = () => {
   // 検索とフィルタリング
   const handleSearch = async () => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       
       const searchResults = await searchFlashcards({
         searchTerm: searchQuery,
@@ -651,10 +712,10 @@ const FlashcardsContainer = () => {
       });
       
       setCards(searchResults);
-      setIsLoading(false);
+      setLoading(false);
     } catch (err) {
       console.error('カードの検索に失敗しました:', err);
-      setIsLoading(false);
+      setLoading(false);
       setError('カードの検索に失敗しました');
     }
   };
@@ -670,13 +731,13 @@ const FlashcardsContainer = () => {
     
     // 全てのカードを取得
     try {
-      setIsLoading(true);
+      setLoading(true);
       const allCards = await getAllFlashcards();
       setCards(allCards);
-      setIsLoading(false);
+      setLoading(false);
     } catch (err) {
       console.error('カードの取得に失敗しました:', err);
-      setIsLoading(false);
+      setLoading(false);
       setError('カードの取得に失敗しました');
     }
   };
@@ -757,7 +818,7 @@ const FlashcardsContainer = () => {
   // 復習モードの開始
   const handleStartReviewMode = async (status = null, genreId = null, tagId = null) => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       
       // フィルター条件に基づいてカードを取得
       let filteredCards = [...cards];
@@ -779,7 +840,7 @@ const FlashcardsContainer = () => {
       
       // カードがなければ終了
       if (filteredCards.length === 0) {
-        setIsLoading(false);
+        setLoading(false);
         alert('選択した条件に一致するカードがありません');
         return;
       }
@@ -792,10 +853,10 @@ const FlashcardsContainer = () => {
       setStudyMode('review');
       setShowAnswer(false);
       
-      setIsLoading(false);
+      setLoading(false);
     } catch (err) {
       console.error('復習モードの開始に失敗しました:', err);
-      setIsLoading(false);
+      setLoading(false);
       alert('復習モードの開始に失敗しました。もう一度やり直してください。');
     }
   };
@@ -803,7 +864,7 @@ const FlashcardsContainer = () => {
   // テストモードの開始
   const handleStartTestMode = async (status = null, genreId = null, tagId = null) => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       
       // フィルター条件に基づいてカードを取得
       let filteredCards = [...cards];
@@ -825,7 +886,7 @@ const FlashcardsContainer = () => {
       
       // カードがなければ終了
       if (filteredCards.length === 0) {
-        setIsLoading(false);
+        setLoading(false);
         alert('選択した条件に一致するカードがありません');
         return;
       }
@@ -839,10 +900,10 @@ const FlashcardsContainer = () => {
       setShowAnswer(false);
       setTestAnswers([]);
       
-      setIsLoading(false);
+      setLoading(false);
     } catch (err) {
       console.error('テストモードの開始に失敗しました:', err);
-      setIsLoading(false);
+      setLoading(false);
       alert('テストモードの開始に失敗しました。もう一度やり直してください。');
     }
   };
@@ -914,7 +975,7 @@ const FlashcardsContainer = () => {
   // 文章化練習機能
   const handleStartSentenceMode = async (genreId = null) => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       
       // フィルター条件に基づいてカードを取得
       let filteredCards = [...cards];
@@ -926,7 +987,7 @@ const FlashcardsContainer = () => {
       
       // カードがなければ終了
       if (filteredCards.length < 5) {
-        setIsLoading(false);
+        setLoading(false);
         alert('文章化練習には最低5枚のカードが必要です');
         return;
       }
@@ -940,10 +1001,10 @@ const FlashcardsContainer = () => {
       setStudyMode('sentence');
       setSentenceInput('');
       
-      setIsLoading(false);
+      setLoading(false);
     } catch (err) {
       console.error('文章化練習の開始に失敗しました:', err);
-      setIsLoading(false);
+      setLoading(false);
       alert('文章化練習の開始に失敗しました。もう一度やり直してください。');
     }
   };
@@ -1351,6 +1412,14 @@ const FlashcardsContainer = () => {
         />
               </div>
     );
+  };
+
+  // 編集フォームを開く
+  const handleStartEdit = (card) => {
+    if (card) {
+      setEditingCard({...card});
+      setShowEditCardForm(true);
+    }
   };
 
   return (
