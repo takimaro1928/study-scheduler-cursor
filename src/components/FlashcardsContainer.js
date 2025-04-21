@@ -15,7 +15,6 @@ import {
   importFlashcardData,
   getFlashcardCounts
 } from '../utils/indexedDB';
-import { toast } from 'react-hot-toast';
 
 // サンプルのフラッシュカードデータ
 const sampleDecks = [
@@ -152,7 +151,7 @@ const FlashcardsContainer = () => {
     
     loadInitialData();
   }, []);
-  
+
   // フィルタリングされたカードのリストを取得
   const getFilteredCards = useCallback(async () => {
     try {
@@ -447,7 +446,7 @@ const FlashcardsContainer = () => {
       alert('インポートするファイルを選択してください');
       return;
     }
-    
+
     try {
       // ファイルの内容を読み込む
       const fileReader = new FileReader();
@@ -970,7 +969,7 @@ const FlashcardsContainer = () => {
       alert('全ての用語を使用してください');
       return;
     }
-    
+
     // 文章練習の結果を表示
     setSentenceSubmitted(true);
   };
@@ -1232,7 +1231,7 @@ const FlashcardsContainer = () => {
   const renderStatsDashboard = () => {
     if (!showStats || !stats) return null;
 
-    return (
+  return (
       <div className="stats-dashboard">
         <h3 className="stats-title">学習統計</h3>
         
@@ -1277,7 +1276,7 @@ const FlashcardsContainer = () => {
             <div className="stat-label">最も学習したジャンル</div>
           </div>
         </div>
-        
+
         {stats.mostDifficultCards.length > 0 && (
           <div className="difficult-cards-section">
             <h4>復習が必要なカード</h4>
@@ -1298,12 +1297,12 @@ const FlashcardsContainer = () => {
                       <td>{genres.find(g => g.id === card.genreId)?.name || '未分類'}</td>
                       <td>{card.incorrectCount}</td>
                       <td>
-                        <button 
+              <button
                           className="small-button edit-button"
                           onClick={() => handleEditCard(card.id)}
-                        >
+              >
                           編集
-                        </button>
+              </button>
                       </td>
                     </tr>
                   ))}
@@ -1320,27 +1319,27 @@ const FlashcardsContainer = () => {
   const renderDataManagement = () => {
     return (
       <div className="data-management-controls">
-        <button 
+            <button
           className={`control-button ${cards.length === 0 ? 'disabled' : ''}`}
           onClick={handleExportCards}
           disabled={cards.length === 0}
-        >
+            >
           エクスポート
-        </button>
+            </button>
         
-        <button 
+                <button
           className="control-button"
           onClick={triggerFileInput}
-        >
+                >
           インポート
-        </button>
+                </button>
         
-        <button 
+                <button
           className={`control-button ${showStats ? 'active' : ''}`}
           onClick={() => setShowStats(!showStats)}
-        >
+                >
           {showStats ? '統計を隠す' : '統計を表示'}
-        </button>
+                </button>
         
         {/* ファイル入力要素（非表示） */}
         <input
@@ -1350,7 +1349,7 @@ const FlashcardsContainer = () => {
           accept=".json"
           onChange={handleImportCards}
         />
-      </div>
+              </div>
     );
   };
 
@@ -1359,7 +1358,7 @@ const FlashcardsContainer = () => {
       <div className="flashcards-header">
         <h2>用語暗記カード</h2>
         {renderDataManagement()}
-      </div>
+        </div>
 
       {renderStatsDashboard()}
 
