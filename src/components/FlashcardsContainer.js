@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import FlashcardDeck from './FlashcardDeck';
+import { toast } from 'react-hot-toast';
 import { 
   getAllFlashcards,
   saveFlashcard,
@@ -15,7 +16,6 @@ import {
   importFlashcardData,
   getFlashcardCounts
 } from '../utils/indexedDB';
-import { toast } from 'react-hot-toast';
 
 // ユニークIDの生成
 const generateId = () => {
@@ -63,6 +63,8 @@ const FlashcardsContainer = () => {
   // 状態変数
   const [loading, setLoading] = useState(false);
   const [cards, setCards] = useState([]);
+  const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [newCard, setNewCard] = useState({
     question: '',
     answer: '',
@@ -295,7 +297,7 @@ const FlashcardsContainer = () => {
   // カードの更新
   const handleUpdateCard = async () => {
     if (!editingCard || !editingCard.term.trim() || !editingCard.definition.trim()) {
-      alert('用語と説明文を入力してください');
+      toast.error('用語と説明文を入力してください');
       return;
     }
     
@@ -316,21 +318,21 @@ const FlashcardsContainer = () => {
       setCards(updatedCards);
     } catch (err) {
       console.error('カードの更新に失敗しました:', err);
-      alert('カードの更新に失敗しました。もう一度やり直してください。');
+      toast.error('カードの更新に失敗しました。もう一度やり直してください。');
     }
   };
 
   // ジャンルの追加
   const handleAddGenre = async () => {
     if (!newGenreName.trim()) {
-      alert('ジャンル名を入力してください');
+      toast.error('ジャンル名を入力してください');
       return;
     }
     
     // 同名のジャンルが既に存在するかチェック
     const exists = genres.some(genre => genre.name.toLowerCase() === newGenreName.toLowerCase());
     if (exists) {
-      alert('同じ名前のジャンルが既に存在します');
+      toast.error('同じ名前のジャンルが既に存在します');
       return;
     }
     
@@ -351,7 +353,7 @@ const FlashcardsContainer = () => {
       setGenres(updatedGenres);
     } catch (err) {
       console.error('ジャンルの保存に失敗しました:', err);
-      alert('ジャンルの保存に失敗しました。もう一度やり直してください。');
+      toast.error('ジャンルの保存に失敗しました。もう一度やり直してください。');
     }
   };
   
@@ -374,21 +376,21 @@ const FlashcardsContainer = () => {
       setCards(updatedCards);
     } catch (err) {
       console.error('ジャンルの削除に失敗しました:', err);
-      alert('ジャンルの削除に失敗しました。もう一度やり直してください。');
+      toast.error('ジャンルの削除に失敗しました。もう一度やり直してください。');
     }
   };
   
   // タグの追加
   const handleAddTag = async () => {
     if (!newTagName.trim()) {
-      alert('タグ名を入力してください');
+      toast.error('タグ名を入力してください');
       return;
     }
     
     // 同名のタグが既に存在するかチェック
     const exists = tags.some(tag => tag.name.toLowerCase() === newTagName.toLowerCase());
     if (exists) {
-      alert('同じ名前のタグが既に存在します');
+      toast.error('同じ名前のタグが既に存在します');
       return;
     }
     
@@ -409,7 +411,7 @@ const FlashcardsContainer = () => {
       setTags(updatedTags);
     } catch (err) {
       console.error('タグの保存に失敗しました:', err);
-      alert('タグの保存に失敗しました。もう一度やり直してください。');
+      toast.error('タグの保存に失敗しました。もう一度やり直してください。');
     }
   };
   
@@ -432,7 +434,7 @@ const FlashcardsContainer = () => {
       setCards(updatedCards);
     } catch (err) {
       console.error('タグの削除に失敗しました:', err);
-      alert('タグの削除に失敗しました。もう一度やり直してください。');
+      toast.error('タグの削除に失敗しました。もう一度やり直してください。');
     }
   };
   
@@ -455,7 +457,7 @@ const FlashcardsContainer = () => {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error('データのエクスポートに失敗しました:', err);
-      alert('データのエクスポートに失敗しました。もう一度やり直してください。');
+      toast.error('データのエクスポートに失敗しました。もう一度やり直してください。');
     }
   };
   
@@ -470,7 +472,7 @@ const FlashcardsContainer = () => {
   // データのインポート
   const handleImportData = async () => {
     if (!importFile) {
-      alert('インポートするファイルを選択してください');
+      toast.error('インポートするファイルを選択してください');
       return;
     }
 
@@ -525,7 +527,7 @@ const FlashcardsContainer = () => {
       fileReader.readAsText(importFile);
     } catch (err) {
       console.error('データのインポートに失敗しました:', err);
-      alert('データのインポートに失敗しました。もう一度やり直してください。');
+      toast.error('データのインポートに失敗しました。もう一度やり直してください。');
     }
   };
   
@@ -623,7 +625,7 @@ const FlashcardsContainer = () => {
     } else {
       // 選択されていない場合、既に3つ選択されていないか確認
       if (newCard.genres.length >= 3) {
-        alert('ジャンルは最大3つまで選択できます');
+        toast.error('ジャンルは最大3つまで選択できます');
         return;
       }
       // 選択リストに追加
@@ -648,7 +650,7 @@ const FlashcardsContainer = () => {
     } else {
       // 選択されていない場合、既に3つ選択されていないか確認
       if (editingCard.genres.length >= 3) {
-        alert('ジャンルは最大3つまで選択できます');
+        toast.error('ジャンルは最大3つまで選択できます');
         return;
       }
       // 選択リストに追加
@@ -811,7 +813,7 @@ const FlashcardsContainer = () => {
       setCardCounts(counts);
     } catch (err) {
       console.error('カードの状態更新に失敗しました:', err);
-      alert('カードの状態更新に失敗しました。もう一度やり直してください。');
+      toast.error('カードの状態更新に失敗しました。もう一度やり直してください。');
     }
   };
   
@@ -841,7 +843,7 @@ const FlashcardsContainer = () => {
       // カードがなければ終了
       if (filteredCards.length === 0) {
         setLoading(false);
-        alert('選択した条件に一致するカードがありません');
+        toast.error('選択した条件に一致するカードがありません');
         return;
       }
       
@@ -857,7 +859,7 @@ const FlashcardsContainer = () => {
     } catch (err) {
       console.error('復習モードの開始に失敗しました:', err);
       setLoading(false);
-      alert('復習モードの開始に失敗しました。もう一度やり直してください。');
+      toast.error('復習モードの開始に失敗しました。もう一度やり直してください。');
     }
   };
   
@@ -887,7 +889,7 @@ const FlashcardsContainer = () => {
       // カードがなければ終了
       if (filteredCards.length === 0) {
         setLoading(false);
-        alert('選択した条件に一致するカードがありません');
+        toast.error('選択した条件に一致するカードがありません');
         return;
       }
       
@@ -904,7 +906,7 @@ const FlashcardsContainer = () => {
     } catch (err) {
       console.error('テストモードの開始に失敗しました:', err);
       setLoading(false);
-      alert('テストモードの開始に失敗しました。もう一度やり直してください。');
+      toast.error('テストモードの開始に失敗しました。もう一度やり直してください。');
     }
   };
   
@@ -988,7 +990,7 @@ const FlashcardsContainer = () => {
       // カードがなければ終了
       if (filteredCards.length < 5) {
         setLoading(false);
-        alert('文章化練習には最低5枚のカードが必要です');
+        toast.error('文章化練習には最低5枚のカードが必要です');
         return;
       }
       
@@ -1005,7 +1007,7 @@ const FlashcardsContainer = () => {
     } catch (err) {
       console.error('文章化練習の開始に失敗しました:', err);
       setLoading(false);
-      alert('文章化練習の開始に失敗しました。もう一度やり直してください。');
+      toast.error('文章化練習の開始に失敗しました。もう一度やり直してください。');
     }
   };
   
@@ -1017,7 +1019,7 @@ const FlashcardsContainer = () => {
   // 文章練習の提出
   const handleSubmitSentence = () => {
     if (sentenceInput.trim() === '') {
-      alert('文章を入力してください');
+      toast.error('文章を入力してください');
       return;
     }
     
@@ -1027,7 +1029,7 @@ const FlashcardsContainer = () => {
     );
     
     if (!allTermsUsed) {
-      alert('全ての用語を使用してください');
+      toast.error('全ての用語を使用してください');
       return;
     }
 
@@ -1047,7 +1049,7 @@ const FlashcardsContainer = () => {
   const handleExportCards = () => {
     // カードがない場合はエクスポートしない
     if (!cards || cards.length === 0) {
-      alert('エクスポートできるカードがありません。');
+      toast.error('エクスポートできるカードがありません。');
       return;
     }
 
@@ -1086,10 +1088,10 @@ const FlashcardsContainer = () => {
         URL.revokeObjectURL(url);
       }, 100);
       
-      alert(`${cards.length}枚のカードをエクスポートしました。`);
+      toast.success(`${cards.length}枚のカードをエクスポートしました。`);
     } catch (error) {
       console.error('エクスポート中にエラーが発生しました:', error);
-      alert('エクスポートに失敗しました。');
+      toast.error('エクスポートに失敗しました。');
     }
   };
 
@@ -1100,7 +1102,7 @@ const FlashcardsContainer = () => {
 
     // ファイルサイズチェック (5MB制限)
     if (file.size > 5 * 1024 * 1024) {
-      alert('ファイルサイズが大きすぎます（最大5MB）。');
+      toast.error('ファイルサイズが大きすぎます（最大5MB）。');
       event.target.value = ''; // ファイル選択をリセット
       return;
     }
@@ -1177,10 +1179,10 @@ const FlashcardsContainer = () => {
         localStorage.setItem('flashcardGenres', JSON.stringify(updatedGenres));
         localStorage.setItem('flashcardTags', JSON.stringify(updatedTags));
         
-        alert(`${newCards.length}枚のカードをインポートしました。`);
+        toast.success(`${newCards.length}枚のカードをインポートしました。`);
       } catch (error) {
         console.error('インポート中にエラーが発生しました:', error);
-        alert(`インポートに失敗しました: ${error.message}`);
+        toast.error(`インポートに失敗しました: ${error.message}`);
       }
       
       // ファイル選択をリセット
@@ -1188,7 +1190,7 @@ const FlashcardsContainer = () => {
     };
     
     reader.onerror = () => {
-      alert('ファイルの読み込みに失敗しました。');
+      toast.error('ファイルの読み込みに失敗しました。');
       event.target.value = '';
     };
     
@@ -1292,7 +1294,7 @@ const FlashcardsContainer = () => {
   const renderStatsDashboard = () => {
     if (!showStats || !stats) return null;
 
-  return (
+    return (
       <div className="stats-dashboard">
         <h3 className="stats-title">学習統計</h3>
         
@@ -1358,12 +1360,12 @@ const FlashcardsContainer = () => {
                       <td>{genres.find(g => g.id === card.genreId)?.name || '未分類'}</td>
                       <td>{card.incorrectCount}</td>
                       <td>
-              <button
+                        <button
                           className="small-button edit-button"
                           onClick={() => handleEditCard(card.id)}
-              >
+                        >
                           編集
-              </button>
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -1380,27 +1382,27 @@ const FlashcardsContainer = () => {
   const renderDataManagement = () => {
     return (
       <div className="data-management-controls">
-            <button
+        <button
           className={`control-button ${cards.length === 0 ? 'disabled' : ''}`}
           onClick={handleExportCards}
           disabled={cards.length === 0}
-            >
+        >
           エクスポート
-            </button>
+        </button>
         
-                <button
+        <button
           className="control-button"
           onClick={triggerFileInput}
-                >
+        >
           インポート
-                </button>
+        </button>
         
-                <button
+        <button
           className={`control-button ${showStats ? 'active' : ''}`}
           onClick={() => setShowStats(!showStats)}
-                >
+        >
           {showStats ? '統計を隠す' : '統計を表示'}
-                </button>
+        </button>
         
         {/* ファイル入力要素（非表示） */}
         <input
@@ -1410,7 +1412,7 @@ const FlashcardsContainer = () => {
           accept=".json"
           onChange={handleImportCards}
         />
-              </div>
+      </div>
     );
   };
 
@@ -1422,12 +1424,19 @@ const FlashcardsContainer = () => {
     }
   };
 
+  // triggerFileInput関数を追加
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   return (
     <div className="flashcards-container">
       <div className="flashcards-header">
         <h2>用語暗記カード</h2>
         {renderDataManagement()}
-        </div>
+      </div>
 
       {renderStatsDashboard()}
 
