@@ -21,6 +21,7 @@
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.2.0",
     "react-feather": "^2.0.10",
+    "react-hot-toast": "^2.5.2",
     "react-pdf": "^x.x.x",
     "react-scripts": "5.0.1",
     "recharts": "^2.7.2"
