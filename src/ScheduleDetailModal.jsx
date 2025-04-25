@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { X, Calendar, ChevronDown, GripVertical } from 'lucide-react';
+import { X, Calendar, ChevronDown, GripVertical, ArrowLeft, ArrowRight } from 'lucide-react';
 import styles from './ScheduleDetailModal.module.css';
+import DatePickerCalendarModal from './DatePickerCalendarModal';
 
 // 問題アイテムコンポーネント
 const DetailQuestionItem = ({ question, scheduleQuestion }) => {
@@ -74,7 +75,10 @@ const DetailQuestionItem = ({ question, scheduleQuestion }) => {
 };
 
 // メインのScheduleDetailModalコンポーネント
-const ScheduleDetailModal = ({ isOpen, onClose, date, questions, scheduleQuestion }) => {
+const ScheduleDetailModal = ({ isOpen, onClose, date, questions, scheduleQuestion, refreshData }) => {
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [selectedQuestionId, setSelectedQuestionId] = useState(null);
+
   // 科目別に問題をグループ化
   const groupedQuestions = useMemo(() => {
     const groups = {};
@@ -109,63 +113,108 @@ const ScheduleDetailModal = ({ isOpen, onClose, date, questions, scheduleQuestio
     }));
   };
 
-  if (!isOpen) return null;
+  // モーダルが開いていない場合は何も表示しない
+  if (!isOpen || !date) return null;
+
+  // 日付をフォーマット
+  const formattedDate = format(date, 'yyyy年M月d日(E)', { locale: ja });
+
+  // 前日・翌日のリンク用に日付を計算
+  const prevDate = new Date(date);
+  prevDate.setDate(prevDate.getDate() - 1);
+  
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + 1);
+
+  // 日付選択カレンダーを開く
+  const openDatePicker = (questionId) => {
+    setSelectedQuestionId(questionId);
+    setIsDatePickerOpen(true);
+  };
+
+  // 日付選択カレンダーを閉じる
+  const closeDatePicker = () => {
+    setIsDatePickerOpen(false);
+    setSelectedQuestionId(null);
+  };
+
+  // 日付変更の保存処理
+  const handleDateChange = (newDate) => {
+    if (selectedQuestionId && newDate) {
+      scheduleQuestion(selectedQuestionId, newDate);
+      
+      // 変更後にデータを更新
+      setTimeout(() => {
+        refreshData && refreshData();
+      }, 100);
+    }
+    closeDatePicker();
+  };
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        {/* ヘッダー */}
-        <div className={styles.header}>
-          <h3 className={styles.headerTitle}>
-            {format(date, 'yyyy年MM月dd日(EEE)', { locale: ja })} の問題リスト ({questions.length}件)
-          </h3>
-          <button onClick={onClose} className={styles.closeButton}>
-            <X size={24} />
+    <div className={styles.modal} onClick={onClose}>
+      <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+        <div className={styles.modalHeader}>
+          <button className={styles.navButton} onClick={() => handleDateChange(prevDate)}>
+            <ArrowLeft size={16} />
+          </button>
+          
+          <h2 className={styles.modalTitle}>
+            <Calendar size={18} className={styles.calendarIcon} />
+            {formattedDate}の学習問題
+          </h2>
+          
+          <button className={styles.navButton} onClick={() => handleDateChange(nextDate)}>
+            <ArrowRight size={16} />
           </button>
         </div>
-
-        {/* コンテンツ (科目別アコーディオン) */}
-        <div className={styles.content}>
-          {questions.length > 0 ? (
-            <div className={styles.accordionContainer}>
-              {subjectOrder.map((subject) => (
-                <div key={subject} className={styles.subjectGroup}>
-                  <button 
-                    className={styles.subjectHeader} 
-                    onClick={() => toggleSubject(subject)}
-                  >
-                    <span className={styles.subjectName}>
-                      {subject} ({groupedQuestions[subject].length}件)
-                    </span>
-                    <ChevronDown 
-                      size={20} 
-                      className={`${styles.subjectChevron} ${openSubjects[subject] ? styles.subjectChevronOpen : ''}`} 
-                    />
-                  </button>
-                  {openSubjects[subject] && (
-                    <div className={styles.subjectContent}>
-                      {groupedQuestions[subject].map((question) => (
-                        <DetailQuestionItem 
-                          key={question.id} 
-                          question={question} 
-                          scheduleQuestion={scheduleQuestion} 
-                        />
-                      ))}
+        
+        <button className={styles.closeButton} onClick={onClose}>
+          <X size={20} />
+        </button>
+        
+        <div className={styles.modalBody}>
+          {questions.length === 0 ? (
+            <p className={styles.noQuestions}>この日に予定されている問題はありません</p>
+          ) : (
+            <div className={styles.questionList}>
+              {questions.map(question => (
+                <div key={question.id} className={styles.questionItem}>
+                  <div className={styles.questionDetails}>
+                    <div className={styles.subjectInfo}>
+                      <span className={styles.subjectTag}>
+                        {question.subject || question.subjectName || '未分類'}
+                        {question.chapter || question.chapterName ? ` - ${question.chapter || question.chapterName}` : ''}
+                      </span>
                     </div>
-                  )}
+                    <div className={styles.questionNumber}>問題 {question.number || question.id}</div>
+                    {question.comment && (
+                      <div className={styles.questionComment}>{question.comment}</div>
+                    )}
+                  </div>
+                  
+                  <div className={styles.questionActions}>
+                    <button 
+                      className={styles.rescheduleButton}
+                      onClick={() => openDatePicker(question.id)}
+                    >
+                      日程変更
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
-          ) : (
-            <p className={styles.noQuestionsText}>この日に予定されている問題はありません。</p>
           )}
         </div>
-
-        {/* フッター */}
-        <div className={styles.footer}>
-          <button onClick={onClose} className={styles.closeButtonFooter}>閉じる</button>
-        </div>
       </div>
+      
+      {/* 日付選択モーダル */}
+      <DatePickerCalendarModal
+        isOpen={isDatePickerOpen}
+        onClose={closeDatePicker}
+        onDateSelect={handleDateChange}
+        initialDate={date}
+      />
     </div>
   );
 };
