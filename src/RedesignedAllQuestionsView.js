@@ -183,60 +183,30 @@ const RedesignedAllQuestionsView = ({
   // 科目と章に関するオプション
   const [subjectOptions, setSubjectOptions] = useState([]);
   const [chapterOptions, setChapterOptions] = useState([]);
-
-  // 科目・章オプションをロード
-  useEffect(() => {
-    if (!Array.isArray(subjects)) return;
-
-    // 科目オプションを抽出
-    const subjectOpts = subjects.map((subject) => ({
-      id: subject.id,
-      name: subject.name || subject.subjectName || "未分類",
-    }));
-
-    setSubjectOptions(subjectOpts);
-
-    // 選択された科目に基づいて章オプションを更新
-    updateChapterOptions();
-  }, [subjects]);
-
+  
   // 選択された科目に基づいて章オプションを更新
   useEffect(() => {
     updateChapterOptions();
   }, [filters.selectedSubjects]);
-
-  // 章オプションを更新する関数
-  const updateChapterOptions = () => {
-    if (!Array.isArray(subjects)) return;
-
-    const selectedSubjectIds = filters.selectedSubjects;
-
-    // 選択された科目がない場合は章リストをクリア
-    if (selectedSubjectIds.length === 0) {
-      setChapterOptions([]);
-      return;
+  
+  // subjects が更新されたときにフィルタリングを再適用
+  useEffect(() => {
+    // フィルターカウントを再計算
+    updateActiveFiltersCount();
+    
+    // データが変更されていれば科目・章オプションを再ロード
+    if (subjects && subjects.length > 0) {
+      // 科目オプションを抽出
+      const subjectOpts = subjects.map((subject) => ({
+        id: subject.id,
+        name: subject.name || subject.subjectName || "未分類",
+      }));
+      
+      setSubjectOptions(subjectOpts);
+      updateChapterOptions();
+      console.log("RedesignedAllQuestionsView: subjects 更新を検出");
     }
-
-    // 選択された科目に属する全ての章を取得
-    const chapters = [];
-    subjects.forEach((subject) => {
-      if (
-        selectedSubjectIds.includes(subject.id) &&
-        Array.isArray(subject.chapters)
-      ) {
-        subject.chapters.forEach((chapter) => {
-          chapters.push({
-            id: chapter.id,
-            name: chapter.name || chapter.chapterName || "未分類",
-            subjectId: subject.id,
-            subjectName: subject.name || subject.subjectName || "未分類",
-          });
-        });
-      }
-    });
-
-    setChapterOptions(chapters);
-  };
+  }, [subjects]);
 
   // 科目選択を切り替える
   const toggleSubjectSelection = (subjectId) => {
