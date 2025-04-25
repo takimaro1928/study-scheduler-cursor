@@ -118,10 +118,71 @@ const ScheduleView = ({ data, scheduleQuestion, refreshData }) => {
   const [activeDroppableId, setActiveDroppableId] = useState(null);
   const [dateQuestions, setDateQuestions] = useState([]);
 
+  // 日付ごとの問題を整理
+  const questionsByDate = useMemo(() => {
+    const result = {};
+    // データが存在しない場合や、questionsが存在しない場合は空のオブジェクトを返す
+    if (!data || !data.questions) {
+      console.warn('Invalid data: data or data.questions is undefined', data);
+      return result;
+    }
+    
+    console.log("データを受け取りました:", data.questions.length, "個の問題");
+    
+    data.questions.forEach(q => {
+      if (q.nextDate) {
+        try {
+          // 日付の変換処理を安全に行う
+          let nextDate;
+          if (typeof q.nextDate === 'string') {
+            nextDate = new Date(q.nextDate);
+          } else if (q.nextDate instanceof Date) {
+            nextDate = q.nextDate;
+          } else {
+            console.warn('Invalid nextDate format:', q.nextDate, 'for question:', q.id);
+            return;
+          }
+          
+          if (isNaN(nextDate.getTime())) {
+            console.warn('Invalid date after conversion:', q.nextDate, 'for question:', q.id);
+            return;
+          }
+          
+          // 日付文字列を作成
+          const dateStr = format(nextDate, 'yyyy/MM/dd');
+          if (!result[dateStr]) result[dateStr] = [];
+          result[dateStr].push(q);
+          console.log(`問題(${q.id})を日付(${dateStr})にマッピング`, q);
+        } catch (error) {
+          console.error('Date formatting error for question:', q, error);
+        }
+      }
+    });
+    
+    // 各日付ごとの問題数をログ出力
+    Object.keys(result).forEach(dateStr => {
+      console.log(`${dateStr}: ${result[dateStr].length}個の問題`);
+    });
+    
+    return result;
+  }, [data?.questions]);
+
   // コンポーネントマウント時に最新データを読み込む
   useEffect(() => {
-    refreshData && refreshData();
+    console.log("ScheduleView: コンポーネントがマウントされました");
+    if (refreshData) {
+      console.log("データ更新を呼び出します");
+      refreshData();
+    }
   }, [refreshData]);
+
+  // データが変わったときのログ
+  useEffect(() => {
+    if (data?.questions) {
+      console.log("データが更新されました:", data.questions.length, "個の問題");
+      console.log("日付マッピング結果:", Object.keys(questionsByDate).length, "個の日付");
+    }
+  }, [data, questionsByDate]);
 
   // カレンダーの日付を計算
   const calendarDays = useMemo(() => {
@@ -140,29 +201,6 @@ const ScheduleView = ({ data, scheduleQuestion, refreshData }) => {
     }
     return days;
   }, [currentDate]);
-
-  // 日付ごとの問題を整理
-  const questionsByDate = useMemo(() => {
-    const result = {};
-    // データが存在しない場合や、questionsが存在しない場合は空のオブジェクトを返す
-    if (!data || !data.questions) {
-      console.warn('Invalid data: data or data.questions is undefined');
-      return result;
-    }
-    
-    data.questions.forEach(q => {
-      if (q.nextDate) {
-        try {
-          const dateStr = format(new Date(q.nextDate), 'yyyy/MM/dd');
-          if (!result[dateStr]) result[dateStr] = [];
-          result[dateStr].push(q);
-        } catch (error) {
-          console.error('Date formatting error for question:', q, error);
-        }
-      }
-    });
-    return result;
-  }, [data?.questions]);
 
   // 詳細モーダルの開閉処理
   const openDetailModal = useCallback(() => setIsDetailModalOpen(true), []);
