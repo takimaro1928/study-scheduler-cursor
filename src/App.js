@@ -179,7 +179,7 @@ function App() {
           // 本当に新しいオブジェクト参照にして確実に再レンダリングを発生させる
           return JSON.parse(JSON.stringify(refreshedSubjects));
         });
-        
+      
         // 解答履歴も更新
         const refreshedHistory = await indexedDB.getAnswerHistoryWithFallback();
         if (refreshedHistory) {
@@ -431,51 +431,88 @@ const todayQuestionsList = useMemo(() => {
 
 const getQuestionsForDate = (date) => {
   const targetDate = new Date(date);
-  if (isNaN(targetDate.getTime())) return [];
+  if (isNaN(targetDate.getTime())) {
+    console.error("無効な日付が指定されました:", date);
+    return [];
+  }
+  
+  // 日付を00:00:00に設定して比較
   targetDate.setHours(0, 0, 0, 0);
   const targetTime = targetDate.getTime();
   const questions = [];
+  
   console.log(`getQuestionsForDate called for ${formatDate(date)}. Current subjects length:`, subjects?.length);
 
+  // データがない場合は空の配列を返す
   if (!Array.isArray(subjects) || subjects.length === 0) {
-      console.warn(`getQuestionsForDate (${formatDate(date)}): subjects is empty or not an array. Returning empty list.`);
-      return questions;
+    console.warn(`getQuestionsForDate (${formatDate(date)}): subjects is empty or not an array. Returning empty list.`);
+    return questions;
   }
 
+  // 全科目をループ
   subjects.forEach((subject) => {
     if (!subject || !Array.isArray(subject.chapters)) {
-        console.warn(`getQuestionsForDate (${formatDate(date)}): Invalid subject or chapters structure:`, subject);
-        return;
+      console.warn(`getQuestionsForDate (${formatDate(date)}): Invalid subject or chapters structure:`, subject);
+      return;
     }
+    
     // 両方のプロパティ名をサポート
-    const currentSubjectName = subject.subjectName || subject.name || '?';
+    const currentSubjectName = subject.subjectName || subject.name || '未分類';
 
+    // 各章をループ
     subject.chapters.forEach((chapter) => {
       if (!chapter || !Array.isArray(chapter.questions)) {
-          console.warn(`getQuestionsForDate (${formatDate(date)}): Invalid chapter or questions structure:`, chapter);
-          return;
+        console.warn(`getQuestionsForDate (${formatDate(date)}): Invalid chapter or questions structure:`, chapter);
+        return;
       }
+      
       // 両方のプロパティ名をサポート
-      const currentChapterName = chapter.chapterName || chapter.name || '?';
+      const currentChapterName = chapter.chapterName || chapter.name || '未分類';
 
+      // 各問題をループ
       chapter.questions.forEach(question => {
-        if (!question?.nextDate) return;
+        if (!question || !question.nextDate) return;
+        
         try {
-          const nextDate = new Date(question.nextDate);
-          if (isNaN(nextDate.getTime())) return;
-          nextDate.setHours(0, 0, 0, 0);
-          if (nextDate.getTime() === targetTime) {
-            console.log(`[Date] Found match: ${question.id}. Subject Name: ${currentSubjectName}, Chapter Name: ${currentChapterName}`);
-            if (currentSubjectName === '?' || currentChapterName === '?') {
-                console.log("[Date] Problem Details:", JSON.stringify(question));
-                console.log("[Date] Chapter Details (without questions):", JSON.stringify({...chapter, questions: undefined}));
-                console.log("[Date] Subject Details (without chapters):", JSON.stringify({...subject, chapters: undefined}));
+          // 日付を正規化
+          let nextDate;
+          
+          if (typeof question.nextDate === 'string') {
+            if (question.nextDate.includes('T')) {
+              // ISO形式の場合
+              nextDate = new Date(question.nextDate);
+            } else {
+              // 'YYYY-MM-DD'形式の場合
+              const [year, month, day] = question.nextDate.split(/[-/]/);
+              nextDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
             }
-            // 両方のプロパティを設定
+          } else if (question.nextDate instanceof Date) {
+            nextDate = new Date(question.nextDate.getTime());
+          } else {
+            console.warn(`Invalid nextDate format for question ${question.id}:`, question.nextDate);
+            return;
+          }
+          
+          // 日付が無効な場合はスキップ
+          if (isNaN(nextDate.getTime())) {
+            console.warn(`Invalid date after conversion for question ${question.id}:`, question.nextDate);
+            return;
+          }
+          
+          // 時間部分を00:00:00に設定して比較
+          nextDate.setHours(0, 0, 0, 0);
+          
+          // ターゲット日付と一致する場合
+          if (nextDate.getTime() === targetTime) {
+            console.log(`[Date] Found match: ${question.id}. Subject: ${currentSubjectName}, Chapter: ${currentChapterName}, NextDate: ${nextDate.toISOString()}`);
+            
+            // 結果に追加
             questions.push({ 
               ...question, 
               subjectName: currentSubjectName, 
               chapterName: currentChapterName,
+              subject: currentSubjectName,
+              chapter: currentChapterName,
               // 下位互換性のために name も設定
               name: question.name || question.id
             });
@@ -486,7 +523,11 @@ const getQuestionsForDate = (date) => {
       });
     });
   });
-  return questions.sort((a, b) => naturalSortCompare(a.id, b.id));
+  
+  // 結果をソートして返す
+  const result = questions.sort((a, b) => naturalSortCompare(a.id, b.id));
+  console.log(`getQuestionsForDate: ${formatDate(date)}に ${result.length}件の問題が見つかりました`);
+  return result;
 };
 
   // ★ アコーディオン開閉 (変更なし) ★
@@ -762,8 +803,8 @@ const getQuestionsForDate = (date) => {
               // 日付の簡易変換（YYYY-MM-DD形式で保存）
               let finalData = {...questionData};
               
-              if (questionData.nextDate) {
-                try {
+                  if (questionData.nextDate) {
+                    try {
                   // 日付をYYYY-MM-DD形式のプレーンな文字列に変換
                   const dateObj = new Date(questionData.nextDate);
                   if (!isNaN(dateObj.getTime())) {
@@ -771,21 +812,21 @@ const getQuestionsForDate = (date) => {
                     const month = String(dateObj.getMonth() + 1).padStart(2, '0');
                     const day = String(dateObj.getDate()).padStart(2, '0');
                     finalData.nextDate = `${year}-${month}-${day}`;
-                  }
-                } catch (e) {
+                      }
+                    } catch (e) {
                   console.error("日付処理エラー:", e);
-                }
-              }
-              
+                    }
+                  }
+                  
               // 更新
               chapter.questions[i] = finalData;
               found = true;
               console.log(`問題ID:${questionData.id}を更新しました。次回日付:${finalData.nextDate}`);
               break;
-            }
+                    }
           }
           if (found) break;
-        }
+                  }
         if (found) break;
       }
       
@@ -794,22 +835,22 @@ const getQuestionsForDate = (date) => {
         // LocalStorageに保存
         localStorage.setItem('studyData', JSON.stringify(newSubjects));
         console.log("LocalStorageに保存しました");
-        
+      
         // IndexedDBにも保存
-        try {
+      try {
           saveStudyData(newSubjects);
           console.log("IndexedDBへの保存を開始しました");
         } catch (dbError) {
           console.error("IndexedDB保存エラー:", dbError);
         }
-      } catch (e) {
+      } catch (e) { 
         console.error("保存エラー:", e);
       }
       
-      return newSubjects;
-    });
+      return newSubjects; 
+    }); 
     
-    setEditingQuestion(null);
+    setEditingQuestion(null); 
   };
 
   // ★ 一括編集用の保存関数（シンプル版） ★
@@ -875,7 +916,7 @@ const getQuestionsForDate = (date) => {
                   chapter.questions[i][key] = processedItems[key];
                 }
               }
-              updatedCount++;
+              updatedCount++; 
             }
           }
         }
@@ -887,7 +928,7 @@ const getQuestionsForDate = (date) => {
       try {
         localStorage.setItem('studyData', JSON.stringify(newSubjects));
         console.log("LocalStorageに保存しました");
-      } catch (e) {
+      } catch (e) { 
         console.error("保存エラー:", e);
       }
       
