@@ -27,7 +27,7 @@ const DetailQuestionItem = ({ question, scheduleQuestion }) => {
   };
 
   // 表示用の問題識別子を作成
-  const displayText = `${question.subject}${question.chapter ? ` ${question.chapter}` : ''}-${question.number}`;
+  const displayText = `${question.subject || question.subjectName || ''}${question.chapter || question.chapterName ? ` ${question.chapter || question.chapterName}` : ''}-${question.number || ''}`;
 
   return (
     <div className={styles.questionItem}>
