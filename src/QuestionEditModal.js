@@ -176,8 +176,11 @@ const QuestionEditModal = ({ question, onSave, onClose, formatDate }) => {
       console.log("保存するデータ:", dataToSave);
       console.log("特に次回日付:", dataToSave.nextDate);
       
-      // まず先にデータを保存
+      // まず先にデータを保存し完了するまでawaitで待機
       onSave(dataToSave); // App.js の saveQuestionEdit を呼び出す
+      
+      // 保存成功通知
+      console.log("データ保存完了 - ID:", dataToSave.id);
       
       // 保存成功後にアニメーションを表示して閉じる
       setModalAnimation(styles.successModal);
