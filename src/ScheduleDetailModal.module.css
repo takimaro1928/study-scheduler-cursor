@@ -17,228 +17,195 @@
 
 /* モーダル本体 */
 .modal {
-  width: 90%;
-  max-width: 600px;
-  max-height: 85vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1050;
+  backdrop-filter: blur(4px);
+}
+
+.modalContent {
   background-color: white;
   border-radius: 0.5rem;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -5px rgba(0, 0, 0, 0.04);
+  position: relative;
+  padding: 1.5rem;
+  animation: fadeIn 0.3s ease-out;
 }
 
-/* モーダルヘッダー */
-.header {
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modalHeader {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
+  margin-bottom: 1.5rem;
   border-bottom: 1px solid #e5e7eb;
-  background-color: #f3f4f6;
+  padding-bottom: 0.75rem;
 }
 
-.headerTitle {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0;
+.modalTitle {
   display: flex;
   align-items: center;
+  color: #111827;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.calendarIcon {
+  margin-right: 0.5rem;
+  color: #4f46e5;
 }
 
 .closeButton {
-  background: none;
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: transparent;
   border: none;
-  cursor: pointer;
-  color: #6b7280;
+  border-radius: 9999px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.25rem;
-  border-radius: 0.25rem;
-  transition: background-color 0.2s ease;
+  color: #6b7280;
+  width: 2rem;
+  height: 2rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
 .closeButton:hover {
-  background-color: #e5e7eb;
-  color: #1f2937;
+  background-color: #f3f4f6;
+  color: #111827;
 }
 
-/* モーダルコンテンツ */
-.content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1rem;
+.navButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  background-color: #f9fafb;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.noQuestionsText {
+.navButton:hover {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+.modalBody {
+  margin-top: 1rem;
+}
+
+.noQuestions {
   text-align: center;
+  padding: 2rem 0;
   color: #6b7280;
   font-style: italic;
-  padding: 2rem 0;
 }
 
-/* アコーディオンコンテナ */
-.accordionContainer {
+.questionList {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-/* 科目グループ */
-.subjectGroup {
-  border: 1px solid #e5e7eb;
-  border-radius: 0.375rem;
-  overflow: hidden;
-}
-
-.subjectHeader {
-  width: 100%;
-  padding: 0.75rem 1rem;
+.questionItem {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #f9fafb;
-  border: none;
-  text-align: left;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s ease;
-}
-
-.subjectHeader:hover {
-  background-color: #f3f4f6;
-}
-
-.subjectName {
-  font-size: 0.875rem;
-  color: #1f2937;
-}
-
-.subjectChevron {
-  transition: transform 0.2s ease;
-  color: #6b7280;
-}
-
-.subjectChevronOpen {
-  transform: rotate(180deg);
-}
-
-.subjectContent {
   padding: 0.75rem;
-  background-color: white;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-/* 問題アイテム */
-.questionItem {
-  padding: 0.625rem;
   border-radius: 0.375rem;
-  border: 1px solid #e5e7eb;
   background-color: #f9fafb;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  border: 1px solid #e5e7eb;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .questionItem:hover {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transform: translateY(-1px);
+  border-color: #d1d5db;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.questionHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.questionDetails {
+  flex: 1;
 }
 
-.questionTitle {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
+.subjectInfo {
+  margin-bottom: 0.25rem;
 }
 
-.gripIcon {
-  color: #9ca3af;
-  flex-shrink: 0;
-}
-
-.questionText {
-  font-size: 0.875rem;
+.subjectTag {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  color: #1f2937;
+}
+
+.questionNumber {
+  font-weight: 500;
+  color: #4b5563;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.questionComment {
+  margin-top: 0.5rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+.questionActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: 1rem;
 }
 
 .rescheduleButton {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  background-color: #eef2ff;
-  color: #4f46e5;
-  border: none;
+  padding: 0.35rem 0.75rem;
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
   border-radius: 0.25rem;
+  color: #4b5563;
   font-size: 0.75rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .rescheduleButton:hover {
-  background-color: #e0e7ff;
-}
-
-/* 日付変更パネル */
-.reschedulingPanel {
-  margin-top: 0.75rem;
-  padding: 0.75rem;
-  background-color: #f3f4f6;
-  border-radius: 0.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.dateInput {
-  padding: 0.5rem;
-  border-radius: 0.25rem;
-  border: 1px solid #d1d5db;
-  width: 100%;
-  font-size: 0.875rem;
-}
-
-.reschedulingActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
-.cancelButton, .saveButton {
-  padding: 0.375rem 0.75rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.cancelButton {
-  background-color: #f3f4f6;
-  color: #4b5563;
-  border: 1px solid #d1d5db;
-}
-
-.cancelButton:hover {
   background-color: #e5e7eb;
-}
-
-.saveButton {
-  background-color: #4f46e5;
-  color: white;
-  border: none;
-}
-
-.saveButton:hover {
-  background-color: #4338ca;
+  color: #111827;
 }
 
 /* モーダルフッター */
