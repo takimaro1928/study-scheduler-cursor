@@ -123,11 +123,12 @@ const ScheduleView = ({ data, scheduleQuestion, refreshData }) => {
     const result = {};
     // データが存在しない場合や、questionsが存在しない場合は空のオブジェクトを返す
     if (!data || !data.questions) {
-      console.warn('Invalid data: data or data.questions is undefined', data);
+      console.warn('Invalid data: data or data.questions is undefined');
       return result;
     }
     
-    console.log("データを受け取りました:", data.questions.length, "個の問題");
+    // 問題データの数をログ（大量のログを避けるため簡略化）
+    console.log(`ScheduleView: ${data.questions.length}個の問題を処理中`);
     
     data.questions.forEach(q => {
       if (q.nextDate) {
@@ -139,12 +140,12 @@ const ScheduleView = ({ data, scheduleQuestion, refreshData }) => {
           } else if (q.nextDate instanceof Date) {
             nextDate = q.nextDate;
           } else {
-            console.warn('Invalid nextDate format:', q.nextDate, 'for question:', q.id);
+            // 個別ログは出力しない
             return;
           }
           
           if (isNaN(nextDate.getTime())) {
-            console.warn('Invalid date after conversion:', q.nextDate, 'for question:', q.id);
+            // 個別ログは出力しない
             return;
           }
           
@@ -152,37 +153,31 @@ const ScheduleView = ({ data, scheduleQuestion, refreshData }) => {
           const dateStr = format(nextDate, 'yyyy/MM/dd');
           if (!result[dateStr]) result[dateStr] = [];
           result[dateStr].push(q);
-          console.log(`問題(${q.id})を日付(${dateStr})にマッピング`, q);
+          // 個別問題のログは出力しない
         } catch (error) {
-          console.error('Date formatting error for question:', q, error);
+          // エラーのみログ出力
+          console.error('Date formatting error');
         }
       }
     });
     
-    // 各日付ごとの問題数をログ出力
-    Object.keys(result).forEach(dateStr => {
-      console.log(`${dateStr}: ${result[dateStr].length}個の問題`);
-    });
+    // 日付ごとの問題数のサマリーのみ表示
+    const totalDates = Object.keys(result).length;
+    const totalQuestions = Object.values(result).reduce((sum, arr) => sum + arr.length, 0);
+    console.log(`ScheduleView: ${totalDates}個の日付に合計${totalQuestions}個の問題をマッピング完了`);
     
     return result;
   }, [data?.questions]);
 
-  // コンポーネントマウント時に最新データを読み込む
+  // コンポーネントマウント時に最新データを読み込む（一度だけ）
   useEffect(() => {
+    // マウント時のみ実行するよう空の配列を依存関係に設定
     console.log("ScheduleView: コンポーネントがマウントされました");
     if (refreshData) {
-      console.log("データ更新を呼び出します");
       refreshData();
     }
-  }, [refreshData]);
-
-  // データが変わったときのログ
-  useEffect(() => {
-    if (data?.questions) {
-      console.log("データが更新されました:", data.questions.length, "個の問題");
-      console.log("日付マッピング結果:", Object.keys(questionsByDate).length, "個の日付");
-    }
-  }, [data, questionsByDate]);
+    // 依存配列を空にしてマウント時のみ実行するよう変更
+  }, []);
 
   // カレンダーの日付を計算
   const calendarDays = useMemo(() => {
@@ -220,27 +215,25 @@ const ScheduleView = ({ data, scheduleQuestion, refreshData }) => {
     })
   );
 
-  // ドラッグ開始時の処理
+  // 最適化: メモリ使用量を削減するため、関数をmemoize
   const handleDragStart = useCallback((event) => {
     const { active } = event;
     setActiveId(active.id);
-    // データチェック
-    if (!data || !data.questions) {
-      console.warn('Invalid data: data or data.questions is undefined');
-      return;
+    
+    // ドラッグする問題のデータを設定
+    const question = data?.questions?.find(q => q.id === active.id);
+    if (question) {
+      setActiveDragData(question);
     }
-    // ドラッグしている問題のデータを保存
-    const question = data.questions.find(q => q.id === active.id);
-    setActiveDragData(question);
   }, [data?.questions]);
-
-  // ドラッグ中の処理
+  
   const handleDragOver = useCallback((event) => {
     const { over } = event;
-    // ドロップ可能な領域上にあるか
-    setIsOverDroppable(!!over);
-    // アクティブなドロップ対象のID（日付文字列）を保存
-    setActiveDroppableId(over ? over.id : null);
+    
+    // ドロップ可能領域上にいるかどうかを設定
+    const isOver = over && over.id.startsWith('date-');
+    setIsOverDroppable(isOver);
+    setActiveDroppableId(isOver ? over.id : null);
   }, []);
 
   // ドラッグ終了時の処理
@@ -264,12 +257,10 @@ const ScheduleView = ({ data, scheduleQuestion, refreshData }) => {
         // スケジュール変更関数を呼び出し
         scheduleQuestion(questionId, newDate);
         
-        // 変更後にデータをリフレッシュ
-        setTimeout(() => {
-          refreshData && refreshData();
-        }, 100);
-        
-        console.log(`Question ${questionId} scheduled to ${format(newDate, 'yyyy/MM/dd')}`);
+        // メモリリークを防ぐため、タイムアウトを減らしてリフレッシュ処理をシンプルに
+        if (refreshData) {
+          refreshData();
+        }
       } catch (error) {
         console.error('Failed to schedule question:', error);
       }
@@ -301,6 +292,16 @@ const ScheduleView = ({ data, scheduleQuestion, refreshData }) => {
 
   // 曜日の配列
   const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+
+  // 日付をヘッダーにフォーマットする関数
+  const formatDateHeader = useCallback((date) => {
+    try {
+      return format(date, 'M月d日 (E)', { locale: ja });
+    } catch (error) {
+      console.error('日付フォーマットエラー:', error);
+      return '日付エラー';
+    }
+  }, []);
 
   return (
     <div className={styles.container}>
