@@ -815,7 +815,12 @@ const getQuestionsForDate = (date) => {
       return newSubjects; 
     }); 
     
-    setEditingQuestion(null); 
+    setEditingQuestion(null);
+    
+    // 保存後にデータを明示的にリフレッシュ
+    setTimeout(() => {
+      refreshData();
+    }, 100);
   };
 
   // ★ 新しい一括編集関数 (リフレッシュ処理追加) ★
@@ -897,26 +902,31 @@ const getQuestionsForDate = (date) => {
         // alert(`${updatedCount}件の問題が更新されました。`); 
         // アラートが邪魔なのでコンソールログに変更
         console.log(`${updatedCount}件の問題が更新されました。`);
-      } 
+      }
       
-      // 即時保存処理を追加
+      // データを即時保存
       try {
         saveStudyData(newSubjects).catch(error => {
           console.error("IndexedDBへの学習データ保存に失敗:", error);
           setStorageItem('studyData', newSubjects);
         });
-      } catch (e) { 
-        console.error("学習データ保存失敗:", e); 
+      } catch (e) {
+        console.error("学習データ保存失敗:", e);
       }
       
-      return newSubjects; 
-    }); 
+      return newSubjects;
+    });
     
     // 選択をリセット（一括編集後）
     if (!specificQuestionIds) {
       setSelectedQuestions([]);
       setBulkEditMode(false);
     }
+    
+    // 保存後にデータを明示的にリフレッシュ
+    setTimeout(() => {
+      refreshData();
+    }, 100);
   };
 
   // ★ 古い一括編集保存 (修正) ★
