@@ -154,13 +154,38 @@ export const saveData = (storeName, data, key = null) => {
  * @returns {Promise<any>} 保存結果
  */
 export const saveStudyData = (subjects) => {
-  // 保存する前にコピーを作成し、必要に応じてデータを整形
-  const dataToSave = { 
-    subjects: JSON.parse(JSON.stringify(subjects)),
-    timestamp: new Date().toISOString() 
-  };
-  
-  return saveData(STORES.STUDY_DATA, dataToSave, 'main');
+  return new Promise((resolve, reject) => {
+    try {
+      // 保存する前にコピーを作成し、必要に応じてデータを整形
+      const dataToSave = { 
+        subjects: JSON.parse(JSON.stringify(subjects)),
+        timestamp: new Date().toISOString() 
+      };
+      
+      console.log('IndexedDB: 学習データの保存を開始します');
+      
+      // まずLocalStorageにバックアップ
+      try {
+        localStorage.setItem('studyData_backup', JSON.stringify(dataToSave));
+        console.log('IndexedDB: LocalStorageにバックアップを保存しました');
+      } catch (e) {
+        console.warn('IndexedDB: LocalStorageへのバックアップに失敗しました', e);
+      }
+      
+      saveData(STORES.STUDY_DATA, dataToSave, 'main')
+        .then((result) => {
+          console.log('IndexedDB: 学習データの保存に成功しました');
+          resolve(result);
+        })
+        .catch((error) => {
+          console.error('IndexedDB: 学習データの保存に失敗しました', error);
+          reject(error);
+        });
+    } catch (e) {
+      console.error('IndexedDB: 学習データの保存前の処理でエラーが発生しました', e);
+      reject(e);
+    }
+  });
 };
 
 /**
