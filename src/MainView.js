@@ -111,7 +111,15 @@ const MainView = ({
         return (
           <ErrorBoundary>
             <ScheduleView
-              data={{ questions: getAllQuestions ? getAllQuestions() : [] }}
+              data={{ 
+                questions: getAllQuestions ? getAllQuestions().map(q => ({
+                  ...q,
+                  id: q.id,
+                  subject: q.subjectName || (q.subject ? q.subject.name : ''),
+                  chapter: q.chapterName || (q.chapter ? q.chapter.name : ''),
+                  number: q.number || q.id
+                })) : [] 
+              }}
               scheduleQuestion={handleQuestionDateChange}
               subjects={subjects}
               formatDate={formatDate}
