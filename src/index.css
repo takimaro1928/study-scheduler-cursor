@@ -1515,3 +1515,144 @@ span.text-base.font-bold.text-blue-700 {
     gap: 0.5rem;
   }
 }
+
+/* 正解・不正解ボタンのモダンスタイル */
+.answer-button {
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 0.5rem;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* 正解ボタン */
+.answer-button.bg-white.border-green-400 {
+  background: linear-gradient(to bottom, #dcfce7, #bbf7d0);
+  border: 1px solid #4ade80;
+  color: #16a34a;
+}
+
+.answer-button.bg-white.border-green-400:hover {
+  background: linear-gradient(to bottom, #bbf7d0, #86efac);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 不正解ボタン */
+.answer-button.bg-white.border-red-400 {
+  background: linear-gradient(to bottom, #fee2e2, #fecaca);
+  border: 1px solid #f87171;
+  color: #dc2626;
+}
+
+.answer-button.bg-white.border-red-400:hover {
+  background: linear-gradient(to bottom, #fecaca, #fca5a5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 理解度ボタン - 「理解済み」ボタン */
+.correct-button {
+  background: linear-gradient(to bottom, #dcfce7, #bbf7d0);
+  border: 1px solid #4ade80;
+  color: #16a34a;
+}
+
+.correct-button:hover, .correct-button.selected {
+  background: linear-gradient(to bottom, #bbf7d0, #86efac);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 理解度ボタン - 「曖昧」ボタン */
+.incorrect-button {
+  background: linear-gradient(to bottom, #fef3c7, #fde68a);
+  border: 1px solid #fbbf24;
+  color: #b45309;
+}
+
+.incorrect-button:hover, .incorrect-button.selected {
+  background: linear-gradient(to bottom, #fde68a, #fcd34d);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 曖昧理由選択パネル */
+.reason-panel-modern {
+  margin-top: 1rem;
+  background: linear-gradient(to bottom, #fffbeb, #fef3c7);
+  border: 1px solid #fbbf24;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.15);
+}
+
+.reason-panel-title-modern {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #92400e;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgba(251, 191, 36, 0.3);
+  padding-bottom: 0.5rem;
+}
+
+.reason-options-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 0.75rem;
+}
+
+.reason-option-modern {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: white;
+  border: 1px solid #fbbf24;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  text-align: left;
+}
+
+.reason-option-modern:hover {
+  background-color: #fffbeb;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 6px rgba(251, 191, 36, 0.2);
+}
+
+.reason-option-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reason-dot {
+  height: 8px;
+  width: 8px;
+  border-radius: 50%;
+  background-color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.reason-text {
+  font-size: 0.9rem;
+  color: #78350f;
+}
+
+.reason-badge {
+  background: linear-gradient(to bottom, #fef3c7, #fde68a);
+  color: #92400e;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid #fbbf24;
+  white-space: nowrap;
+}
