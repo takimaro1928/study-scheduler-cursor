@@ -441,37 +441,31 @@ const getQuestionsForDate = (date) => {
   const targetTime = targetDate.getTime();
   const questions = [];
   
-  console.log(`getQuestionsForDate called for ${formatDate(date)}. Current subjects length:`, subjects?.length);
-
   // データがない場合は空の配列を返す
   if (!Array.isArray(subjects) || subjects.length === 0) {
-    console.warn(`getQuestionsForDate (${formatDate(date)}): subjects is empty or not an array. Returning empty list.`);
     return questions;
   }
 
   // 全科目をループ
-  subjects.forEach((subject) => {
-    if (!subject || !Array.isArray(subject.chapters)) {
-      console.warn(`getQuestionsForDate (${formatDate(date)}): Invalid subject or chapters structure:`, subject);
-      return;
-    }
+  for (let i = 0; i < subjects.length; i++) {
+    const subject = subjects[i];
+    if (!subject || !Array.isArray(subject.chapters)) continue;
     
     // 両方のプロパティ名をサポート
     const currentSubjectName = subject.subjectName || subject.name || '未分類';
 
     // 各章をループ
-    subject.chapters.forEach((chapter) => {
-      if (!chapter || !Array.isArray(chapter.questions)) {
-        console.warn(`getQuestionsForDate (${formatDate(date)}): Invalid chapter or questions structure:`, chapter);
-        return;
-      }
+    for (let j = 0; j < subject.chapters.length; j++) {
+      const chapter = subject.chapters[j];
+      if (!chapter || !Array.isArray(chapter.questions)) continue;
       
       // 両方のプロパティ名をサポート
       const currentChapterName = chapter.chapterName || chapter.name || '未分類';
 
       // 各問題をループ
-      chapter.questions.forEach(question => {
-        if (!question || !question.nextDate) return;
+      for (let k = 0; k < chapter.questions.length; k++) {
+        const question = chapter.questions[k];
+        if (!question || !question.nextDate) continue;
         
         try {
           // 日付を正規化
@@ -489,14 +483,12 @@ const getQuestionsForDate = (date) => {
           } else if (question.nextDate instanceof Date) {
             nextDate = new Date(question.nextDate.getTime());
           } else {
-            console.warn(`Invalid nextDate format for question ${question.id}:`, question.nextDate);
-            return;
+            continue;
           }
           
           // 日付が無効な場合はスキップ
           if (isNaN(nextDate.getTime())) {
-            console.warn(`Invalid date after conversion for question ${question.id}:`, question.nextDate);
-            return;
+            continue;
           }
           
           // 時間部分を00:00:00に設定して比較
@@ -504,8 +496,6 @@ const getQuestionsForDate = (date) => {
           
           // ターゲット日付と一致する場合
           if (nextDate.getTime() === targetTime) {
-            console.log(`[Date] Found match: ${question.id}. Subject: ${currentSubjectName}, Chapter: ${currentChapterName}, NextDate: ${nextDate.toISOString()}`);
-            
             // 結果に追加
             questions.push({ 
               ...question, 
@@ -518,16 +508,15 @@ const getQuestionsForDate = (date) => {
             });
           }
         } catch(e) {
-          console.error(`Error processing question in getQuestionsForDate (${formatDate(date)}):`, e, question);
+          // エラーログを簡潔に
+          console.error(`Error processing question: ${e.message}`);
         }
-      });
-    });
-  });
+      }
+    }
+  }
   
   // 結果をソートして返す
-  const result = questions.sort((a, b) => naturalSortCompare(a.id, b.id));
-  console.log(`getQuestionsForDate: ${formatDate(date)}に ${result.length}件の問題が見つかりました`);
-  return result;
+  return questions.sort((a, b) => naturalSortCompare(a.id, b.id));
 };
 
   // ★ アコーディオン開閉 (変更なし) ★
