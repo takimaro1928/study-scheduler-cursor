@@ -20,6 +20,8 @@ import {
   PlusCircle,
   Check,
   File as FileIcon,
+  Percent,
+  MessageSquare,
 } from "lucide-react";
 import styles from "./RedesignedAllQuestionsView.module.css"; // CSSモジュール
 import AddQuestionModal from "./AddQuestionModal";
@@ -1076,6 +1078,13 @@ const RedesignedAllQuestionsView = ({
                                   ? styles.selectedQuestion
                                   : ""
                               }`}
+                              onClick={() => {
+                                if (bulkEditMode) {
+                                  toggleQuestionSelection(question.id);
+                                } else {
+                                  setEditingQuestion(question);
+                                }
+                              }}
                             >
                               {bulkEditMode ? (
                                 <div
@@ -1102,13 +1111,6 @@ const RedesignedAllQuestionsView = ({
 
                               <div
                                 className={styles.questionContent}
-                                onClick={() => {
-                                  if (bulkEditMode) {
-                                    toggleQuestionSelection(question.id);
-                                  } else {
-                                    setEditingQuestion(question);
-                                  }
-                                }}
                               >
                                 <div className={styles.statusGrid}>
                                   <div
@@ -1149,36 +1151,45 @@ const RedesignedAllQuestionsView = ({
                                       question.answerCount || 0
                                     }回解答)`}
                                   >
-                                    <div className={styles.rateBarContainer}>
-                                      <div className={styles.rateBar}>
-                                        <div
-                                          className={`${styles.rateBarInner} ${getCorrectRateColorClass(
-                                            question.correctRate || 0,
-                                          )}`}
-                                          style={{
-                                            width: `${question.correctRate || 0}%`,
-                                          }}
-                                        />
-                                      </div>
-                                      <span className={styles.rateText}>
-                                        {question.correctRate || 0}%
-                                      </span>
-                                    </div>
+                                    <Percent size={16} />
+                                    <span
+                                      className={getCorrectRateColorClass(
+                                        question.correctRate,
+                                      )}
+                                    >
+                                      {question.correctRate || 0}%
+                                    </span>
                                   </div>
                                 </div>
 
                                 {question.comment && (
-                                  <div
-                                    className={styles.commentBox}
-                                    title={question.comment}
-                                  >
-                                    <HighlightedText
-                                      text={question.comment}
-                                      searchTerm={searchTerm}
-                                    />
+                                  <div className={styles.commentSection}>
+                                    <MessageSquare size={14} color="#6b7280" />
+                                    <span className={styles.commentText}>
+                                      <HighlightedText
+                                        text={question.comment}
+                                        searchTerm={searchTerm}
+                                      />
+                                    </span>
                                   </div>
                                 )}
                               </div>
+
+                              {!bulkEditMode && (
+                                <div className={styles.editButtonWrapper}>
+                                  <button
+                                    className={styles.editButton}
+                                    onClick={(e) => {
+                                      e.stopPropagation(); // 親要素のクリックイベントを防止
+                                      setEditingQuestion(question);
+                                    }}
+                                    title="この問題を編集"
+                                  >
+                                    <Edit size={16} />
+                                    <span>編集</span>
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
