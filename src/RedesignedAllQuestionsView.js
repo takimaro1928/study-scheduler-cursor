@@ -137,23 +137,28 @@ const RedesignedAllQuestionsView = ({
   toggleSubject,
   toggleChapter,
   setEditingQuestion,
-  setBulkEditMode,
   bulkEditMode,
+  setBulkEditMode,
   selectedQuestions = [],
-  setSelectedQuestions,
-  saveBulkEdit,
-  selectedDate,
-  setSelectedDate,
-  formatDate,
   toggleQuestionSelection,
-  onToggleBulkEdit,
-  onSaveBulkEditItems,
-  onAddQuestion,
+  saveBulkEdit,
+  saveBulkEditItems,
+  saveComment,
+  handleQuestionDateChange,
+  filterText,
+  setFilterText,
+  showAnswered,
+  setShowAnswered,
+  formatDate,
+  addQuestion,
+  answerHistory,
+  refreshData
 }) => {
   // 検索とフィルター用state
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
+  const [selectedDate, setSelectedDate] = useState(null); // 一括編集用の選択日付
 
   // 問題追加モーダル制御
   const [showAddModal, setShowAddModal] = useState(false);
@@ -492,7 +497,7 @@ const RedesignedAllQuestionsView = ({
         return { ...subject, chapters: filteredChapters };
       })
       .filter((subject) => subject.chapters.length > 0);
-  }, [subjects, searchTerm, filters]);
+  }, [subjects, searchTerm, filters, showAnswered]);
 
   // すべてのフィルターをリセット
   const resetAllFilters = () => {
@@ -532,14 +537,38 @@ const RedesignedAllQuestionsView = ({
 
     if (allSelected) {
       // 全て選択されていれば、全て解除
-      setSelectedQuestions((prev) =>
+      toggleQuestionSelection((prev) =>
         prev.filter((id) => !allQuestionIdsInSubject.includes(id)),
       );
     } else {
       // そうでなければ、全て選択
-      setSelectedQuestions((prev) => [
+      toggleQuestionSelection((prev) => [
         ...new Set([...prev, ...allQuestionIdsInSubject]),
       ]);
+    }
+  };
+
+  // 一括編集用の関数
+  const handleBulkEditDateSubmit = () => {
+    if (!selectedDate || selectedQuestions.length === 0) {
+      alert('日付と少なくとも1つの問題を選択してください');
+      return;
+    }
+    
+    try {
+      // saveBulkEditItemsを呼び出して日付を一括更新
+      saveBulkEditItems({ nextDate: selectedDate }, selectedQuestions);
+      
+      // 更新完了の通知
+      alert(`${selectedQuestions.length}件の問題の次回日付を「${selectedDate}」に設定しました`);
+      
+      // 必要に応じてデータをリフレッシュ
+      if (refreshData) {
+        setTimeout(refreshData, 100);
+      }
+    } catch (e) {
+      console.error('一括編集処理中にエラーが発生しました:', e);
+      alert('一括編集処理中にエラーが発生しました');
     }
   };
 
@@ -590,11 +619,7 @@ const RedesignedAllQuestionsView = ({
           </button>
 
           <button
-            onClick={() =>
-              onToggleBulkEdit
-                ? onToggleBulkEdit()
-                : setBulkEditMode(!bulkEditMode)
-            }
+            onClick={() => setBulkEditMode(!bulkEditMode)}
             className={`${styles.controlButton} ${
               bulkEditMode
                 ? styles.bulkEditButtonActive
@@ -612,9 +637,7 @@ const RedesignedAllQuestionsView = ({
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
           onSave={(newQuestion) => {
-            if (onAddQuestion) {
-              onAddQuestion(newQuestion);
-            }
+            addQuestion(newQuestion);
             setShowAddModal(false);
           }}
           subjects={subjects}
@@ -852,30 +875,15 @@ const RedesignedAllQuestionsView = ({
           <div className={styles.bulkEditControls}>
             <input
               type="date"
-              value={
-                selectedDate instanceof Date
-                  ? selectedDate.toISOString().split("T")[0]
-                  : selectedDate
-                    ? new Date(selectedDate).toISOString().split("T")[0]
-                    : ""
-              }
+              value={selectedDate ? selectedDate : ''}
               onChange={(e) => {
                 try {
                   // 日付文字列をそのまま保持
                   const dateStr = e.target.value;
                   console.log("選択された日付文字列:", dateStr);
-
+                  
                   if (dateStr) {
-                    // 表示用にDateオブジェクトも作成
-                    const [year, month, day] = dateStr.split("-").map(Number);
-                    const dateObj = new Date(year, month - 1, day);
-                    console.log("変換後の日付オブジェクト:", dateObj);
-
-                    if (!isNaN(dateObj.getTime())) {
-                      setSelectedDate(dateStr);
-                    } else {
-                      console.error("無効な日付形式:", dateStr);
-                    }
+                    setSelectedDate(dateStr);
                   } else {
                     setSelectedDate(null);
                   }
@@ -887,16 +895,7 @@ const RedesignedAllQuestionsView = ({
               className={styles.bulkEditDateInput}
             />
             <button
-              onClick={() => {
-                if (selectedDate) {
-                  console.log("一括編集の日付:", selectedDate);
-                  // saveBulkEdit 関数を呼び出して一括編集を実行
-                  // この関数は App.js から渡されたもので、選択した日付を nextDate として設定する
-                  saveBulkEdit(selectedDate);
-                } else {
-                  alert("日付を選択してください");
-                }
-              }}
+              onClick={handleBulkEditDateSubmit}
               disabled={!selectedDate}
               className={styles.bulkEditButton}
             >
