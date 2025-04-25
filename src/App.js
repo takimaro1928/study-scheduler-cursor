@@ -164,33 +164,38 @@ function App() {
     }
   }, []);
   
-  // ★ データリフレッシュ用のユーティリティ関数 ★
-  const refreshData = useCallback(async () => {
-    console.log("データリフレッシュを実行します");
-    
+  // データ再読み込み関数の強化
+  const refreshData = async () => {
+    console.log("データを強制的に再読み込みしています...");
     try {
-      // ストレージが使用不可の場合はスキップ
-      if (hasStorageError || !isStorageAvailable()) {
-        return;
-      }
+      // IndexedDBからデータを直接取得する
+      const refreshedSubjects = await indexedDB.getStudyDataWithFallback();
       
-      // 学習データのリロード
-      const refreshedStudyData = await getStudyDataWithFallback();
-      if (refreshedStudyData && Array.isArray(refreshedStudyData)) {
-        setSubjects(refreshedStudyData);
-        console.log("学習データをリフレッシュしました");
-      }
-      
-      // 解答履歴のリロード
-      const refreshedHistoryData = await getAnswerHistoryWithFallback();
-      if (refreshedHistoryData && Array.isArray(refreshedHistoryData)) {
-        setAnswerHistory(refreshedHistoryData);
-        console.log("解答履歴をリフレッシュしました");
+      if (refreshedSubjects && Array.isArray(refreshedSubjects)) {
+        console.log("データ再読み込み成功:", refreshedSubjects.length, "個の科目");
+        
+        // 状態を強制的に更新してUIを再レンダリング
+        setSubjects(prevState => {
+          // 本当に新しいオブジェクト参照にして確実に再レンダリングを発生させる
+          return JSON.parse(JSON.stringify(refreshedSubjects));
+        });
+        
+        // 解答履歴も更新
+        const refreshedHistory = await indexedDB.getAnswerHistoryWithFallback();
+        if (refreshedHistory) {
+          setAnswerHistory(refreshedHistory);
+        }
+        
+        return true;
+      } else {
+        console.error("データ再読み込み失敗: データ形式が不正です");
+        return false;
       }
     } catch (error) {
-      console.error("データリフレッシュ中にエラーが発生しました:", error);
+      console.error("データ再読み込み中にエラーが発生しました:", error);
+      return false;
     }
-  }, [hasStorageError]);
+  };
   
   // タブ切り替え時にデータをリフレッシュ
   useEffect(() => {
@@ -802,12 +807,27 @@ const getQuestionsForDate = (date) => {
       // 変更を保存した旨をコンソールに表示
       console.log("問題編集を保存しました");
       
-      // 即時保存処理を追加
+      // 即時保存処理を強化
       try {
-        saveStudyData(newSubjects).catch(error => {
-          console.error("IndexedDBへの学習データ保存に失敗:", error);
-          setStorageItem('studyData', newSubjects);
-        });
+        // IndexedDBに優先的に保存
+        console.log("IndexedDBに保存を開始...");
+        saveStudyData(newSubjects)
+          .then(() => {
+            console.log("IndexedDBへの保存が完了しました");
+            // 保存完了後に明示的に再読み込み
+            setTimeout(() => {
+              refreshData();
+            }, 50);
+          })
+          .catch(error => {
+            console.error("IndexedDBへの学習データ保存に失敗:", error);
+            // フォールバックとしてLocalStorageに保存
+            setStorageItem('studyData', newSubjects);
+            // LocalStorage保存後も再読み込み
+            setTimeout(() => {
+              refreshData();
+            }, 50);
+          });
       } catch (e) { 
         console.error("学習データ保存失敗:", e); 
       }
@@ -816,11 +836,6 @@ const getQuestionsForDate = (date) => {
     }); 
     
     setEditingQuestion(null);
-    
-    // 保存後にデータを明示的にリフレッシュ
-    setTimeout(() => {
-      refreshData();
-    }, 100);
   };
 
   // ★ 新しい一括編集関数 (リフレッシュ処理追加) ★
