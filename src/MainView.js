@@ -14,6 +14,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ReminderNotification from './ReminderNotification';
 import { NotificationProvider } from './contexts/NotificationContext';
 import TopNavigation from './components/TopNavigation';
+import { format } from 'date-fns';
+import { firestore } from './firebase';
 
 // ★ メインビュー切り替え ★
 const MainView = ({ 
@@ -55,7 +57,8 @@ const MainView = ({
   getQuestionsForDate,
   editingQuestion,
   saveQuestionEdit,
-  refreshData
+  refreshData,
+  setForceUpdate
 }) => {
   
   // 現在の曜日を取得する関数
@@ -63,6 +66,80 @@ const MainView = ({
     const days = ['日', '月', '火', '水', '木', '金', '土'];
     const today = new Date();
     return days[today.getDay()];
+  };
+
+  // 問題の日付を変更する関数
+  const handleQuestionDateChange = (questionId, newDate) => {
+    // 日付を安全に処理
+    let formattedDate;
+    
+    try {
+      // newDateをDateオブジェクトとして扱い、フォーマット
+      const dateObj = newDate instanceof Date ? newDate : new Date(newDate);
+      
+      if (isNaN(dateObj.getTime())) {
+        throw new Error('無効な日付');
+      }
+      
+      // フォーマット処理
+      formattedDate = format(dateObj, 'yyyy-MM-dd');
+    } catch (error) {
+      console.error('日付の更新に失敗しました:', error.message);
+      return;
+    }
+    
+    // 現在の状態から問題を探す
+    let updatedQuestion = null;
+    
+    const updateSubjects = subjects.map(subject => {
+      // 科目をコピー
+      const updatedSubject = { ...subject };
+      
+      // 章をコピー＆更新
+      updatedSubject.chapters = subject.chapters.map(chapter => {
+        // 章をコピー
+        const updatedChapter = { ...chapter };
+        
+        // 問題を探して更新
+        let found = false;
+        updatedChapter.questions = chapter.questions.map(question => {
+          if (question.id === questionId) {
+            found = true;
+            updatedQuestion = {
+              ...question,
+              nextDate: formattedDate
+            };
+            return updatedQuestion;
+          }
+          return question;
+        });
+        
+        return updatedChapter;
+      });
+      
+      return updatedSubject;
+    });
+    
+    if (updatedQuestion) {
+      // 状態を更新
+      setSubjects(updateSubjects);
+      
+      // 変更をFirestoreに保存
+      firestore
+        .collection('users')
+        .doc(uid)
+        .set({
+          subjects: updateSubjects
+        }, { merge: true })
+        .then(() => {
+          console.log('問題の次回日付を更新しました');
+        })
+        .catch(error => {
+          console.error('問題の次回日付の更新に失敗:', error);
+        });
+    } else {
+      console.warn('指定されたIDの問題が見つかりません:', questionId);
+    }
   };
 
   // 画面切り替え
@@ -114,19 +191,18 @@ const MainView = ({
         return (
           <ErrorBoundary>
             <ScheduleView
-              data={{ 
-                questions: getAllQuestions ? getAllQuestions(subjects).map(q => ({
-                  ...q,
-                  id: q.id,
-                  subject: q.subjectName || (q.subject ? q.subject.name : '') || q.subject || '未分類',
-                  chapter: q.chapterName || (q.chapter ? q.chapter.name : '') || q.chapter || '未分類',
-                  number: q.number || q.id
-                })) : [] 
+              data={{
+                questions: getAllQuestions()
               }}
               scheduleQuestion={handleQuestionDateChange}
-              subjects={subjects}
-              formatDate={formatDate}
-              refreshData={refreshData}
+              refreshData={() => {
+                // デバッグログを削減
+                console.log("スケジュールビューのデータを更新中");
+                
+                // データをリフレッシュする必要がある場合はここに処理を追加
+                // 必要最小限のみ更新
+                setForceUpdate(prev => prev + 1);
+              }}
             />
           </ErrorBoundary>
         );
