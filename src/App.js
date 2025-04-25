@@ -721,115 +721,91 @@ const getQuestionsForDate = (date) => {
     });
   };
 
-  // ★ 個別編集保存 (リフレッシュ処理追加) ★
+  // 日付変換をシンプルにする関数
+  const simplifyDateFormat = (dateString) => {
+    if (!dateString) return null;
+    try {
+      const d = new Date(dateString);
+      if (isNaN(d.getTime())) return null;
+      
+      // YYYY-MM-DD形式の文字列を返す
+      return d.toISOString().split('T')[0];
+    } catch (e) {
+      console.error("日付変換エラー:", e, dateString);
+      return null;
+    }
+  };
+
+  // 更新された保存関数
   const saveQuestionEdit = (questionData) => { 
-    console.log("編集保存 (App.js):", questionData); 
-    console.log("日付変更デバッグ - 受け取ったnextDate:", questionData.nextDate);
+    console.log("編集保存実行 (App.js)"); 
+    
+    // 日付処理を簡素化
+    const simplifiedNextDate = simplifyDateFormat(questionData.nextDate);
+    console.log("簡素化した次回日付:", simplifiedNextDate);
     
     setSubjects(prevSubjects => { 
       if (!Array.isArray(prevSubjects)) return []; 
-      const newSubjects = prevSubjects.map(subject => { 
-        if (!subject?.chapters) return subject; 
-        return { 
-          ...subject, 
-          id: subject.id, 
-          name: subject.name, 
-          chapters: subject.chapters.map(chapter => { 
-            if (!chapter?.questions) return chapter; 
-            return { 
-              ...chapter, 
-              id: chapter.id, 
-              name: chapter.name, 
-              questions: chapter.questions.map(q => { 
-                if (q?.id === questionData.id) { 
-                  // 元の質問を保持して問題を特定しやすくする
-                  console.log("更新前の問題:", q);
-                  
-                  const updatedQuestion = { 
-                    ...q, 
-                    ...questionData
-                  }; 
-
-                  // nextDateの処理を修正 - 文字列で保存
-                  if (questionData.nextDate) {
-                    try {
-                      const nextDateObj = new Date(questionData.nextDate);
-                      if (!isNaN(nextDateObj.getTime())) {
-                        nextDateObj.setHours(0, 0, 0, 0);
-                        updatedQuestion.nextDate = nextDateObj.toISOString();
-                        console.log("nextDate処理成功:", updatedQuestion.nextDate);
-                      } else {
-                        console.error("nextDate変換失敗:", questionData.nextDate);
-                        updatedQuestion.nextDate = q.nextDate; // 元の値を保持
-                      }
-                    } catch (e) {
-                      console.error("nextDate処理エラー:", e);
-                      updatedQuestion.nextDate = q.nextDate; // 元の値を保持
-                    }
-                  }
-                  
-                  // lastAnsweredの処理
-                  if (questionData.lastAnswered) {
-                    try {
-                      const lastAnsweredObj = new Date(questionData.lastAnswered);
-                      if (!isNaN(lastAnsweredObj.getTime())) {
-                        updatedQuestion.lastAnswered = lastAnsweredObj;
-                      } else {
-                        console.error("lastAnswered変換失敗:", questionData.lastAnswered);
-                        updatedQuestion.lastAnswered = null;
-                      }
-                    } catch (e) {
-                      console.error("lastAnswered処理エラー:", e);
-                      updatedQuestion.lastAnswered = null;
-                    }
-                  } else {
-                    updatedQuestion.lastAnswered = null;
-                  }
-                  
-                  // 数値フィールドの検証
-                  if (typeof updatedQuestion.answerCount !== 'number' || isNaN(updatedQuestion.answerCount) || updatedQuestion.answerCount < 0) { 
-                    updatedQuestion.answerCount = 0; 
-                  } 
-                  if (typeof updatedQuestion.correctRate !== 'number' || isNaN(updatedQuestion.correctRate) || updatedQuestion.correctRate < 0 || updatedQuestion.correctRate > 100) { 
-                    updatedQuestion.correctRate = 0;
-                  } 
-                  
-                  console.log("最終更新データ:", updatedQuestion); 
-                  return updatedQuestion; 
-                } 
-                return q; 
-              }) 
-            }; 
-          }) 
-        }; 
-      }); 
       
-      // 変更を保存した旨をコンソールに表示
-      console.log("問題編集を保存しました");
+      const newSubjects = JSON.parse(JSON.stringify(prevSubjects)); // ディープコピー
       
-      // 即時保存処理を強化
+      // 問題を探して更新
+      let updated = false;
+      
+      for (const subject of newSubjects) {
+        if (!subject?.chapters) continue;
+        
+        for (const chapter of subject.chapters) {
+          if (!chapter?.questions) continue;
+          
+          for (let i = 0; i < chapter.questions.length; i++) {
+            const q = chapter.questions[i];
+            if (q?.id === questionData.id) {
+              // 問題を見つけたら更新
+              const updatedQuestion = { 
+                ...q,
+                ...questionData,
+                // 日付は文字列形式で保存
+                nextDate: simplifiedNextDate,
+                lastAnswered: simplifyDateFormat(questionData.lastAnswered),
+                answerCount: parseInt(questionData.answerCount, 10) || 0,
+                correctRate: parseInt(questionData.correctRate, 10) || 0,
+              };
+              
+              // 直接配列の要素を置き換え
+              chapter.questions[i] = updatedQuestion;
+              updated = true;
+              console.log("問題を更新しました:", updatedQuestion.id, "次回日付:", updatedQuestion.nextDate);
+              break;
+            }
+          }
+          if (updated) break;
+        }
+        if (updated) break;
+      }
+      
+      if (!updated) {
+        console.error("更新する問題が見つかりませんでした:", questionData.id);
+        return prevSubjects;
+      }
+      
+      // 即時保存処理
       try {
-        // IndexedDBに優先的に保存
-        console.log("IndexedDBに保存を開始...");
+        console.log("新しいデータを保存します");
+        localStorage.setItem('studyData', JSON.stringify(newSubjects));
+        // IndexedDBにも保存
         saveStudyData(newSubjects)
           .then(() => {
-            console.log("IndexedDBへの保存が完了しました");
-            // 保存完了後に明示的に再読み込み
-            setTimeout(() => {
-              refreshData();
-            }, 50);
+            console.log("データベースに保存完了");
+            // 強制的にリフレッシュを実行
+            window.location.reload(); // 最終手段としてページをリロード
           })
-          .catch(error => {
-            console.error("IndexedDBへの学習データ保存に失敗:", error);
-            // フォールバックとしてLocalStorageに保存
-            setStorageItem('studyData', newSubjects);
-            // LocalStorage保存後も再読み込み
-            setTimeout(() => {
-              refreshData();
-            }, 50);
+          .catch(e => {
+            console.error("保存エラー:", e);
+            alert("データ保存中にエラーが発生しました");
           });
       } catch (e) { 
-        console.error("学習データ保存失敗:", e); 
+        console.error("データ保存エラー:", e); 
       }
       
       return newSubjects; 
