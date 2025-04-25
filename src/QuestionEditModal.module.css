@@ -83,7 +83,9 @@
 
 /* フォームグループ（グリッドアイテム） */
 .formGroup {
-  /* 特に指定なし */
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ラベル共通スタイル */
