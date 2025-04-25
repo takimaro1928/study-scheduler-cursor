@@ -115,11 +115,11 @@ const MainView = ({
           <ErrorBoundary>
             <ScheduleView
               data={{ 
-                questions: getAllQuestions ? getAllQuestions().map(q => ({
+                questions: getAllQuestions ? getAllQuestions(subjects).map(q => ({
                   ...q,
                   id: q.id,
-                  subject: q.subjectName || (q.subject ? q.subject.name : ''),
-                  chapter: q.chapterName || (q.chapter ? q.chapter.name : ''),
+                  subject: q.subjectName || (q.subject ? q.subject.name : '') || q.subject || '未分類',
+                  chapter: q.chapterName || (q.chapter ? q.chapter.name : '') || q.chapter || '未分類',
                   number: q.number || q.id
                 })) : [] 
               }}
