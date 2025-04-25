@@ -10,7 +10,6 @@ import AmbiguousTrendsPage from './AmbiguousTrendsPage';
 import SMEExamPage from './SMEExamPage';
 import QuestionEditModal from './QuestionEditModal';
 import ErrorBoundary from './components/ErrorBoundary';
-import ReminderNotification from './ReminderNotification';
 import { NotificationProvider } from './contexts/NotificationContext';
 import TopNavigation from './components/TopNavigation';
 
@@ -200,9 +199,6 @@ const MainView = ({
           formatDate={formatDate}
         />
       )}
-      
-      {/* リマインダー通知 */}
-      <ReminderNotification />
     </NotificationProvider>
   );
 };
