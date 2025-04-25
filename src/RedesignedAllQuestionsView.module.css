@@ -909,3 +909,108 @@
 .filterSelect, .rangeInput, .dateInput {
   font-size: 16px; /* モバイルでのズーム防止 */
 }
+
+/* 科目・章の表示スタイル改善 */
+.subjectItem {
+  margin-bottom: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+}
+
+.subjectHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.subjectHeader:hover {
+  background-color: #f3f4f6;
+}
+
+.subjectHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.subjectColorTag {
+  width: 0.75rem;
+  height: 1.5rem;
+  border-radius: 0.125rem;
+  flex-shrink: 0;
+}
+
+.subjectName {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  color: #111827;
+}
+
+.subjectMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.5rem;
+}
+
+.questionCount {
+  font-size: 0.75rem;
+  color: #6b7280;
+  background-color: #f3f4f6;
+  padding: 0.2rem 0.5rem;
+  border-radius: 1rem;
+  font-weight: 500;
+}
+
+.subjectHeaderRight {
+  display: flex;
+  align-items: center;
+  color: #6b7280;
+}
+
+.chapterItem {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.chapterItem:last-child {
+  border-bottom: none;
+}
+
+.chapterHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  padding-left: 2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: #f9fafb;
+}
+
+.chapterHeader:hover {
+  background-color: #f3f4f6;
+}
+
+.chapterHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.chapterName {
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0;
+  color: #374151;
+}
