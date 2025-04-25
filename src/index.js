@@ -7,9 +7,8 @@ import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+  // StrictModeを一時的に無効化してパフォーマンス問題を修正
+  <App />
 );
 
 // サービスワーカーを登録して、オフライン動作を有効にする
