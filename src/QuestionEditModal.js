@@ -55,6 +55,12 @@ const QuestionEditModal = ({ question, onSave, onClose, formatDate }) => {
       : ''
   });
   const [isAmbiguousReasonOpen, setIsAmbiguousReasonOpen] = useState(false);
+  const [modalAnimation, setModalAnimation] = useState(''); // アニメーション状態
+
+  // エントランスアニメーション
+  useEffect(() => {
+    setModalAnimation(styles.showModal);
+  }, []);
 
   // 曖昧な理由リストの表示/非表示を制御
   const ambiguousReasonRef = useRef(null);
@@ -117,6 +123,14 @@ const QuestionEditModal = ({ question, onSave, onClose, formatDate }) => {
     setIsAmbiguousReasonOpen(false); // 理由を選んだらリストを閉じる
   };
 
+  // モーダルを閉じる前に終了アニメーション
+  const handleCloseWithAnimation = () => {
+    setModalAnimation(styles.hideModal);
+    setTimeout(() => {
+      onClose();
+    }, 300); // アニメーション時間に合わせる
+  };
+
   // 保存処理
   const handleSave = () => {
     // App.js に渡す前にデータを最終調整
@@ -161,7 +175,12 @@ const QuestionEditModal = ({ question, onSave, onClose, formatDate }) => {
       
       console.log("保存するデータ:", dataToSave);
       console.log("特に次回日付:", dataToSave.nextDate);
-      onSave(dataToSave); // App.js の saveQuestionEdit を呼び出す
+      
+      // 保存してアニメーション付きで閉じる
+      setModalAnimation(styles.successModal);
+      setTimeout(() => {
+        onSave(dataToSave); // App.js の saveQuestionEdit を呼び出す
+      }, 300);
     } catch (e) {
       console.error("保存処理中にエラーが発生しました:", e);
       alert(`保存中にエラーが発生しました: ${e.message}`);
@@ -169,12 +188,12 @@ const QuestionEditModal = ({ question, onSave, onClose, formatDate }) => {
   };
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+    <div className={styles.overlay} onClick={handleCloseWithAnimation}>
+      <div className={`${styles.modal} ${modalAnimation}`} onClick={(e) => e.stopPropagation()}>
         {/* ヘッダー */}
         <div className={styles.header}>
           <h3 className={styles.headerTitle}>問題編集 : {editData.id}</h3>
-          <button onClick={onClose} className={styles.closeButton}> <X size={20} /> </button>
+          <button onClick={handleCloseWithAnimation} className={styles.closeButton}> <X size={20} /> </button>
         </div>
 
         {/* コンテンツ */}
@@ -353,7 +372,7 @@ const QuestionEditModal = ({ question, onSave, onClose, formatDate }) => {
         
         {/* フッター */}
         <div className={styles.footer}>
-          <button onClick={onClose} className={`${styles.footerButton} ${styles.cancelButton}`}> <ArrowLeft size={16} />キャンセル </button>
+          <button onClick={handleCloseWithAnimation} className={`${styles.footerButton} ${styles.cancelButton}`}> <ArrowLeft size={16} />キャンセル </button>
           <button onClick={handleSave} className={`${styles.footerButton} ${styles.saveButton}`}> <Save size={16} />保存 </button>
         </div>
       </div>
