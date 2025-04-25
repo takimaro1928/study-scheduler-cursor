@@ -116,14 +116,14 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate, refreshData }) =>
                       <div className="section-title"><span className="section-dot"></span>解答結果</div>
                       <div className="answer-buttons-container">
                         <button
-                          className="answer-button bg-white border-4 border-green-400 text-green-700 hover:bg-green-50"
+                          className="answer-button bg-white border-green-400"
                           onClick={() => handleAnswerClick(question.id, true)}
                           disabled={questionState.showComprehension || isAmbiguousPanelOpen || false}
                         >
                           正解
                         </button>
                         <button
-                          className="answer-button bg-white border-4 border-red-400 text-red-700 hover:bg-red-50"
+                          className="answer-button bg-white border-red-400"
                           onClick={() => handleAnswerClick(question.id, false)}
                           disabled={questionState.showComprehension || isAmbiguousPanelOpen || false}
                         >
