@@ -116,14 +116,14 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate, refreshData }) =>
                       <div className="section-title"><span className="section-dot"></span>解答結果</div>
                       <div className="answer-buttons-container">
                         <button
-                          className="answer-button bg-white border-green-400"
+                          className="answer-button bg-white border-green-400 min-w-[160px]"
                           onClick={() => handleAnswerClick(question.id, true)}
                           disabled={questionState.showComprehension || isAmbiguousPanelOpen || false}
                         >
                           正解
                         </button>
                         <button
-                          className="answer-button bg-white border-red-400"
+                          className="answer-button bg-white border-red-400 min-w-[160px]"
                           onClick={() => handleAnswerClick(question.id, false)}
                           disabled={questionState.showComprehension || isAmbiguousPanelOpen || false}
                         >
@@ -135,20 +135,29 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate, refreshData }) =>
 
                   {/* --- 理解度ボタンエリア (モダンデザイン) --- */}
                   {questionState.showComprehension && (
-                    <div>
-                      <div className="section-title"><span className="section-dot"></span>理解度を選択</div>
-                      <div className="understanding-buttons-container mt-3">
+                    <div className="mt-4">
+                      <div className="understanding-buttons-container">
                         <button
-                          className={`answer-button correct-button ${questionState.showComprehension === true ? 'selected' : ''}`}
+                          className={`understanding-button correct-button px-6 py-2 rounded-lg min-w-[160px] font-medium flex items-center justify-center gap-2 ${
+                            questionState.showComprehension === true ? 'selected' : ''
+                          }`}
                           onClick={() => handleUnderstandClick(question.id)}
+                          disabled={isAmbiguousPanelOpen || false}
                         >
-                          理解済み {questionState.showComprehension === true && <ChevronUp className="ml-auto" size={16} />}
+                          <CheckCircle size={16} />
+                          理解済み
+                          <ChevronUp size={16} />
                         </button>
                         <button
-                          className={`answer-button incorrect-button ${questionState.showComprehension === false ? 'selected' : ''}`}
+                          className={`understanding-button incorrect-button px-6 py-2 rounded-lg min-w-[160px] font-medium flex items-center justify-center gap-2 ${
+                            questionState.showComprehension === false ? 'selected' : ''
+                          }`}
                           onClick={() => handleAmbiguousClick(question.id)}
+                          disabled={isAmbiguousPanelOpen || false}
                         >
-                          曖昧 {isAmbiguousPanelOpen ? <ChevronUp className="ml-auto" size={16} /> : <ChevronDown className="ml-auto" size={16} />}
+                          <AlertTriangle size={16} />
+                          曖昧
+                          <ChevronDown size={16} />
                         </button>
                       </div>
                     </div>
