@@ -738,20 +738,19 @@ const getQuestionsForDate = (date) => {
 
   // 更新された保存関数
   const saveQuestionEdit = (questionData) => { 
-    console.log("編集保存実行 (App.js)"); 
+    console.log("単純化した編集保存処理を実行します"); 
     
-    // 日付処理を簡素化
-    const simplifiedNextDate = simplifyDateFormat(questionData.nextDate);
-    console.log("簡素化した次回日付:", simplifiedNextDate);
+    // バックアップとして単純な文字列形式で直接保存（オリジナルのデータ）
+    localStorage.setItem('debug_originalData', JSON.stringify(questionData));
     
     setSubjects(prevSubjects => { 
       if (!Array.isArray(prevSubjects)) return []; 
       
-      const newSubjects = JSON.parse(JSON.stringify(prevSubjects)); // ディープコピー
+      // ディープコピーして新しい参照を作成
+      const newSubjects = JSON.parse(JSON.stringify(prevSubjects));
+      let found = false;
       
-      // 問題を探して更新
-      let updated = false;
-      
+      // 対象の問題を見つけて直接更新
       for (const subject of newSubjects) {
         if (!subject?.chapters) continue;
         
@@ -759,165 +758,147 @@ const getQuestionsForDate = (date) => {
           if (!chapter?.questions) continue;
           
           for (let i = 0; i < chapter.questions.length; i++) {
-            const q = chapter.questions[i];
-            if (q?.id === questionData.id) {
-              // 問題を見つけたら更新
-              const updatedQuestion = { 
-                ...q,
-                ...questionData,
-                // 日付は文字列形式で保存
-                nextDate: simplifiedNextDate,
-                lastAnswered: simplifyDateFormat(questionData.lastAnswered),
-                answerCount: parseInt(questionData.answerCount, 10) || 0,
-                correctRate: parseInt(questionData.correctRate, 10) || 0,
-              };
+            if (chapter.questions[i]?.id === questionData.id) {
+              // 日付の簡易変換（YYYY-MM-DD形式で保存）
+              let finalData = {...questionData};
               
-              // 直接配列の要素を置き換え
-              chapter.questions[i] = updatedQuestion;
-              updated = true;
-              console.log("問題を更新しました:", updatedQuestion.id, "次回日付:", updatedQuestion.nextDate);
+              if (questionData.nextDate) {
+                try {
+                  // 日付をYYYY-MM-DD形式のプレーンな文字列に変換
+                  const dateObj = new Date(questionData.nextDate);
+                  if (!isNaN(dateObj.getTime())) {
+                    const year = dateObj.getFullYear();
+                    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                    const day = String(dateObj.getDate()).padStart(2, '0');
+                    finalData.nextDate = `${year}-${month}-${day}`;
+                  }
+                } catch (e) {
+                  console.error("日付処理エラー:", e);
+                }
+              }
+              
+              // 更新
+              chapter.questions[i] = finalData;
+              found = true;
+              console.log(`問題ID:${questionData.id}を更新しました。次回日付:${finalData.nextDate}`);
               break;
             }
           }
-          if (updated) break;
+          if (found) break;
         }
-        if (updated) break;
+        if (found) break;
       }
       
-      if (!updated) {
-        console.error("更新する問題が見つかりませんでした:", questionData.id);
-        return prevSubjects;
-      }
-      
-      // 即時保存処理
+      // 即時保存
       try {
-        console.log("新しいデータを保存します");
+        // LocalStorageに保存
         localStorage.setItem('studyData', JSON.stringify(newSubjects));
+        console.log("LocalStorageに保存しました");
+        
         // IndexedDBにも保存
-        saveStudyData(newSubjects)
-          .then(() => {
-            console.log("データベースに保存完了");
-            // 強制的にリフレッシュを実行
-            window.location.reload(); // 最終手段としてページをリロード
-          })
-          .catch(e => {
-            console.error("保存エラー:", e);
-            alert("データ保存中にエラーが発生しました");
-          });
-      } catch (e) { 
-        console.error("データ保存エラー:", e); 
+        try {
+          saveStudyData(newSubjects);
+          console.log("IndexedDBへの保存を開始しました");
+        } catch (dbError) {
+          console.error("IndexedDB保存エラー:", dbError);
+        }
+      } catch (e) {
+        console.error("保存エラー:", e);
       }
       
-      return newSubjects; 
-    }); 
+      return newSubjects;
+    });
     
     setEditingQuestion(null);
   };
 
-  // ★ 新しい一括編集関数 (リフレッシュ処理追加) ★
+  // ★ 一括編集用の保存関数（シンプル版） ★
   const saveBulkEditItems = (itemsToUpdate, specificQuestionIds = null) => { 
-    console.log("一括編集実行 (App.js):", itemsToUpdate, "対象:", specificQuestionIds || selectedQuestions); 
+    console.log("シンプル化した一括編集処理を実行します"); 
     
-    // nextDateのデバッグ
-    if (itemsToUpdate.nextDate) {
-      console.log("一括編集 - 受け取ったnextDate:", itemsToUpdate.nextDate);
-    }
+    // バックアップ
+    localStorage.setItem('debug_bulkEdit', JSON.stringify({
+      items: itemsToUpdate,
+      questionIds: specificQuestionIds || selectedQuestions
+    }));
     
     // 個別の問題IDリストが指定されていなければ、選択された問題IDリストを使用
     const targetQuestionIds = specificQuestionIds || selectedQuestions;
     
     if (!targetQuestionIds || targetQuestionIds.length === 0) { 
-      alert('一括編集する問題を選択してください。'); 
+      console.warn('一括編集する問題が選択されていません'); 
       return; 
     } 
     
     if (!itemsToUpdate || Object.keys(itemsToUpdate).length === 0) { 
+      console.warn('更新データが空です');
       return; 
     } 
     
-    // nextDateの前処理
+    // 日付を簡易フォーマットに変換
+    const processedItems = {...itemsToUpdate};
     if (itemsToUpdate.nextDate) {
       try {
-        const nextDateObj = new Date(itemsToUpdate.nextDate);
-        if (!isNaN(nextDateObj.getTime())) {
-          nextDateObj.setHours(0, 0, 0, 0);
-          itemsToUpdate.nextDate = nextDateObj.toISOString();
-          console.log("一括編集 - nextDate処理済み:", itemsToUpdate.nextDate);
+        // 日付をYYYY-MM-DD形式のプレーンな文字列に変換
+        const dateObj = new Date(itemsToUpdate.nextDate);
+        if (!isNaN(dateObj.getTime())) {
+          const year = dateObj.getFullYear();
+          const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+          const day = String(dateObj.getDate()).padStart(2, '0');
+          processedItems.nextDate = `${year}-${month}-${day}`;
         }
       } catch (e) {
-        console.error("一括編集 - nextDate処理エラー:", e);
+        console.error("日付処理エラー:", e);
       }
     }
     
-    let updatedCount = 0; 
     setSubjects(prevSubjects => { 
       if (!Array.isArray(prevSubjects)) return []; 
-      const newSubjects = prevSubjects.map(subject => { 
-        if (!subject?.chapters) return subject; 
-        return { ...subject, id: subject.id, name: subject.name, chapters: subject.chapters.map(chapter => { 
-          if (!chapter?.questions) return chapter; 
-          return { ...chapter, id: chapter.id, name: chapter.name, questions: chapter.questions.map(q => { 
-            if (q && targetQuestionIds.includes(q.id)) { 
-              updatedCount++; 
-              let updatedQuestion = { ...q }; 
-              for (const key in itemsToUpdate) { 
-                if (Object.hasOwnProperty.call(itemsToUpdate, key)) { 
-                  let value = itemsToUpdate[key]; 
-                  console.log(`Updating ${q.id}: ${key} = ${value}`); 
-                  if (key === 'nextDate') { 
-                    updatedQuestion[key] = value; // 前処理済みのISO文字列
-                  } else if (key === 'lastAnswered') { 
-                    const dateValue = value ? new Date(value) : null; 
-                    updatedQuestion[key] = (dateValue && !isNaN(dateValue.getTime())) ? dateValue : null; 
-                    if (!updatedQuestion[key] && value) console.warn(`無効な日付(lastAnswered):`, value); 
-                  } else if (key === 'answerCount') { 
-                    const numValue = parseInt(value, 10); 
-                    updatedQuestion[key] = (!isNaN(numValue) && numValue >= 0) ? numValue : 0; 
-                  } else if (key === 'correctRate') { 
-                    const numValue = parseInt(value, 10); 
-                    updatedQuestion[key] = (!isNaN(numValue) && numValue >= 0 && numValue <= 100) ? numValue : 0;
-                  } else { 
-                    updatedQuestion[key] = value; 
-                  } 
-                } 
-              } 
-              return updatedQuestion; 
-            } 
-            return q; 
-          }) }; 
-        }) }; 
-      }); 
       
-      // 個別の問題IDが指定された場合にのみメッセージを表示
-      if (updatedCount > 0 && specificQuestionIds) { 
-        // alert(`${updatedCount}件の問題が更新されました。`); 
-        // アラートが邪魔なのでコンソールログに変更
-        console.log(`${updatedCount}件の問題が更新されました。`);
+      // ディープコピー
+      const newSubjects = JSON.parse(JSON.stringify(prevSubjects));
+      let updatedCount = 0;
+      
+      // 全科目・章を探索して対象の問題を更新
+      for (const subject of newSubjects) {
+        if (!subject?.chapters) continue;
+        
+        for (const chapter of subject.chapters) {
+          if (!chapter?.questions) continue;
+          
+          for (let i = 0; i < chapter.questions.length; i++) {
+            // ターゲットの問題IDに含まれるか確認
+            if (chapter.questions[i] && targetQuestionIds.includes(chapter.questions[i].id)) {
+              // 更新対象のプロパティだけを上書き
+              for (const key in processedItems) {
+                if (Object.hasOwnProperty.call(processedItems, key)) {
+                  chapter.questions[i][key] = processedItems[key];
+                }
+              }
+              updatedCount++;
+            }
+          }
+        }
       }
       
-      // データを即時保存
+      console.log(`${updatedCount}件の問題を一括更新しました`);
+      
+      // データを保存
       try {
-        saveStudyData(newSubjects).catch(error => {
-          console.error("IndexedDBへの学習データ保存に失敗:", error);
-          setStorageItem('studyData', newSubjects);
-        });
+        localStorage.setItem('studyData', JSON.stringify(newSubjects));
+        console.log("LocalStorageに保存しました");
       } catch (e) {
-        console.error("学習データ保存失敗:", e);
+        console.error("保存エラー:", e);
       }
       
-      return newSubjects;
-    });
+      return newSubjects; 
+    }); 
     
     // 選択をリセット（一括編集後）
     if (!specificQuestionIds) {
       setSelectedQuestions([]);
       setBulkEditMode(false);
     }
-    
-    // 保存後にデータを明示的にリフレッシュ
-    setTimeout(() => {
-      refreshData();
-    }, 100);
   };
 
   // ★ 古い一括編集保存 (修正) ★
