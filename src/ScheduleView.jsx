@@ -76,7 +76,7 @@ const DroppableDateCell = ({
   if (isOver) cellClassName += ` ${styles.dateCellOver}`;
   
   // 日付セルの内容をレンダリング
-  return (
+    return (
     <div ref={setNodeRef} className={cellClassName}>
       <div className={styles.dateCellContent}>
         <div className={styles.dateNumber}>
@@ -97,7 +97,7 @@ const DroppableDateCell = ({
             }}>
               +{questions.length - 3} more
             </div>
-          )}
+        )}
         </div>
       </div>
     </div>
@@ -136,6 +136,12 @@ const ScheduleView = ({ data, scheduleQuestion }) => {
   // 日付ごとの問題を整理
   const questionsByDate = useMemo(() => {
     const result = {};
+    // データが存在しない場合や、questionsが存在しない場合は空のオブジェクトを返す
+    if (!data || !data.questions) {
+      console.warn('Invalid data: data or data.questions is undefined');
+      return result;
+    }
+    
     data.questions.forEach(q => {
       if (q.nextDate) {
         const dateStr = format(new Date(q.nextDate), 'yyyy/MM/dd');
@@ -144,7 +150,7 @@ const ScheduleView = ({ data, scheduleQuestion }) => {
       }
     });
     return result;
-  }, [data.questions]);
+  }, [data?.questions]);
 
   // 詳細モーダルの開閉処理
   const openDetailModal = useCallback(() => setIsDetailModalOpen(true), []);
@@ -168,10 +174,15 @@ const ScheduleView = ({ data, scheduleQuestion }) => {
   const handleDragStart = useCallback((event) => {
     const { active } = event;
     setActiveId(active.id);
+    // データチェック
+    if (!data || !data.questions) {
+      console.warn('Invalid data: data or data.questions is undefined');
+      return;
+    }
     // ドラッグしている問題のデータを保存
     const question = data.questions.find(q => q.id === active.id);
     setActiveDragData(question);
-  }, [data.questions]);
+  }, [data?.questions]);
 
   // ドラッグ中の処理
   const handleDragOver = useCallback((event) => {
@@ -215,17 +226,17 @@ const ScheduleView = ({ data, scheduleQuestion }) => {
   }, [scheduleQuestion]);
 
   // カレンダーレイアウトのレンダリング
-  return (
-    <div className={styles.container}>
-      <div className={styles.header}>
+    return (
+        <div className={styles.container}>
+            <div className={styles.header}>
         <h2>スケジュール表示</h2>
         <div className={styles.controls}>
           <button onClick={prevMonth} className={styles.iconButton}><ChevronLeft size={16} /></button>
           <button onClick={goToToday} className={styles.todayButton}><Calendar size={14} />今日</button>
           <div className={styles.currentMonth}>{format(currentDate, 'yyyy年M月', { locale: ja })}</div>
           <button onClick={nextMonth} className={styles.iconButton}><ChevronRight size={16} /></button>
-        </div>
-      </div>
+                </div>
+            </div>
 
       <DndContext
         sensors={sensors}
@@ -235,18 +246,18 @@ const ScheduleView = ({ data, scheduleQuestion }) => {
         onDragEnd={handleDragEnd}
         modifiers={[restrictToWindowEdges]}
       >
-        <div className={styles.calendarWrapper}>
-          {/* 曜日ヘッダー */}
+            <div className={styles.calendarWrapper}>
+            {/* 曜日ヘッダー */}
           <div className={styles.weekdayHeader}>
             {['日', '月', '火', '水', '木', '金', '土'].map((day, index) => (
               <div key={index} className={`${styles.weekdayCell} ${index === 0 || index === 6 ? styles.weekend : ''}`}>
-                {day}
-              </div>
-            ))}
-          </div>
+                    {day}
+                </div>
+                ))}
+            </div>
 
           {/* カレンダーグリッド */}
-          <div className={styles.calendarGrid}>
+            <div className={styles.calendarGrid}>
             {calendarDays.map((day) => {
               const dateStr = format(day, 'yyyy/MM/dd');
               const dayQuestions = questionsByDate[dateStr] || [];
@@ -273,13 +284,13 @@ const ScheduleView = ({ data, scheduleQuestion }) => {
                   <GripVertical size={10} strokeWidth={1.2} />
                 </div>
                 <span className={styles.questionText}>
-                  {`${activeDragData.subject || ''}${activeDragData.chapter ? ` ${activeDragData.chapter}` : ''}-${activeDragData.number}`}
+                  {`${activeDragData.subject || ''}${activeDragData.chapter ? ` ${activeDragData.chapter}` : ''}-${activeDragData.number || ''}`}
                 </span>
               </div>
             )}
           </DragOverlay>
         </div>
-      </DndContext>
+        </DndContext>
 
       {/* 詳細モーダル */}
       {isDetailModalOpen && selectedDate && (
@@ -298,7 +309,7 @@ const ScheduleView = ({ data, scheduleQuestion }) => {
         <span>問題をドラッグして日付セルにドロップすると、次回の学習日を変更できます</span>
       </div>
     </div>
-  );
+    );
 };
 
 export default ScheduleView;
