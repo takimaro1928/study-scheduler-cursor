@@ -111,8 +111,9 @@ const MainView = ({
         return (
           <ErrorBoundary>
             <ScheduleView
+              data={{ questions: getAllQuestions ? getAllQuestions() : [] }}
+              scheduleQuestion={handleQuestionDateChange}
               subjects={subjects}
-              handleQuestionDateChange={handleQuestionDateChange}
               formatDate={formatDate}
             />
           </ErrorBoundary>
