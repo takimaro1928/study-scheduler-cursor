@@ -361,7 +361,7 @@ useEffect(() => {
     
     if (!lastExportTimestamp) {
       // 一度もエクスポートしていない場合
-      setDaysSinceLastExport(null);
+      setDaysSinceLastExport(14); // 14日に固定
       setShowExportReminder(true);
     } else {
       const lastExportTime = parseInt(lastExportTimestamp, 10);
@@ -369,7 +369,7 @@ useEffect(() => {
       
       // 14日以上経過していたらリマインダー表示
       if (daysSinceExport >= 14) {
-        setDaysSinceLastExport(daysSinceExport);
+        setDaysSinceLastExport(14); // 14日に固定
         setShowExportReminder(true);
       }
     }
