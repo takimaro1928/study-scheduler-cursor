@@ -200,7 +200,13 @@ const MainView = ({
       {editingQuestion && (
         <QuestionEditModal
           question={editingQuestion}
-          onClose={() => setEditingQuestion(null)}
+          onClose={() => {
+            setEditingQuestion(null);
+            // モーダルが閉じた後にデータをリフレッシュ
+            setTimeout(() => {
+              refreshData && refreshData();
+            }, 100);
+          }}
           onSave={saveQuestionEdit}
           formatDate={formatDate}
         />
