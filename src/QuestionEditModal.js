@@ -187,6 +187,13 @@ const QuestionEditModal = ({ question, onSave, onClose, formatDate }) => {
       setTimeout(() => {
         onClose();
       }, 300);
+
+      // デバッグ用：ローカルストレージにも保存
+      localStorage.setItem('debug_lastSaved', JSON.stringify({
+        id: dataToSave.id,
+        nextDate: dataToSave.nextDate,
+        timestamp: new Date().toISOString()
+      }));
     } catch (e) {
       console.error("保存処理中にエラーが発生しました:", e);
       alert(`保存中にエラーが発生しました: ${e.message}`);
