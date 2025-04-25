@@ -54,7 +54,8 @@ const MainView = ({
   recordAnswer,
   getQuestionsForDate,
   editingQuestion,
-  saveQuestionEdit
+  saveQuestionEdit,
+  refreshData
 }) => {
   
   // 現在の曜日を取得する関数
@@ -92,6 +93,7 @@ const MainView = ({
               formatDate={formatDate}
               addQuestion={addQuestion}
               answerHistory={answerHistory}
+              refreshData={refreshData}
             />
           </ErrorBoundary>
         );
@@ -104,6 +106,7 @@ const MainView = ({
               recordAnswer={recordAnswer}
               saveComment={saveComment}
               formatDate={formatDate}
+              refreshData={refreshData}
             />
           </ErrorBoundary>
         );
@@ -123,6 +126,7 @@ const MainView = ({
               scheduleQuestion={handleQuestionDateChange}
               subjects={subjects}
               formatDate={formatDate}
+              refreshData={refreshData}
             />
           </ErrorBoundary>
         );
