@@ -17,7 +17,6 @@ import SettingsPage from './SettingsPage';
 import StatsPage from './StatsPage';
 import ReminderNotification from './ReminderNotification';
 import EnhancedStatsPage from './EnhancedStatsPage';
-// import NotesPage from './NotesPage'; // NotesPageのインポートを削除
 import SMEExamPage from './SMEExamPage'; // 中小企業診断士2次試験対策ページをインポート
 import ErrorBoundary from './components/ErrorBoundary';
 // エラーハンドリング関連のインポート
