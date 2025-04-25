@@ -79,8 +79,15 @@ const DroppableDateCell = ({
     return (
     <div ref={setNodeRef} className={cellClassName}>
       <div className={styles.dateCellContent}>
-        <div className={styles.dateNumber}>
-          {format(date, 'd')}
+        <div className={styles.dateHeader}>
+          <div className={styles.dateNumber}>
+            {format(date, 'd')}
+          </div>
+          {questions.length > 0 && (
+            <div className={styles.questionBadge} title={`${questions.length}問`}>
+              {questions.length}
+            </div>
+          )}
         </div>
         <div className={styles.questionList}>
           {questions.slice(0, 3).map((q) => (
@@ -284,7 +291,7 @@ const ScheduleView = ({ data, scheduleQuestion }) => {
                   <GripVertical size={10} strokeWidth={1.2} />
                 </div>
                 <span className={styles.questionText}>
-                  {`${activeDragData.subject || ''}${activeDragData.chapter ? ` ${activeDragData.chapter}` : ''}-${activeDragData.number || ''}`}
+                  {`${activeDragData.subject || activeDragData.subjectName || '未分類'}${activeDragData.chapter || activeDragData.chapterName ? ` ${activeDragData.chapter || activeDragData.chapterName}` : ''}-${activeDragData.number || ''}`}
                 </span>
               </div>
             )}
