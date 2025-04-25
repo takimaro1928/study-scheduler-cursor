@@ -1047,7 +1047,7 @@ const RedesignedAllQuestionsView = ({
                           )}
                           <h4 className={styles.chapterName}>
                             <HighlightedText
-                              text={chapter.name}
+                              text={chapter.name || chapter.chapterName || '未分類'}
                               searchTerm={searchTerm}
                             />
                           </h4>
