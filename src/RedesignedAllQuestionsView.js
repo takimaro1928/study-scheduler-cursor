@@ -184,6 +184,78 @@ const RedesignedAllQuestionsView = ({
   const [subjectOptions, setSubjectOptions] = useState([]);
   const [chapterOptions, setChapterOptions] = useState([]);
   
+  // 章オプションを更新する関数
+  const updateChapterOptions = () => {
+    if (!Array.isArray(subjects)) return;
+
+    const selectedSubjectIds = filters.selectedSubjects;
+
+    // 選択された科目がない場合は章リストをクリア
+    if (selectedSubjectIds.length === 0) {
+      setChapterOptions([]);
+      return;
+    }
+
+    // 選択された科目に属する全ての章を取得
+    const chapters = [];
+    subjects.forEach((subject) => {
+      if (
+        selectedSubjectIds.includes(subject.id) &&
+        Array.isArray(subject.chapters)
+      ) {
+        subject.chapters.forEach((chapter) => {
+          chapters.push({
+            id: chapter.id,
+            name: chapter.name || chapter.chapterName || "未分類",
+            subjectId: subject.id,
+            subjectName: subject.name || subject.subjectName || "未分類",
+          });
+        });
+      }
+    });
+
+    setChapterOptions(chapters);
+  };
+  
+  // アクティブなフィルター数を計算する関数
+  const updateActiveFiltersCount = () => {
+    let count = 0;
+
+    // 検索語句
+    if (searchTerm.trim()) count++;
+
+    // 理解度
+    if (filters.understanding !== "all") count++;
+
+    // 科目
+    if (
+      filters.selectedSubjects.length > 0 &&
+      filters.selectedSubjects.length < subjectOptions.length
+    )
+      count++;
+
+    // 章
+    if (
+      filters.selectedChapters.length > 0 &&
+      filters.selectedChapters.length < chapterOptions.length
+    )
+      count++;
+
+    // 正解率
+    if (filters.correctRateMin || filters.correctRateMax) count++;
+
+    // 解答回数
+    if (filters.answerCountMin || filters.answerCountMax) count++;
+
+    // 次回予定日
+    if (filters.nextDateStart || filters.nextDateEnd) count++;
+
+    // 最終解答日
+    if (filters.lastAnsweredStart || filters.lastAnsweredEnd) count++;
+
+    setActiveFiltersCount(count);
+  };
+  
   // 選択された科目に基づいて章オプションを更新
   useEffect(() => {
     updateChapterOptions();
@@ -292,41 +364,7 @@ const RedesignedAllQuestionsView = ({
 
   // アクティブなフィルター数を計算
   useEffect(() => {
-    let count = 0;
-
-    // 検索語句
-    if (searchTerm.trim()) count++;
-
-    // 理解度
-    if (filters.understanding !== "all") count++;
-
-    // 科目
-    if (
-      filters.selectedSubjects.length > 0 &&
-      filters.selectedSubjects.length < subjectOptions.length
-    )
-      count++;
-
-    // 章
-    if (
-      filters.selectedChapters.length > 0 &&
-      filters.selectedChapters.length < chapterOptions.length
-    )
-      count++;
-
-    // 正解率
-    if (filters.correctRateMin || filters.correctRateMax) count++;
-
-    // 解答回数
-    if (filters.answerCountMin || filters.answerCountMax) count++;
-
-    // 次回予定日
-    if (filters.nextDateStart || filters.nextDateEnd) count++;
-
-    // 最終解答日
-    if (filters.lastAnsweredStart || filters.lastAnsweredEnd) count++;
-
-    setActiveFiltersCount(count);
+    updateActiveFiltersCount();
   }, [filters, searchTerm, subjectOptions.length, chapterOptions.length]);
 
   // フィルタリングされた科目データ
