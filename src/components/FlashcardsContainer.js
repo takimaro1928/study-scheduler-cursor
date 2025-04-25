@@ -597,6 +597,21 @@ const FlashcardsContainer = () => {
     }
   };
   
+  // 編集フォームを開く
+  const handleStartEdit = (card) => {
+    if (card) {
+      setEditingCard({...card});
+      setShowEditCardForm(true);
+    }
+  };
+
+  // triggerFileInput関数を追加
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
   // カード入力フォームの更新
   const handleNewCardChange = (field, value) => {
     setNewCard({
@@ -1416,21 +1431,6 @@ const FlashcardsContainer = () => {
     );
   };
 
-  // 編集フォームを開く
-  const handleStartEdit = (card) => {
-    if (card) {
-      setEditingCard({...card});
-      setShowEditCardForm(true);
-    }
-  };
-
-  // triggerFileInput関数を追加
-  const triggerFileInput = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
   // 学習モード表示関数
   const renderStudyMode = () => {
     if (!studyMode) return null;
@@ -1551,6 +1551,77 @@ const FlashcardsContainer = () => {
     <div className="flashcards-container">
       <div className="flashcards-header">
         <h2>用語暗記カード</h2>
+        
+        {/* 新しいカード追加ボタンを最上部に配置 */}
+        <button 
+          className="primary-action-button"
+          onClick={() => setShowAddCardForm(true)}
+        >
+          新しいカードを追加
+        </button>
+      </div>
+
+      {/* 新規カード追加フォーム */}
+      {showAddCardForm && (
+        <div className="add-card-form-container">
+          <h3>新しいカードを追加</h3>
+          <div className="card-form">
+            <div className="form-group">
+              <label htmlFor="term">用語</label>
+              <input
+                id="term"
+                type="text"
+                value={newCard.question}
+                onChange={(e) => handleNewCardChange('question', e.target.value)}
+                placeholder="用語を入力してください"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="definition">説明</label>
+              <textarea
+                id="definition"
+                value={newCard.answer}
+                onChange={(e) => handleNewCardChange('answer', e.target.value)}
+                placeholder="説明を入力してください"
+                rows={4}
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>ジャンル (最大3つ)</label>
+              <div className="tag-selector">
+                {genres.map((genre) => (
+                  <button
+                    key={genre.id}
+                    className={`tag-button ${newCard.genres.includes(genre.id) ? 'selected' : ''}`}
+                    onClick={() => handleGenreSelection(genre.id)}
+                  >
+                    {genre.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="form-buttons">
+              <button 
+                className="btn-primary"
+                onClick={handleAddCard}
+              >
+                保存
+              </button>
+              <button 
+                className="btn-secondary"
+                onClick={() => setShowAddCardForm(false)}
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="secondary-actions">
         {renderDataManagement()}
       </div>
 
@@ -1559,7 +1630,29 @@ const FlashcardsContainer = () => {
       {/* 学習モード表示 */}
       {renderStudyMode()}
 
-      {/* ... existing code ... */}
+      {/* カード一覧 */}
+      {!studyMode && !showAddCardForm && (
+        <div className="cards-list-container">
+          <h3>登録済みカード</h3>
+          {cards.length === 0 ? (
+            <div className="no-cards-message">
+              <p>カードがまだありません。新しいカードを追加してください。</p>
+            </div>
+          ) : (
+            <div className="cards-grid">
+              {cards.map(card => (
+                <div key={card.id} className="card-item">
+                  <div className="card-term">{card.question || card.term}</div>
+                  <div className="card-actions">
+                    <button className="edit-button" onClick={() => handleStartEdit(card)}>編集</button>
+                    <button className="delete-button" onClick={() => handleDeleteCard(card.id)}>削除</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
