@@ -202,6 +202,7 @@ const MainView = ({
           question={editingQuestion}
           onClose={() => setEditingQuestion(null)}
           onSave={saveQuestionEdit}
+          formatDate={formatDate}
         />
       )}
       
