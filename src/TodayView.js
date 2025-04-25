@@ -8,11 +8,12 @@ import { Check, X, AlertTriangle, ChevronsUpDown, CheckCircle, ChevronUp, Chevro
 // import styles from './TodayView.module.css'; // CSS Modules を使う場合はこの行のコメントを解除し、下の className を styles.*** 形式に変更してください
 
 // props で getTodayQuestions の代わりに todayQuestions を受け取る
-const TodayView = ({ todayQuestions, recordAnswer, formatDate }) => {
+const TodayView = ({ todayQuestions, recordAnswer, formatDate, refreshData }) => {
   // const todayQuestions = getTodayQuestions(); // ← この行は不要になったので削除またはコメントアウト
 
   const [expandedAmbiguousId, setExpandedAmbiguousId] = useState(null);
   const [questionStates, setQuestionStates] = useState({});
+  const [answeredQuestions, setAnsweredQuestions] = useState([]);
 
   // --- ハンドラ関数群 (変更なし) ---
   const handleAnswerClick = (questionId, isCorrect) => {
@@ -20,6 +21,8 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate }) => {
       setQuestionStates(prev => ({ ...prev, [questionId]: { showComprehension: true } }));
     } else {
       recordAnswer(questionId, false, '理解できていない×');
+      // 解答したら問題を非表示にする
+      setAnsweredQuestions(prev => [...prev, questionId]);
       // 解答したら理解度選択状態はリセット
       setQuestionStates(prev => { const newState = {...prev}; delete newState[questionId]; return newState; });
     }
@@ -30,13 +33,17 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate }) => {
   const selectAmbiguousReason = (questionId, reason) => {
     recordAnswer(questionId, true, `曖昧△:${reason}`);
     setExpandedAmbiguousId(null); // 理由を選んだらパネルを閉じる
+    // 解答したら問題を非表示にする
+    setAnsweredQuestions(prev => [...prev, questionId]);
     // 解答したら理解度選択状態はリセット
-     setQuestionStates(prev => { const newState = {...prev}; delete newState[questionId]; return newState; });
+    setQuestionStates(prev => { const newState = {...prev}; delete newState[questionId]; return newState; });
   };
   const handleUnderstandClick = (questionId) => {
     recordAnswer(questionId, true, '理解○');
+    // 解答したら問題を非表示にする
+    setAnsweredQuestions(prev => [...prev, questionId]);
     // 解答したら理解度選択状態はリセット
-     setQuestionStates(prev => { const newState = {...prev}; delete newState[questionId]; return newState; });
+    setQuestionStates(prev => { const newState = {...prev}; delete newState[questionId]; return newState; });
   };
    const getQuestionState = (questionId) => {
     return questionStates[questionId] || { showComprehension: false };
@@ -46,14 +53,22 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate }) => {
     '自信はなかったけど、これかなとは思っていた', '問題を覚えてしまっていた', 'その他'
   ];
 
+  // 変更を適用した後のデータ更新
+  useEffect(() => {
+    if (answeredQuestions.length > 0) {
+      // データをリフレッシュして非表示にする問題を更新
+      if (refreshData) {
+        refreshData();
+      }
+    }
+  }, [answeredQuestions, refreshData]);
+
   // --- JSX 部分 ---
   // 確認用ログ（開発中に適宜確認）
   console.log("TodayView rendering with questions count:", todayQuestions?.length);
-  if (todayQuestions && todayQuestions.length > 0) {
-      console.log("First question in TodayView props:", todayQuestions[0]);
-      console.log("First question Subject Name:", todayQuestions[0]?.subjectName);
-      console.log("First question Chapter Name:", todayQuestions[0]?.chapterName);
-  }
+  
+  // 未回答の問題のみフィルタリング
+  const unansweredQuestions = todayQuestions ? todayQuestions.filter(q => !answeredQuestions.includes(q.id)) : [];
 
   // CSS Modules を使う場合は className="today-container" を className={styles.todayContainer} 等に変更
   return (
@@ -67,7 +82,7 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate }) => {
       </h2>
 
       {/* ★ todayQuestions が null や undefined, 空配列の場合の表示 */}
-      {!todayQuestions || todayQuestions.length === 0 ? (
+      {!unansweredQuestions || unansweredQuestions.length === 0 ? (
         <div className="study-card">
           <p>今日解く問題はありません 🎉</p>
           <p>素晴らしい！ゆっくり休んでください。</p>
@@ -75,7 +90,7 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate }) => {
       ) : (
         // 問題リスト
         <div className="study-cards-container">
-          {todayQuestions.map(question => {
+          {unansweredQuestions.map(question => {
             // ★ question が null や undefined でないことを確認
             if (!question || !question.id) {
                 console.warn("Rendering invalid question data:", question);
@@ -99,16 +114,18 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate }) => {
                   {!questionState.showComprehension && (
                     <div>
                       <div className="section-title"><span className="section-dot"></span>解答結果</div>
-                      <div className="answer-buttons-container mt-3">
+                      <div className="answer-buttons-container">
                         <button
-                          className={`answer-button correct-button ${questionState.showComprehension === true ? 'selected' : ''}`}
+                          className="answer-button bg-white border-4 border-green-400 text-green-700 hover:bg-green-50"
                           onClick={() => handleAnswerClick(question.id, true)}
+                          disabled={questionState.showComprehension || isAmbiguousPanelOpen || false}
                         >
                           正解
                         </button>
                         <button
-                          className={`answer-button incorrect-button ${questionState.showComprehension === false ? 'selected' : ''}`}
+                          className="answer-button bg-white border-4 border-red-400 text-red-700 hover:bg-red-50"
                           onClick={() => handleAnswerClick(question.id, false)}
+                          disabled={questionState.showComprehension || isAmbiguousPanelOpen || false}
                         >
                           不正解
                         </button>
