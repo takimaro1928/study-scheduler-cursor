@@ -7,7 +7,6 @@ import SettingsPage from './SettingsPage';
 import StatsPage from './StatsPage';
 import EnhancedStatsPage from './EnhancedStatsPage';
 import AmbiguousTrendsPage from './AmbiguousTrendsPage';
-import NotesPage from './NotesPage';
 import SMEExamPage from './SMEExamPage';
 import QuestionEditModal from './QuestionEditModal';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -48,7 +47,6 @@ const MainView = ({
   handleRestoreData,
   getAllQuestions,
   addQuestion,
-  saveSubjectNote,
   calculateTotalQuestionCount,
   hasStorageError,
   recordAnswer,
@@ -164,15 +162,6 @@ const MainView = ({
               subjects={subjects}
               answerHistory={answerHistory}
               formatDate={formatDate}
-            />
-          </ErrorBoundary>
-        );
-      case 'notes':
-        return (
-          <ErrorBoundary>
-            <NotesPage
-              subjects={subjects}
-              saveSubjectNote={saveSubjectNote}
             />
           </ErrorBoundary>
         );
