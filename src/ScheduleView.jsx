@@ -107,7 +107,7 @@ const DateCell = ({ date, dayQuestions, onDateClick }) => {
 };
 
 // メインのScheduleViewコンポーネント
-const ScheduleView = ({ data, scheduleQuestion }) => {
+const ScheduleView = ({ data, scheduleQuestion, refreshData }) => {
   // ステート
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeId, setActiveId] = useState(null);
@@ -117,6 +117,11 @@ const ScheduleView = ({ data, scheduleQuestion }) => {
   const [isOverDroppable, setIsOverDroppable] = useState(false);
   const [activeDroppableId, setActiveDroppableId] = useState(null);
   const [dateQuestions, setDateQuestions] = useState([]);
+
+  // コンポーネントマウント時に最新データを読み込む
+  useEffect(() => {
+    refreshData && refreshData();
+  }, [refreshData]);
 
   // カレンダーの日付を計算
   const calendarDays = useMemo(() => {
@@ -216,6 +221,11 @@ const ScheduleView = ({ data, scheduleQuestion }) => {
         // スケジュール変更関数を呼び出し
         scheduleQuestion(questionId, newDate);
         
+        // 変更後にデータをリフレッシュ
+        setTimeout(() => {
+          refreshData && refreshData();
+        }, 100);
+        
         // 成功時のフィードバック (オプション)
         console.log(`Question ${questionId} scheduled to ${over.id}`);
       } catch (error) {
@@ -226,7 +236,7 @@ const ScheduleView = ({ data, scheduleQuestion }) => {
     
     // ドラッグしていた問題のデータをクリア
     setActiveDragData(null);
-  }, [scheduleQuestion]);
+  }, [scheduleQuestion, refreshData]);
 
   const handleDateClick = (date) => {
     // 日付の形式を修正
