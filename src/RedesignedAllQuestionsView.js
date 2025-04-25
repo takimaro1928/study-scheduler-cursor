@@ -93,6 +93,19 @@ const HighlightedText = ({ text, searchTerm }) => {
   );
 };
 
+const flashcardSchema = {
+  id: String,
+  term: String,
+  definition: String,
+  category: String,
+  tags: Array,
+  importance: Number,
+  lastReviewed: Date,
+  nextReview: Date,
+  difficulty: String,
+  history: Array
+};
+
 const RedesignedAllQuestionsView = ({
   subjects,
   expandedSubjects = {},
@@ -431,7 +444,7 @@ const RedesignedAllQuestionsView = ({
       lastAnsweredEnd: '',
     });
   };
-  
+
   // 科目内の全問題選択/選択解除
   const toggleSelectAllForSubject = (subject) => {
     if (!subject?.chapters) return;
@@ -540,22 +553,22 @@ const RedesignedAllQuestionsView = ({
         <div className={styles.filterPanel}>
           <div className={styles.filterSection}>
             <h3 className={styles.filterSectionTitle}>基本フィルター</h3>
-            <div className={styles.filterGrid}>
-              <div>
-                <label className={styles.filterLabel}>理解度</label>
-                <select
-                  className={styles.filterSelect}
-                  value={filters.understanding}
-                  onChange={(e) => setFilters({...filters, understanding: e.target.value})}
-                >
-                  <option value="all">すべて</option>
-                  <option value="理解○">理解○</option>
-                  <option value="曖昧△">曖昧△</option>
-                  <option value="理解できていない×">理解できていない×</option>
-                </select>
-              </div>
-              
-              <div>
+          <div className={styles.filterGrid}>
+            <div>
+              <label className={styles.filterLabel}>理解度</label>
+              <select
+                className={styles.filterSelect}
+                value={filters.understanding}
+                onChange={(e) => setFilters({...filters, understanding: e.target.value})}
+              >
+                <option value="all">すべて</option>
+                <option value="理解○">理解○</option>
+                <option value="曖昧△">曖昧△</option>
+                <option value="理解できていない×">理解できていない×</option>
+              </select>
+            </div>
+            
+            <div>
                 <label className={styles.filterLabel}>正解率 (%)</label>
                 <div className={styles.rangeInputContainer}>
                   <input
@@ -625,9 +638,9 @@ const RedesignedAllQuestionsView = ({
                     onChange={(e) => setFilters({...filters, nextDateEnd: e.target.value})}
                   />
                 </div>
-              </div>
-              
-              <div>
+            </div>
+            
+            <div>
                 <label className={styles.filterLabel}>最終解答日</label>
                 <div className={styles.rangeInputContainer}>
                   <input
@@ -823,10 +836,10 @@ const RedesignedAllQuestionsView = ({
           {/* サブジェクトリスト */}
           {filteredSubjects.map((subject) => (
             <div key={subject.id} className={styles.subjectItem}>
-              <div
-                className={styles.subjectHeader}
-                onClick={() => toggleSubject(subject.id)}
-              >
+                <div 
+                  className={styles.subjectHeader}
+                  onClick={() => toggleSubject(subject.id)}
+                >
                 <div className={styles.subjectHeaderLeft}>
                   {bulkEditMode && (
                     <div 
@@ -867,17 +880,17 @@ const RedesignedAllQuestionsView = ({
                   ) : (
                     <ChevronDown size={20} />
                   )}
+                  </div>
                 </div>
-              </div>
-
-              {expandedSubjects[subject.id] && (
-                <div className={styles.subjectContent}>
+                
+                {expandedSubjects[subject.id] && (
+                  <div className={styles.subjectContent}>
                   {subject.chapters.map((chapter) => (
                     <div key={chapter.id} className={styles.chapterItem}>
-                      <div
-                        className={styles.chapterHeader}
-                        onClick={() => toggleChapter(chapter.id)}
-                      >
+                        <div
+                          className={styles.chapterHeader}
+                          onClick={() => toggleChapter(chapter.id)}
+                        >
                         <div className={styles.chapterHeaderLeft}>
                           {bulkEditMode && (
                             <div 
@@ -901,7 +914,7 @@ const RedesignedAllQuestionsView = ({
                                     : ''
                                 }`}
                               />
-                            </div>
+                          </div>
                           )}
                           <h4 className={styles.chapterName}>
                             <HighlightedText text={chapter.name} searchTerm={searchTerm} />
@@ -917,14 +930,14 @@ const RedesignedAllQuestionsView = ({
                           ) : (
                             <ChevronDown size={16} />
                           )}
+                          </div>
                         </div>
-                      </div>
-
-                      {expandedChapters[chapter.id] && (
+                        
+                        {expandedChapters[chapter.id] && (
                         <div className={styles.questionsList}>
                           {chapter.questions.map((question) => (
-                            <div
-                              key={question.id}
+                                <div
+                                  key={question.id}
                               className={`${styles.questionItem} ${
                                 selectedQuestions.includes(question.id) ? styles.selectedQuestion : ''
                               }`}
@@ -958,51 +971,51 @@ const RedesignedAllQuestionsView = ({
                                   }
                                 }}
                               >
-                                <div className={styles.statusGrid}>
-                                  <div className={styles.statusItem} title="次回予定日">
-                                    <Clock size={16} />
-                                    <span>{formatDate(question.nextDate)}</span>
-                                  </div>
-                                  
-                                  <div className={styles.statusItem} title="復習間隔">
-                                    <CalendarIcon size={16} />
-                                    <span>{question.interval || '未設定'}</span>
-                                  </div>
-                                  
-                                  <div
+                                  <div className={styles.statusGrid}>
+                                    <div className={styles.statusItem} title="次回予定日">
+                                      <Clock size={16} />
+                                      <span>{formatDate(question.nextDate)}</span>
+                                    </div>
+                                    
+                                    <div className={styles.statusItem} title="復習間隔">
+                                      <CalendarIcon size={16} />
+                                      <span>{question.interval || '未設定'}</span>
+                                    </div>
+                                    
+                                    <div
                                     className={`${styles.statusItem} ${getUnderstandingStyle(question.understanding).badgeClass}`}
-                                    title={`理解度: ${question.understanding || '未設定'}`}
-                                  >
+                                      title={`理解度: ${question.understanding || '未設定'}`}
+                                    >
                                     {getUnderstandingStyle(question.understanding).icon}
-                                    <span>
-                                      {question.understanding?.includes(':')
-                                        ? question.understanding.split(':')[0]
-                                        : question.understanding || '未設定'}
-                                    </span>
-                                  </div>
-                                  
-                                  <div
-                                    className={styles.statusItem}
-                                    title={`正解率: ${question.correctRate || 0}% (${
-                                      question.answerCount || 0
-                                    }回解答)`}
-                                  >
-                                    <div className={styles.rateBarContainer}>
-                                      <div className={styles.rateBar}>
-                                        <div
-                                          className={`${styles.rateBarInner} ${getCorrectRateColorClass(
-                                            question.correctRate || 0
-                                          )}`}
-                                          style={{ width: `${question.correctRate || 0}%` }}
-                                        />
-                                      </div>
-                                      <span className={styles.rateText}>
-                                        {question.correctRate || 0}%
+                                      <span>
+                                        {question.understanding?.includes(':')
+                                          ? question.understanding.split(':')[0]
+                                          : question.understanding || '未設定'}
                                       </span>
                                     </div>
+                                    
+                                    <div
+                                      className={styles.statusItem}
+                                      title={`正解率: ${question.correctRate || 0}% (${
+                                        question.answerCount || 0
+                                      }回解答)`}
+                                    >
+                                      <div className={styles.rateBarContainer}>
+                                        <div className={styles.rateBar}>
+                                          <div
+                                            className={`${styles.rateBarInner} ${getCorrectRateColorClass(
+                                              question.correctRate || 0
+                                            )}`}
+                                            style={{ width: `${question.correctRate || 0}%` }}
+                                          />
+                                        </div>
+                                        <span className={styles.rateText}>
+                                          {question.correctRate || 0}%
+                                        </span>
+                                      </div>
+                                    </div>
                                   </div>
-                                </div>
-                                
+                                  
                                 {question.comment && (
                                   <div className={styles.commentBox} title={question.comment}>
                                     <HighlightedText 
@@ -1012,15 +1025,15 @@ const RedesignedAllQuestionsView = ({
                                   </div>
                                 )}
                               </div>
-                            </div>
+                                </div>
                           ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
           ))}
         </div>
       )}
