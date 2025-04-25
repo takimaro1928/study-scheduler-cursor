@@ -1523,7 +1523,7 @@ span.text-base.font-bold.text-blue-700 {
   cursor: pointer;
   transition: all 0.3s ease;
   border-radius: 0.5rem;
-  min-width: 120px;
+  min-width: 160px; /* 横長に修正 */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1603,8 +1603,8 @@ span.text-base.font-bold.text-blue-700 {
 }
 
 .reason-options-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  display: flex;
+  flex-direction: column; /* 縦に並べる */
   gap: 0.75rem;
 }
 
@@ -1619,6 +1619,7 @@ span.text-base.font-bold.text-blue-700 {
   transition: all 0.2s ease;
   cursor: pointer;
   text-align: left;
+  width: 100%; /* 幅いっぱいに */
 }
 
 .reason-option-modern:hover {
@@ -1655,4 +1656,19 @@ span.text-base.font-bold.text-blue-700 {
   border-radius: 9999px;
   border: 1px solid #fbbf24;
   white-space: nowrap;
+}
+
+/* 理解済み・曖昧ボタンのスタイル */
+.understanding-button {
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 0.5rem;
+  min-width: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
