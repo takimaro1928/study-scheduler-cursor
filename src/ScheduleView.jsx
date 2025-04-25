@@ -55,6 +55,57 @@ const DraggableQuestion = ({ question }) => {
   );
 };
 
+// DateCell: 日付セルコンポーネント（ドロップターゲット）
+const DateCell = ({ date, dayQuestions, onDateClick }) => {
+  const { isOver, setNodeRef } = useDroppable({
+    id: `date-${date.toISOString()}`,
+    data: { date },
+  });
+  
+  // セルのクラス名を設定
+  const cellClasses = `${styles.dateCell} 
+    ${isToday(date) ? styles.dateCellToday : ''} 
+    ${(date.getDay() === 0 || date.getDay() === 6) ? styles.dateCellWeekend : ''} 
+    ${isOver ? styles.dateCellOver : ''}`;
+  
+  return (
+    <div 
+      ref={setNodeRef}
+      className={cellClasses}
+      onClick={() => onDateClick(date)}
+    >
+      <div className={styles.dateCellContent}>
+        <div className={styles.dateHeader}>
+          <div className={styles.dateNumber}>
+            {date.getDate()}
+          </div>
+          {dayQuestions.length > 0 && (
+            <div className={styles.questionBadge} title={`${dayQuestions.length}問のスケジュール`}>
+              {dayQuestions.length}
+            </div>
+          )}
+        </div>
+        <div className={styles.questionList}>
+          {dayQuestions.slice(0, 3).map(question => (
+            <DraggableQuestion 
+              key={question.id} 
+              question={question} 
+            />
+          ))}
+          {dayQuestions.length > 3 && (
+            <div className={styles.showMore} onClick={(e) => {
+              e.stopPropagation();
+              onDateClick(date);
+            }}>
+              他 {dayQuestions.length - 3} 件
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // メインのScheduleViewコンポーネント
 const ScheduleView = ({ data, scheduleQuestion }) => {
   // ステート
@@ -235,54 +286,13 @@ const ScheduleView = ({ data, scheduleQuestion }) => {
               const dateStr = format(date, 'yyyy/MM/dd');
               const dayQuestions = questionsByDate[dateStr] || [];
               
-              // 各日付セルの処理
-              const { isOver, setNodeRef } = useDroppable({
-                id: `date-${date.toISOString()}`,
-                data: { date },
-              });
-              
-              // セルのクラス名を設定
-              const cellClasses = `${styles.dateCell} 
-                ${isToday(date) ? styles.dateCellToday : ''} 
-                ${(date.getDay() === 0 || date.getDay() === 6) ? styles.dateCellWeekend : ''} 
-                ${isOver ? styles.dateCellOver : ''}`;
-              
               return (
-                <div 
+                <DateCell
                   key={date.toISOString()}
-                  ref={setNodeRef}
-                  className={cellClasses}
-                  onClick={() => handleDateClick(date)}
-                >
-                  <div className={styles.dateCellContent}>
-                    <div className={styles.dateHeader}>
-                      <div className={styles.dateNumber}>
-                        {date.getDate()}
-                      </div>
-                      {dayQuestions.length > 0 && (
-                        <div className={styles.questionBadge} title={`${dayQuestions.length}問のスケジュール`}>
-                          {dayQuestions.length}
-                        </div>
-                      )}
-                    </div>
-                    <div className={styles.questionList}>
-                      {dayQuestions.slice(0, 3).map(question => (
-                        <DraggableQuestion 
-                          key={question.id} 
-                          question={question} 
-                        />
-                      ))}
-                      {dayQuestions.length > 3 && (
-                        <div className={styles.showMore} onClick={(e) => {
-                          e.stopPropagation();
-                          handleDateClick(date);
-                        }}>
-                          他 {dayQuestions.length - 3} 件
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                  date={date}
+                  dayQuestions={dayQuestions}
+                  onDateClick={handleDateClick}
+                />
               );
             })}
           </div>
