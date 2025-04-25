@@ -17,7 +17,7 @@ import SettingsPage from './SettingsPage';
 import StatsPage from './StatsPage';
 import ReminderNotification from './ReminderNotification';
 import EnhancedStatsPage from './EnhancedStatsPage';
-import NotesPage from './NotesPage'; // NotesPage のインポートを追加
+// import NotesPage from './NotesPage'; // NotesPageのインポートを削除
 import SMEExamPage from './SMEExamPage'; // 中小企業診断士2次試験対策ページをインポート
 import ErrorBoundary from './components/ErrorBoundary';
 // エラーハンドリング関連のインポート
@@ -33,7 +33,11 @@ import {
   getStudyDataWithFallback, 
   getAnswerHistoryWithFallback, 
   saveStudyData, 
-  saveAnswerHistory 
+  saveAnswerHistory, 
+  openDatabase, 
+  closeDatabase, 
+  cleanupOldAnswerHistory, 
+  getDatabaseStats 
 } from './utils/indexedDB';
 import { createBackup, restoreFromBackup } from './utils/backup-restore';
 
@@ -153,6 +157,8 @@ function App() {
   // フィルタリング用の状態
   const [filterText, setFilterText] = useState('');
   const [showAnswered, setShowAnswered] = useState(false);
+  // パフォーマンスモニタリング用の状態変数を追加（App関数内のステート定義部分に追加）
+  const [memoryWarningShown, setMemoryWarningShown] = useState(false);
     
   // グローバルエラーハンドラーの設定
   useEffect(() => {
@@ -219,10 +225,7 @@ function App() {
           if (studyDataToSet && Array.isArray(studyDataToSet)) {
             // データ形式の互換性チェック
             studyDataToSet.forEach(subject => { 
-              // notes プロパティが存在しない場合初期化
-              if (typeof subject.notes === 'undefined') {
-                subject.notes = "<p></p>";
-              }
+              // notes プロパティの初期化を削除
               
               subject?.chapters?.forEach(chapter => { 
                 chapter?.questions?.forEach(q => { 
@@ -245,7 +248,7 @@ function App() {
             console.log('学習データを読み込み完了');
             
             // 展開状態の初期設定
-    const initialExpandedSubjectsState = {};
+            const initialExpandedSubjectsState = {};
             studyDataToSet.forEach(subject => { 
               if (subject?.id) { 
                 initialExpandedSubjectsState[subject.id] = false; 
@@ -254,7 +257,7 @@ function App() {
             if (studyDataToSet.length > 0 && studyDataToSet[0]?.id) { 
               initialExpandedSubjectsState[studyDataToSet[0].id] = true; 
             }
-    setExpandedSubjects(initialExpandedSubjectsState);
+            setExpandedSubjects(initialExpandedSubjectsState);
           } else {
             const initialData = generateInitialData();
             setSubjects(initialData);
@@ -1171,18 +1174,6 @@ const handleDataExport = () => {
   }
 };
 
-// 科目のノートを保存する関数
-const saveSubjectNote = (subjectId, noteContent) => {
-  setSubjects(prevSubjects => {
-    return prevSubjects.map(subject => {
-      if (subject.id === subjectId) {
-        return { ...subject, note: noteContent };
-      }
-      return subject;
-    });
-  });
-};
-
 // 新規問題を追加する関数
 const addQuestion = (newQuestion) => {
   setSubjects(prevSubjects => {
@@ -1323,7 +1314,57 @@ const handleRestoreData = async (backupData) => {
   }
 };
 
-// ★ アプリ全体のレンダリング (エラー状態対応) ★
+// 以下のコードをApp関数内のuseEffectとして追加（既存のuseEffectの後ろに追加）
+// アプリ初期化時のデータベース最適化
+useEffect(() => {
+  // データベース接続の初期化と最適化
+  const initializeDatabase = async () => {
+    try {
+      // データベース接続を開く（キャッシュされる）
+      await openDatabase();
+      
+      // メモリ使用状況の確認（開発時のみ）
+      if (process.env.NODE_ENV === 'development') {
+        const stats = await getDatabaseStats();
+        console.log('データベース統計:', stats);
+      }
+    } catch (error) {
+      console.error('データベース初期化エラー:', error);
+    }
+  };
+  
+  initializeDatabase();
+  
+  // アプリ終了時にデータベース接続を閉じる
+  return () => {
+    closeDatabase();
+  };
+}, []);
+
+// メモリ監視関数を修正
+useEffect(() => {
+  // ブラウザがPerformance APIをサポートしているか確認
+  if (window.performance && window.performance.memory) {
+    // 5秒ごとにメモリ使用量をチェック
+    const memoryCheckInterval = setInterval(() => {
+      const memoryInfo = window.performance.memory;
+      
+      // ヒープサイズが上限の80%を超えたら警告
+      if (memoryInfo.usedJSHeapSize > memoryInfo.jsHeapSizeLimit * 0.8 && !memoryWarningShown) {
+        console.warn('メモリ使用量が高くなっています。ページをリロードしてください。');
+        setMemoryWarningShown(true);
+        
+        // リソースを解放するため、不要なデータをクリア
+        closeDatabase(); // dbConnection変数を直接参照せず、関数を呼び出す
+        setTimeout(() => openDatabase(), 1000); // 1秒後に再接続
+      }
+    }, 5000);
+    
+    return () => clearInterval(memoryCheckInterval);
+  }
+}, [memoryWarningShown]);
+
+  // ★ アプリ全体のレンダリング (エラー状態対応) ★
   return (
   <ErrorBoundary>
     <NotificationProvider>
@@ -1386,7 +1427,6 @@ const handleRestoreData = async (backupData) => {
               handleRestoreData={handleRestoreData}
               getAllQuestions={getAllQuestions}
               addQuestion={addQuestion}
-              saveSubjectNote={saveSubjectNote}
               calculateTotalQuestionCount={calculateTotalQuestionCount}
               hasStorageError={hasStorageError}
               recordAnswer={recordAnswer}
