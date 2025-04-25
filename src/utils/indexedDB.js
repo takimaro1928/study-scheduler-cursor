@@ -19,6 +19,9 @@ const STORES = {
   FLASHCARD_TAGS: 'flashcardTags',    // タグ管理用のストア
 };
 
+// データベース接続のキャッシュ
+let dbConnection = null;
+
 /**
  * IndexedDBがサポートされているか確認
  * @returns {boolean} サポートされている場合はtrue
@@ -28,82 +31,120 @@ export const isIndexedDBSupported = () => {
 };
 
 /**
- * データベース接続を開く
+ * データベース接続の取得または初期化
  * @returns {Promise<IDBDatabase>} データベース接続
  */
 export const openDatabase = () => {
   return new Promise((resolve, reject) => {
-    if (!isIndexedDBSupported()) {
-      const errorMsg = 'このブラウザはIndexedDBをサポートしていません';
-      logWarning(errorMsg, CONTEXT);
-      reject(new Error(errorMsg));
-      return;
-    }
-
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-    // データベース構造のアップグレード（初回または新バージョン時に実行）
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      
-      // studyDataストア - 科目、チャプター、問題のデータを保存
-      if (!db.objectStoreNames.contains(STORES.STUDY_DATA)) {
-        db.createObjectStore(STORES.STUDY_DATA, { keyPath: 'id', autoIncrement: true });
+    try {
+      // すでに接続が確立されていればそれを返す（キャッシュ）
+      if (dbConnection && dbConnection.readyState === 'open') {
+        resolve(dbConnection);
+        return;
       }
       
-      // answerHistoryストア - 解答履歴を保存
-      if (!db.objectStoreNames.contains(STORES.ANSWER_HISTORY)) {
-        const answerHistoryStore = db.createObjectStore(STORES.ANSWER_HISTORY, { 
-          keyPath: 'id', 
-          autoIncrement: true 
-        });
-        // タイムスタンプとクエスチョンIDでインデックスを作成（検索を高速化）
-        answerHistoryStore.createIndex('timestamp', 'timestamp', { unique: false });
-        answerHistoryStore.createIndex('questionId', 'questionId', { unique: false });
+      if (!isIndexedDBSupported()) {
+        const errorMsg = 'このブラウザはIndexedDBをサポートしていません';
+        logWarning(errorMsg, CONTEXT);
+        reject(new Error(errorMsg));
+        return;
       }
       
-      // userSettingsストア - ユーザー設定を保存
-      if (!db.objectStoreNames.contains(STORES.USER_SETTINGS)) {
-        db.createObjectStore(STORES.USER_SETTINGS, { keyPath: 'key' });
-      }
+      // 新しい接続を作成
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
       
-      // flashcardsストア - 用語暗記カードデータを保存
-      if (!db.objectStoreNames.contains(STORES.FLASHCARDS)) {
-        const flashcardsStore = db.createObjectStore(STORES.FLASHCARDS, { keyPath: 'id' });
-        // インデックスを作成して検索とソートを高速化
-        flashcardsStore.createIndex('term', 'term', { unique: false });
-        flashcardsStore.createIndex('genres', 'genres', { unique: false, multiEntry: true });
-        flashcardsStore.createIndex('tags', 'tags', { unique: false, multiEntry: true });
-        flashcardsStore.createIndex('createdAt', 'createdAt', { unique: false });
-        flashcardsStore.createIndex('lastStudied', 'lastStudied', { unique: false });
-        flashcardsStore.createIndex('studyStatus', 'studyStatus', { unique: false });
-      }
+      // データベースのアップグレードが必要な場合
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        
+        // studyDataストア - 科目、チャプター、問題のデータを保存
+        if (!db.objectStoreNames.contains(STORES.STUDY_DATA)) {
+          db.createObjectStore(STORES.STUDY_DATA, { keyPath: 'id', autoIncrement: true });
+        }
+        
+        // answerHistoryストア - 解答履歴を保存
+        if (!db.objectStoreNames.contains(STORES.ANSWER_HISTORY)) {
+          const answerHistoryStore = db.createObjectStore(STORES.ANSWER_HISTORY, { 
+            keyPath: 'id', 
+            autoIncrement: true 
+          });
+          // タイムスタンプとクエスチョンIDでインデックスを作成（検索を高速化）
+          answerHistoryStore.createIndex('timestamp', 'timestamp', { unique: false });
+          answerHistoryStore.createIndex('questionId', 'questionId', { unique: false });
+        }
+        
+        // userSettingsストア - ユーザー設定を保存
+        if (!db.objectStoreNames.contains(STORES.USER_SETTINGS)) {
+          db.createObjectStore(STORES.USER_SETTINGS, { keyPath: 'key' });
+        }
+        
+        // flashcardsストア - 用語暗記カードデータを保存
+        if (!db.objectStoreNames.contains(STORES.FLASHCARDS)) {
+          const flashcardsStore = db.createObjectStore(STORES.FLASHCARDS, { keyPath: 'id' });
+          // インデックスを作成して検索とソートを高速化
+          flashcardsStore.createIndex('term', 'term', { unique: false });
+          flashcardsStore.createIndex('genres', 'genres', { unique: false, multiEntry: true });
+          flashcardsStore.createIndex('tags', 'tags', { unique: false, multiEntry: true });
+          flashcardsStore.createIndex('createdAt', 'createdAt', { unique: false });
+          flashcardsStore.createIndex('lastStudied', 'lastStudied', { unique: false });
+          flashcardsStore.createIndex('studyStatus', 'studyStatus', { unique: false });
+        }
+        
+        // ジャンル管理用のストア
+        if (!db.objectStoreNames.contains(STORES.FLASHCARD_GENRES)) {
+          db.createObjectStore(STORES.FLASHCARD_GENRES, { keyPath: 'id' });
+        }
+        
+        // タグ管理用のストア
+        if (!db.objectStoreNames.contains(STORES.FLASHCARD_TAGS)) {
+          db.createObjectStore(STORES.FLASHCARD_TAGS, { keyPath: 'id' });
+        }
+      };
       
-      // ジャンル管理用のストア
-      if (!db.objectStoreNames.contains(STORES.FLASHCARD_GENRES)) {
-        db.createObjectStore(STORES.FLASHCARD_GENRES, { keyPath: 'id' });
-      }
+      // 接続成功
+      request.onsuccess = (event) => {
+        const db = event.target.result;
+        
+        // グローバル変数に保存
+        dbConnection = db;
+        
+        // 接続が予期せず閉じられた場合の処理
+        db.onclose = () => {
+          dbConnection = null;
+        };
+        
+        // 接続エラーが発生した場合の処理
+        db.onerror = (event) => {
+          console.error('データベースエラー:', event.target.error);
+          logError(new Error('データベースエラー: ' + event.target.errorCode), CONTEXT);
+        };
+        
+        resolve(db);
+      };
       
-      // タグ管理用のストア
-      if (!db.objectStoreNames.contains(STORES.FLASHCARD_TAGS)) {
-        db.createObjectStore(STORES.FLASHCARD_TAGS, { keyPath: 'id' });
-      }
-      
-      console.log(`IndexedDB: データベース構造を初期化しました (version ${DB_VERSION})`);
-    };
-
-    request.onsuccess = (event) => {
-      const db = event.target.result;
-      console.log('IndexedDB: データベース接続に成功しました');
-      resolve(db);
-    };
-
-    request.onerror = (event) => {
-      const error = event.target.error;
+      // 接続失敗
+      request.onerror = (event) => {
+        const error = new Error('データベース接続エラー: ' + event.target.errorCode);
+        logError(error, CONTEXT);
+        reject(error);
+      };
+    } catch (error) {
       logError(error, CONTEXT, { action: 'openDatabase' });
       reject(error);
-    };
+    }
   });
+};
+
+/**
+ * データベース接続を閉じる
+ * メモリ最適化のために使用
+ */
+export const closeDatabase = () => {
+  if (dbConnection) {
+    dbConnection.close();
+    dbConnection = null;
+    console.log('IndexedDB接続を閉じました');
+  }
 };
 
 /**
@@ -117,191 +158,226 @@ export const saveData = (storeName, data, key = null) => {
   return new Promise((resolve, reject) => {
     openDatabase()
       .then(db => {
-        const transaction = db.transaction(storeName, 'readwrite');
-        const store = transaction.objectStore(storeName);
-        
-        let request;
-        if (key !== null) {
-          // キーが指定されている場合は明示的に使用
-          const dataWithKey = { ...data, key };
-          request = store.put(dataWithKey);
-        } else {
-          // キーが指定されていない場合は自動生成
-          request = store.put(data);
-        }
-        
-        request.onsuccess = (event) => {
-          resolve(event.target.result); // 生成されたキーまたは保存結果
-        };
-        
-        request.onerror = (event) => {
-          const error = event.target.error;
+        try {
+          const transaction = db.transaction(storeName, 'readwrite');
+          const store = transaction.objectStore(storeName);
+          
+          let request;
+          if (key !== null) {
+            // キーが指定されている場合は明示的に使用
+            request = store.put({ ...data, key });
+          } else {
+            // キーが指定されていない場合は自動生成
+            request = store.put(data);
+          }
+          
+          request.onsuccess = (event) => {
+            resolve(event.target.result); // 生成されたキーまたは保存結果
+          };
+          
+          request.onerror = (event) => {
+            const error = event.target.error;
+            logError(error, CONTEXT, { action: 'saveData', storeName });
+            reject(error);
+          };
+          
+          transaction.oncomplete = () => {
+            // この関数内では接続を閉じない（キャッシュして再利用）
+          };
+        } catch (error) {
           logError(error, CONTEXT, { action: 'saveData', storeName });
           reject(error);
-        };
-        
-        transaction.oncomplete = () => {
-          db.close();
-        };
+        }
       })
       .catch(reject);
   });
 };
 
 /**
- * 学習データを保存
+ * 学習データを保存（メモリ使用量最適化版）
  * @param {Array} subjects 科目データ
  * @returns {Promise<any>} 保存結果
  */
 export const saveStudyData = (subjects) => {
   return new Promise((resolve, reject) => {
     try {
-      // 保存する前にコピーを作成し、必要に応じてデータを整形
+      // タイムスタンプを追加（深いコピーは避ける）
       const dataToSave = { 
-        subjects: JSON.parse(JSON.stringify(subjects)),
+        subjects,
         timestamp: new Date().toISOString() 
       };
       
-      console.log('IndexedDB: 学習データの保存を開始します');
-      
-      // まずLocalStorageにバックアップ
+      // まずLocalStorageにバックアップ（重いオペレーションなので必要な場合のみ実行）
       try {
-        localStorage.setItem('studyData_backup', JSON.stringify(dataToSave));
-        console.log('IndexedDB: LocalStorageにバックアップを保存しました');
+        if (subjects && subjects.length > 0) {
+          localStorage.setItem('studyData_backup', JSON.stringify(dataToSave));
+        }
       } catch (e) {
         console.warn('IndexedDB: LocalStorageへのバックアップに失敗しました', e);
       }
       
       saveData(STORES.STUDY_DATA, dataToSave, 'main')
         .then((result) => {
-          console.log('IndexedDB: 学習データの保存に成功しました');
           resolve(result);
         })
         .catch((error) => {
-          console.error('IndexedDB: 学習データの保存に失敗しました', error);
           reject(error);
         });
     } catch (e) {
-      console.error('IndexedDB: 学習データの保存前の処理でエラーが発生しました', e);
       reject(e);
     }
   });
 };
 
 /**
- * 解答履歴を保存
+ * 解答履歴を保存（バッチ処理版）
  * @param {Array} history 履歴データ
  * @returns {Promise<any>} 保存結果 
  */
 export const saveAnswerHistory = (history) => {
   return new Promise((resolve, reject) => {
+    // データが空の場合は何もしない
+    if (!Array.isArray(history) || history.length === 0) {
+      resolve();
+      return;
+    }
+
     openDatabase()
       .then(db => {
-        const transaction = db.transaction(STORES.ANSWER_HISTORY, 'readwrite');
-        const store = transaction.objectStore(STORES.ANSWER_HISTORY);
-        
-        // 既存のデータをクリア
-        const clearRequest = store.clear();
-        
-        clearRequest.onsuccess = () => {
-          // データが空の場合は終了
-          if (!Array.isArray(history) || history.length === 0) {
-            resolve();
-            return;
-          }
+        try {
+          const transaction = db.transaction(STORES.ANSWER_HISTORY, 'readwrite');
+          const store = transaction.objectStore(STORES.ANSWER_HISTORY);
           
-          // すべてのデータを追加
-          let completed = 0;
+          // バッチサイズを定義（一度に処理する件数）
+          const BATCH_SIZE = 50;
+          let processed = 0;
           let errors = 0;
           
-          history.forEach((item, index) => {
-            // IDは自動生成するのでコピーから削除
-            const itemToSave = { ...item };
-            delete itemToSave.id;
-            
-            const addRequest = store.add(itemToSave);
-            
-            addRequest.onsuccess = () => {
-              completed++;
-              checkComplete();
-            };
-            
-            addRequest.onerror = (event) => {
-              errors++;
-              logError(event.target.error, CONTEXT, { 
-                action: 'saveAnswerHistory', 
-                index 
-              });
-              checkComplete();
-            };
-          });
-          
-          // すべての操作が終了したか確認
-          function checkComplete() {
-            if (completed + errors === history.length) {
-              console.log(`IndexedDB: ${completed}件の解答履歴を保存しました（${errors}件のエラー）`);
-              if (errors > 0) {
-                reject(new Error(`${errors}件の解答履歴の保存に失敗しました`));
-              } else {
-                resolve();
-              }
+          // バックアップとしてローカルストレージに保存（最新の100件のみ）
+          try {
+            if (history.length > 0) {
+              const recentHistory = history.slice(-100);
+              localStorage.setItem('studyHistory', JSON.stringify(recentHistory));
             }
+          } catch (e) {
+            console.warn('ローカルストレージへの履歴バックアップに失敗しました', e);
           }
-        };
-        
-        clearRequest.onerror = (event) => {
-          const error = event.target.error;
-          logError(error, CONTEXT, { action: 'clearAnswerHistory' });
+          
+          // データをバッチに分割
+          const batches = [];
+          for (let i = 0; i < history.length; i += BATCH_SIZE) {
+            batches.push(history.slice(i, i + BATCH_SIZE));
+          }
+          
+          let currentBatchIndex = 0;
+          
+          // バッチ処理関数
+          const processBatch = () => {
+            if (currentBatchIndex >= batches.length) {
+              // すべてのバッチ処理完了
+              transaction.oncomplete = () => {
+                console.log(`解答履歴を保存しました: ${processed}件成功、${errors}件エラー`);
+                resolve();
+              };
+              return;
+            }
+            
+            const currentBatch = batches[currentBatchIndex];
+            
+            // このバッチ内のすべてのデータを処理
+            Promise.all(currentBatch.map(item => {
+              return new Promise((resolveItem) => {
+                try {
+                  const request = store.add(item);
+                  
+                  request.onsuccess = () => {
+                    processed++;
+                    resolveItem();
+                  };
+                  
+                  request.onerror = (e) => {
+                    errors++;
+                    console.warn('履歴保存エラー:', e.target.error);
+                    resolveItem(); // エラーでも続行
+                  };
+                } catch (e) {
+                  errors++;
+                  console.warn('履歴処理エラー:', e);
+                  resolveItem(); // エラーでも続行
+                }
+              });
+            }))
+            .then(() => {
+              // メモリを解放するために明示的にバッチ参照を削除
+              batches[currentBatchIndex] = null;
+              
+              // GCを促進（オプショナル）
+              if (window.gc) {
+                try { window.gc(); } catch (e) {}
+              }
+              
+              // 次のバッチへ進む
+              currentBatchIndex++;
+              
+              // 非同期でタスクをスケジュール
+              setTimeout(processBatch, 0);
+            });
+          };
+          
+          // バッチ処理を開始
+          processBatch();
+          
+          transaction.onerror = (event) => {
+            reject(event.target.error);
+          };
+        } catch (error) {
+          logError(error, CONTEXT, { action: 'saveAnswerHistory' });
           reject(error);
-        };
-        
-        transaction.oncomplete = () => {
-          db.close();
-        };
+        }
       })
       .catch(reject);
   });
 };
 
 /**
- * 設定データを保存
+ * 設定値を保存
  * @param {string} key 設定キー
  * @param {any} value 設定値
- * @returns {Promise<void>} 保存結果
+ * @returns {Promise<any>} 保存結果
  */
 export const saveSetting = (key, value) => {
-  const data = { key, value, updatedAt: new Date().toISOString() };
-  return saveData(STORES.USER_SETTINGS, data);
+  return saveData(STORES.USER_SETTINGS, { value }, key);
 };
 
 /**
- * データを取得する
+ * データを取得（読み込み最適化版）
  * @param {string} storeName ストア名
- * @param {string|number} key 取得するデータのキー
+ * @param {string} key キー
  * @returns {Promise<any>} 取得したデータ
  */
 export const getData = (storeName, key) => {
   return new Promise((resolve, reject) => {
     openDatabase()
       .then(db => {
-        const transaction = db.transaction(storeName, 'readonly');
-        const store = transaction.objectStore(storeName);
-        const request = store.get(key);
-        
-        request.onsuccess = (event) => {
-          const data = event.target.result;
-          resolve(data);
-        };
-        
-        request.onerror = (event) => {
-          const error = event.target.error;
+        try {
+          const transaction = db.transaction(storeName, 'readonly');
+          const store = transaction.objectStore(storeName);
+          const request = store.get(key);
+          
+          request.onsuccess = (event) => {
+            const result = event.target.result;
+            resolve(result);
+          };
+          
+          request.onerror = (event) => {
+            const error = event.target.error;
+            logError(error, CONTEXT, { action: 'getData', storeName, key });
+            reject(error);
+          };
+        } catch (error) {
           logError(error, CONTEXT, { action: 'getData', storeName, key });
           reject(error);
-        };
-        
-        transaction.oncomplete = () => {
-          db.close();
-        };
+        }
       })
       .catch(reject);
   });
@@ -309,23 +385,183 @@ export const getData = (storeName, key) => {
 
 /**
  * 学習データを取得
- * @returns {Promise<Array>} 科目データ配列
+ * @returns {Promise<any>} 学習データ
  */
 export const getStudyData = () => {
+  return getData(STORES.STUDY_DATA, 'main')
+    .then(data => data ? data.subjects : [])
+    .catch(error => {
+      logError(error, CONTEXT, { action: 'getStudyData' });
+      return [];
+    });
+};
+
+/**
+ * ページング機能付きでデータをすべて取得
+ * @param {string} storeName ストア名
+ * @param {Object} options 取得オプション
+ * @param {number} options.pageSize ページサイズ
+ * @param {number} options.page ページ番号（0から開始）
+ * @returns {Promise<{data: Array, total: number, page: number, pageSize: number}>} 取得結果
+ */
+export const getAllDataPaged = (storeName, { pageSize = 100, page = 0 } = {}) => {
   return new Promise((resolve, reject) => {
-    getData(STORES.STUDY_DATA, 'main')
-      .then(data => {
-        if (data && data.subjects) {
-          resolve(data.subjects);
-        } else {
-          // データがない場合は空配列を返す
-          resolve([]);
+    openDatabase()
+      .then(db => {
+        try {
+          const transaction = db.transaction(storeName, 'readonly');
+          const store = transaction.objectStore(storeName);
+          
+          // 総件数を取得
+          const countRequest = store.count();
+          
+          countRequest.onsuccess = () => {
+            const total = countRequest.result;
+            
+            // データがなければ空配列を返す
+            if (total === 0) {
+              resolve({
+                data: [],
+                total: 0,
+                page,
+                pageSize
+              });
+              return;
+            }
+            
+            const start = page * pageSize;
+            const results = [];
+            
+            // 指定範囲のデータを取得
+            const cursorRequest = store.openCursor();
+            let counter = 0;
+            
+            cursorRequest.onsuccess = (event) => {
+              const cursor = event.target.result;
+              
+              if (!cursor) {
+                // 取得完了
+                resolve({
+                  data: results,
+                  total,
+                  page,
+                  pageSize
+                });
+                return;
+              }
+              
+              // 開始位置まではスキップ
+              if (counter < start) {
+                counter++;
+                cursor.continue();
+                return;
+              }
+              
+              // 指定件数取得したら終了
+              if (counter >= start + pageSize) {
+                resolve({
+                  data: results,
+                  total,
+                  page,
+                  pageSize
+                });
+                return;
+              }
+              
+              // データを追加
+              results.push(cursor.value);
+              counter++;
+              cursor.continue();
+            };
+            
+            cursorRequest.onerror = (event) => {
+              const error = event.target.error;
+              logError(error, CONTEXT, { action: 'getAllDataPaged', storeName });
+              reject(error);
+            };
+          };
+          
+          countRequest.onerror = (event) => {
+            const error = event.target.error;
+            logError(error, CONTEXT, { action: 'getAllDataPaged', storeName });
+            reject(error);
+          };
+        } catch (error) {
+          logError(error, CONTEXT, { action: 'getAllDataPaged', storeName });
+          reject(error);
         }
       })
-      .catch(error => {
-        logError(error, CONTEXT, { action: 'getStudyData' });
-        reject(error);
-      });
+      .catch(reject);
+  });
+};
+
+/**
+ * 古い解答履歴を削除（データベース容量の最適化）
+ * @param {number} maxDays 保持する最大日数（デフォルト90日）
+ * @returns {Promise<number>} 削除した件数
+ */
+export const cleanupOldAnswerHistory = (maxDays = 90) => {
+  return new Promise((resolve, reject) => {
+    openDatabase()
+      .then(db => {
+        try {
+          const transaction = db.transaction(STORES.ANSWER_HISTORY, 'readwrite');
+          const store = transaction.objectStore(STORES.ANSWER_HISTORY);
+          
+          // 基準日時を計算（現在から90日前）
+          const cutoffDate = new Date();
+          cutoffDate.setDate(cutoffDate.getDate() - maxDays);
+          
+          const index = store.index('timestamp');
+          const range = IDBKeyRange.upperBound(cutoffDate.toISOString());
+          
+          // 削除すべきレコードを検索
+          const countRequest = index.count(range);
+          let deleteCount = 0;
+          
+          countRequest.onsuccess = () => {
+            const count = countRequest.result;
+            
+            if (count === 0) {
+              resolve(0); // 削除対象なし
+              return;
+            }
+            
+            const cursorRequest = index.openCursor(range);
+            
+            cursorRequest.onsuccess = (event) => {
+              const cursor = event.target.result;
+              
+              if (!cursor) {
+                // 削除完了
+                resolve(deleteCount);
+                return;
+              }
+              
+              // このレコードを削除
+              const deleteRequest = cursor.delete();
+              
+              deleteRequest.onsuccess = () => {
+                deleteCount++;
+              };
+              
+              cursor.continue();
+            };
+          };
+          
+          transaction.oncomplete = () => {
+            resolve(deleteCount);
+          };
+          
+          transaction.onerror = (event) => {
+            reject(event.target.error);
+          };
+        } catch (error) {
+          logError(error, CONTEXT, { action: 'cleanupOldAnswerHistory' });
+          reject(error);
+        }
+      })
+      .catch(reject);
   });
 };
 
@@ -635,149 +871,94 @@ export const getAnswerHistoryWithFallback = () => {
 };
 
 /**
- * データベース全体の使用状況を取得
- * @returns {Promise<Object>} データベース使用状況の情報
+ * データベース使用状況の統計を取得
+ * @returns {Promise<Object>} 統計情報
  */
-export const getDatabaseStats = () => {
-  return new Promise((resolve, reject) => {
-    if (!isIndexedDBSupported()) {
-      resolve({
-        supported: false,
-        stores: {},
-        totalEntries: 0
-      });
-      return;
-    }
-    
-    openDatabase()
-      .then(async (db) => {
-        const stats = {
-          supported: true,
-          stores: {},
-          totalEntries: 0
-        };
-        
-        const storeNames = Object.values(STORES);
-        
-        // 各ストアのエントリ数を取得
-        for (const storeName of storeNames) {
-          try {
-            const count = await countEntries(db, storeName);
-            stats.stores[storeName] = { entries: count };
-            stats.totalEntries += count;
-          } catch (error) {
-            logError(error, CONTEXT, { action: 'getDatabaseStats', storeName });
-            stats.stores[storeName] = { entries: 0, error: error.message };
-          }
-        }
-        
-        db.close();
-        resolve(stats);
-      })
-      .catch(error => {
-        logError(error, CONTEXT, { action: 'getDatabaseStats' });
-        reject(error);
-      });
-  });
-};
-
-// ストア内のエントリ数を取得するヘルパー関数
-const countEntries = (db, storeName) => {
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(storeName, 'readonly');
-    const store = transaction.objectStore(storeName);
-    const countRequest = store.count();
-    
-    countRequest.onsuccess = () => {
-      resolve(countRequest.result);
-    };
-    
-    countRequest.onerror = (event) => {
-      reject(event.target.error);
-    };
-  });
-};
-
-/**
- * フラッシュカードを保存する
- * @param {Object} card - 保存するカード
- * @returns {Promise<string>} 保存されたカードのID
- */
-export const saveFlashcard = async (card) => {
+export const getDatabaseStats = async () => {
   try {
     const db = await openDatabase();
-    const transaction = db.transaction(STORES.FLASHCARDS, 'readwrite');
-    const store = transaction.objectStore(STORES.FLASHCARDS);
-
-    // 新しいカードの場合はIDを生成
-    if (!card.id) {
-      card.id = `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      card.createdAt = new Date().toISOString();
-    }
-
-    // 更新日時を設定
-    card.updatedAt = new Date().toISOString();
+    const stats = {};
     
-    // 学習状態が設定されていない場合は「未学習」をデフォルトに
-    if (!card.studyStatus) {
-      card.studyStatus = 'unlearned'; // 'unlearned' または 'learned'
+    // すべてのストアの統計を取得
+    for (const storeName of Object.values(STORES)) {
+      const transaction = db.transaction(storeName, 'readonly');
+      const store = transaction.objectStore(storeName);
+      
+      // レコード数を取得
+      const countRequest = store.count();
+      const count = await new Promise((resolve, reject) => {
+        countRequest.onsuccess = () => resolve(countRequest.result);
+        countRequest.onerror = (event) => reject(event.target.error);
+      });
+      
+      stats[storeName] = { count };
     }
-
-    const request = store.put(card);
     
-    return new Promise((resolve, reject) => {
-      request.onsuccess = () => {
-        console.log('フラッシュカードを保存しました:', card.id);
-        resolve(card.id);
+    // メモリ使用状況（Performance APIがある場合のみ）
+    if (window.performance && window.performance.memory) {
+      stats.memory = {
+        jsHeapSizeLimit: window.performance.memory.jsHeapSizeLimit,
+        totalJSHeapSize: window.performance.memory.totalJSHeapSize,
+        usedJSHeapSize: window.performance.memory.usedJSHeapSize
       };
-      
-      request.onerror = (event) => {
-        const error = event.target.error;
-        logError(error, CONTEXT, { action: 'saveFlashcard' });
-        reject(error);
-      };
-      
-      transaction.oncomplete = () => {
-        db.close();
-      };
-    });
+    }
+    
+    return stats;
   } catch (error) {
-    logError(error, CONTEXT, { action: 'saveFlashcard' });
-    throw error;
+    logError(error, CONTEXT, { action: 'getDatabaseStats' });
+    return { error: error.message };
   }
 };
 
 /**
- * フラッシュカードを削除する
- * @param {string} cardId - 削除するカードのID
+ * フラッシュカードの学習状態を更新する
+ * @param {string} cardId - カードのID
+ * @param {string} studyStatus - 新しい学習状態 ('unlearned' または 'learned')
  * @returns {Promise<void>}
  */
-export const deleteFlashcard = async (cardId) => {
+export const updateFlashcardStudyStatus = async (cardId, studyStatus) => {
   try {
     const db = await openDatabase();
     const transaction = db.transaction(STORES.FLASHCARDS, 'readwrite');
     const store = transaction.objectStore(STORES.FLASHCARDS);
-
-    const request = store.delete(cardId);
+    
+    // カードを取得
+    const request = store.get(cardId);
     
     return new Promise((resolve, reject) => {
-      request.onsuccess = () => {
-        console.log('フラッシュカードを削除しました:', cardId);
-        resolve();
+      request.onsuccess = (event) => {
+        const card = event.target.result;
+        if (!card) {
+          reject(new Error(`カードが見つかりません: ${cardId}`));
+          return;
+        }
+        
+        // 更新情報を設定
+        card.studyStatus = studyStatus;
+        card.lastStudied = new Date().toISOString();
+        
+        // 更新したカードを保存
+        const updateRequest = store.put(card);
+        
+        updateRequest.onsuccess = () => {
+          resolve();
+        };
+        
+        updateRequest.onerror = (e) => {
+          reject(e.target.error);
+        };
       };
       
-      request.onerror = (event) => {
-        const error = event.target.error;
-        logError(error, CONTEXT, { action: 'deleteFlashcard' });
-        reject(error);
+      request.onerror = (e) => {
+        reject(e.target.error);
       };
       
       transaction.oncomplete = () => {
-        db.close();
+        // db.close(); // 接続を閉じない（キャッシュ再利用のため）
       };
     });
   } catch (error) {
-    logError(error, CONTEXT, { action: 'deleteFlashcard' });
+    logError(error, CONTEXT, { action: 'updateFlashcardStudyStatus' });
     throw error;
   }
 };
@@ -796,7 +977,7 @@ export const getAllFlashcards = async () => {
     
     return new Promise((resolve, reject) => {
       request.onsuccess = (event) => {
-        const cards = event.target.result;
+        const cards = event.target.result || [];
         resolve(cards);
       };
       
@@ -807,7 +988,7 @@ export const getAllFlashcards = async () => {
       };
       
       transaction.oncomplete = () => {
-        db.close();
+        // db.close(); // 接続を閉じない（キャッシュ再利用のため）
       };
     });
   } catch (error) {
@@ -817,37 +998,125 @@ export const getAllFlashcards = async () => {
 };
 
 /**
- * 特定のIDのフラッシュカードを取得する
- * @param {string} cardId - 取得するカードのID
- * @returns {Promise<Object>} フラッシュカード
+ * すべてのフラッシュカードジャンルを取得する
+ * @returns {Promise<Array>} ジャンルの配列
  */
-export const getFlashcardById = async (cardId) => {
+export const getAllFlashcardGenres = async () => {
   try {
     const db = await openDatabase();
-    const transaction = db.transaction(STORES.FLASHCARDS, 'readonly');
-    const store = transaction.objectStore(STORES.FLASHCARDS);
+    const transaction = db.transaction(STORES.FLASHCARD_GENRES, 'readonly');
+    const store = transaction.objectStore(STORES.FLASHCARD_GENRES);
 
-    const request = store.get(cardId);
+    const request = store.getAll();
     
     return new Promise((resolve, reject) => {
       request.onsuccess = (event) => {
-        const card = event.target.result;
-        resolve(card);
+        const genres = event.target.result || [];
+        resolve(genres);
       };
       
       request.onerror = (event) => {
         const error = event.target.error;
-        logError(error, CONTEXT, { action: 'getFlashcardById' });
+        logError(error, CONTEXT, { action: 'getAllFlashcardGenres' });
         reject(error);
       };
       
       transaction.oncomplete = () => {
-        db.close();
+        // db.close(); // 接続を閉じない（キャッシュ再利用のため）
       };
     });
   } catch (error) {
-    logError(error, CONTEXT, { action: 'getFlashcardById' });
+    logError(error, CONTEXT, { action: 'getAllFlashcardGenres' });
     throw error;
+  }
+};
+
+/**
+ * すべてのフラッシュカードタグを取得する
+ * @returns {Promise<Array>} タグの配列
+ */
+export const getAllFlashcardTags = async () => {
+  try {
+    const db = await openDatabase();
+    const transaction = db.transaction(STORES.FLASHCARD_TAGS, 'readonly');
+    const store = transaction.objectStore(STORES.FLASHCARD_TAGS);
+
+    const request = store.getAll();
+    
+    return new Promise((resolve, reject) => {
+      request.onsuccess = (event) => {
+        const tags = event.target.result || [];
+        resolve(tags);
+      };
+      
+      request.onerror = (event) => {
+        const error = event.target.error;
+        logError(error, CONTEXT, { action: 'getAllFlashcardTags' });
+        reject(error);
+      };
+      
+      transaction.oncomplete = () => {
+        // db.close(); // 接続を閉じない（キャッシュ再利用のため）
+      };
+    });
+  } catch (error) {
+    logError(error, CONTEXT, { action: 'getAllFlashcardTags' });
+    throw error;
+  }
+};
+
+/**
+ * カード数のカウントを取得する
+ * @returns {Promise<Object>} 各ステータスごとのカード数
+ */
+export const getFlashcardCounts = async () => {
+  try {
+    const cards = await getAllFlashcards();
+    
+    const counts = {
+      total: cards.length,
+      learned: cards.filter(card => card.studyStatus === 'learned').length,
+      unlearned: cards.filter(card => card.studyStatus === 'unlearned' || !card.studyStatus).length,
+      learning: cards.filter(card => card.studyStatus === 'learning').length
+    };
+    
+    // ジャンルごとのカード数
+    const genreCounts = {};
+    cards.forEach(card => {
+      const genres = card.genres || [];
+      genres.forEach(genreId => {
+        if (!genreCounts[genreId]) {
+          genreCounts[genreId] = {
+            total: 0,
+            learned: 0,
+            unlearned: 0,
+            learning: 0
+          };
+        }
+        
+        genreCounts[genreId].total++;
+        if (card.studyStatus === 'learned') {
+          genreCounts[genreId].learned++;
+        } else if (card.studyStatus === 'learning') {
+          genreCounts[genreId].learning++;
+        } else {
+          genreCounts[genreId].unlearned++;
+        }
+      });
+    });
+    
+    counts.byGenre = genreCounts;
+    
+    return counts;
+  } catch (error) {
+    logError(error, CONTEXT, { action: 'getFlashcardCounts' });
+    return {
+      total: 0,
+      learned: 0,
+      unlearned: 0,
+      learning: 0,
+      byGenre: {}
+    };
   }
 };
 
@@ -873,8 +1142,8 @@ export const searchFlashcards = async (options = {}) => {
     if (options.searchTerm) {
       const term = options.searchTerm.toLowerCase();
       filtered = filtered.filter(card => 
-        card.term.toLowerCase().includes(term) || 
-        card.definition.toLowerCase().includes(term)
+        card.term?.toLowerCase().includes(term) || 
+        card.definition?.toLowerCase().includes(term)
       );
     }
     
@@ -906,7 +1175,9 @@ export const searchFlashcards = async (options = {}) => {
       
       filtered.sort((a, b) => {
         // 日本語の場合は自然順でソート
-        if (typeof a[sortField] === 'string' && /[\u3000-\u303F\u3040-\u309F\u30A0-\u30FF\uFF00-\uFFEF\u4E00-\u9FAF]/.test(a[sortField])) {
+        if (typeof a[sortField] === 'string' && 
+            typeof b[sortField] === 'string' && 
+            /[\u3000-\u303F\u3040-\u309F\u30A0-\u30FF\uFF00-\uFFEF\u4E00-\u9FAF]/.test(a[sortField])) {
           return sortOrder * a[sortField].localeCompare(b[sortField], 'ja');
         }
         
@@ -929,24 +1200,83 @@ export const searchFlashcards = async (options = {}) => {
 };
 
 /**
- * フラッシュカードの学習状態を更新する
- * @param {string} cardId - カードのID
- * @param {string} studyStatus - 新しい学習状態 ('unlearned' または 'learned')
+ * フラッシュカードを保存する
+ * @param {Object} card - 保存するカード
+ * @returns {Promise<string>} 保存されたカードのID
+ */
+export const saveFlashcard = async (card) => {
+  try {
+    const db = await openDatabase();
+    const transaction = db.transaction(STORES.FLASHCARDS, 'readwrite');
+    const store = transaction.objectStore(STORES.FLASHCARDS);
+
+    // 新しいカードの場合はIDを生成
+    if (!card.id) {
+      card.id = `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      card.createdAt = new Date().toISOString();
+    }
+
+    // 更新日時を設定
+    card.updatedAt = new Date().toISOString();
+    
+    // 学習状態が設定されていない場合は「未学習」をデフォルトに
+    if (!card.studyStatus) {
+      card.studyStatus = 'unlearned'; // 'unlearned' または 'learned'
+    }
+
+    const request = store.put(card);
+    
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => {
+        resolve(card.id);
+      };
+      
+      request.onerror = (event) => {
+        const error = event.target.error;
+        logError(error, CONTEXT, { action: 'saveFlashcard' });
+        reject(error);
+      };
+      
+      transaction.oncomplete = () => {
+        // db.close(); // 接続を閉じない（キャッシュ再利用のため）
+      };
+    });
+  } catch (error) {
+    logError(error, CONTEXT, { action: 'saveFlashcard' });
+    throw error;
+  }
+};
+
+/**
+ * フラッシュカードを削除する
+ * @param {string} cardId - 削除するカードのID
  * @returns {Promise<void>}
  */
-export const updateFlashcardStudyStatus = async (cardId, studyStatus) => {
+export const deleteFlashcard = async (cardId) => {
   try {
-    const card = await getFlashcardById(cardId);
-    if (!card) {
-      throw new Error(`カードが見つかりません: ${cardId}`);
-    }
+    const db = await openDatabase();
+    const transaction = db.transaction(STORES.FLASHCARDS, 'readwrite');
+    const store = transaction.objectStore(STORES.FLASHCARDS);
+
+    const request = store.delete(cardId);
     
-    card.studyStatus = studyStatus;
-    card.lastStudied = new Date().toISOString();
-    
-    await saveFlashcard(card);
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => {
+        resolve();
+      };
+      
+      request.onerror = (event) => {
+        const error = event.target.error;
+        logError(error, CONTEXT, { action: 'deleteFlashcard' });
+        reject(error);
+      };
+      
+      transaction.oncomplete = () => {
+        // db.close(); // 接続を閉じない（キャッシュ再利用のため）
+      };
+    });
   } catch (error) {
-    logError(error, CONTEXT, { action: 'updateFlashcardStudyStatus' });
+    logError(error, CONTEXT, { action: 'deleteFlashcard' });
     throw error;
   }
 };
@@ -975,7 +1305,6 @@ export const saveFlashcardGenre = async (genre) => {
     
     return new Promise((resolve, reject) => {
       request.onsuccess = () => {
-        console.log('フラッシュカードジャンルを保存しました:', genre.id);
         resolve(genre.id);
       };
       
@@ -986,95 +1315,11 @@ export const saveFlashcardGenre = async (genre) => {
       };
       
       transaction.oncomplete = () => {
-        db.close();
+        // db.close(); // 接続を閉じない（キャッシュ再利用のため）
       };
     });
   } catch (error) {
     logError(error, CONTEXT, { action: 'saveFlashcardGenre' });
-    throw error;
-  }
-};
-
-/**
- * すべてのフラッシュカードジャンルを取得する
- * @returns {Promise<Array>} ジャンルの配列
- */
-export const getAllFlashcardGenres = async () => {
-  try {
-    const db = await openDatabase();
-    const transaction = db.transaction(STORES.FLASHCARD_GENRES, 'readonly');
-    const store = transaction.objectStore(STORES.FLASHCARD_GENRES);
-
-    const request = store.getAll();
-    
-    return new Promise((resolve, reject) => {
-      request.onsuccess = (event) => {
-        const genres = event.target.result;
-        resolve(genres);
-      };
-      
-      request.onerror = (event) => {
-        const error = event.target.error;
-        logError(error, CONTEXT, { action: 'getAllFlashcardGenres' });
-        reject(error);
-      };
-      
-      transaction.oncomplete = () => {
-        db.close();
-      };
-    });
-  } catch (error) {
-    logError(error, CONTEXT, { action: 'getAllFlashcardGenres' });
-    throw error;
-  }
-};
-
-/**
- * フラッシュカードジャンルを削除する
- * @param {string} genreId - 削除するジャンルのID
- * @returns {Promise<void>}
- */
-export const deleteFlashcardGenre = async (genreId) => {
-  try {
-    const db = await openDatabase();
-    const transaction = db.transaction([STORES.FLASHCARD_GENRES, STORES.FLASHCARDS], 'readwrite');
-    const genreStore = transaction.objectStore(STORES.FLASHCARD_GENRES);
-    const cardStore = transaction.objectStore(STORES.FLASHCARDS);
-
-    // ジャンルを削除
-    const deleteRequest = genreStore.delete(genreId);
-    
-    // 削除するジャンルを持つすべてのカードを取得
-    const cards = await getAllFlashcards();
-    const cardsWithGenre = cards.filter(card => {
-      const cardGenres = card.genres || [];
-      return cardGenres.includes(genreId);
-    });
-    
-    // カードからジャンルを削除
-    for (const card of cardsWithGenre) {
-      card.genres = (card.genres || []).filter(id => id !== genreId);
-      await cardStore.put(card);
-    }
-    
-    return new Promise((resolve, reject) => {
-      deleteRequest.onsuccess = () => {
-        console.log('フラッシュカードジャンルを削除しました:', genreId);
-        resolve();
-      };
-      
-      deleteRequest.onerror = (event) => {
-        const error = event.target.error;
-        logError(error, CONTEXT, { action: 'deleteFlashcardGenre' });
-        reject(error);
-      };
-      
-      transaction.oncomplete = () => {
-        db.close();
-      };
-    });
-  } catch (error) {
-    logError(error, CONTEXT, { action: 'deleteFlashcardGenre' });
     throw error;
   }
 };
@@ -1103,7 +1348,6 @@ export const saveFlashcardTag = async (tag) => {
     
     return new Promise((resolve, reject) => {
       request.onsuccess = () => {
-        console.log('フラッシュカードタグを保存しました:', tag.id);
         resolve(tag.id);
       };
       
@@ -1114,7 +1358,7 @@ export const saveFlashcardTag = async (tag) => {
       };
       
       transaction.oncomplete = () => {
-        db.close();
+        // db.close(); // 接続を閉じない（キャッシュ再利用のため）
       };
     });
   } catch (error) {
@@ -1124,35 +1368,53 @@ export const saveFlashcardTag = async (tag) => {
 };
 
 /**
- * すべてのフラッシュカードタグを取得する
- * @returns {Promise<Array>} タグの配列
+ * フラッシュカードジャンルを削除する
+ * @param {string} genreId - 削除するジャンルのID
+ * @returns {Promise<void>}
  */
-export const getAllFlashcardTags = async () => {
+export const deleteFlashcardGenre = async (genreId) => {
   try {
     const db = await openDatabase();
-    const transaction = db.transaction(STORES.FLASHCARD_TAGS, 'readonly');
-    const store = transaction.objectStore(STORES.FLASHCARD_TAGS);
+    const transaction = db.transaction([STORES.FLASHCARD_GENRES, STORES.FLASHCARDS], 'readwrite');
+    const genreStore = transaction.objectStore(STORES.FLASHCARD_GENRES);
+    const cardStore = transaction.objectStore(STORES.FLASHCARDS);
 
-    const request = store.getAll();
+    // ジャンルを削除
+    const deleteRequest = genreStore.delete(genreId);
+    
+    // このジャンルを持つすべてのカードを取得
+    const cards = await getAllFlashcards();
+    const cardsWithGenre = cards.filter(card => {
+      const cardGenres = card.genres || [];
+      return cardGenres.includes(genreId);
+    });
+    
+    // カードからジャンルを削除
+    const updatePromises = cardsWithGenre.map(card => {
+      card.genres = (card.genres || []).filter(id => id !== genreId);
+      card.updatedAt = new Date().toISOString();
+      return cardStore.put(card);
+    });
     
     return new Promise((resolve, reject) => {
-      request.onsuccess = (event) => {
-        const tags = event.target.result;
-        resolve(tags);
+      deleteRequest.onsuccess = () => {
+        Promise.all(updatePromises.map(req => new Promise(res => {
+          req.onsuccess = res;
+        }))).then(() => resolve());
       };
       
-      request.onerror = (event) => {
+      deleteRequest.onerror = (event) => {
         const error = event.target.error;
-        logError(error, CONTEXT, { action: 'getAllFlashcardTags' });
+        logError(error, CONTEXT, { action: 'deleteFlashcardGenre' });
         reject(error);
       };
       
       transaction.oncomplete = () => {
-        db.close();
+        // db.close(); // 接続を閉じない（キャッシュ再利用のため）
       };
     });
   } catch (error) {
-    logError(error, CONTEXT, { action: 'getAllFlashcardTags' });
+    logError(error, CONTEXT, { action: 'deleteFlashcardGenre' });
     throw error;
   }
 };
@@ -1172,7 +1434,7 @@ export const deleteFlashcardTag = async (tagId) => {
     // タグを削除
     const deleteRequest = tagStore.delete(tagId);
     
-    // 削除するタグを持つすべてのカードを取得
+    // このタグを持つすべてのカードを取得
     const cards = await getAllFlashcards();
     const cardsWithTag = cards.filter(card => {
       const cardTags = card.tags || [];
@@ -1180,15 +1442,17 @@ export const deleteFlashcardTag = async (tagId) => {
     });
     
     // カードからタグを削除
-    for (const card of cardsWithTag) {
+    const updatePromises = cardsWithTag.map(card => {
       card.tags = (card.tags || []).filter(id => id !== tagId);
-      await cardStore.put(card);
-    }
+      card.updatedAt = new Date().toISOString();
+      return cardStore.put(card);
+    });
     
     return new Promise((resolve, reject) => {
       deleteRequest.onsuccess = () => {
-        console.log('フラッシュカードタグを削除しました:', tagId);
-        resolve();
+        Promise.all(updatePromises.map(req => new Promise(res => {
+          req.onsuccess = res;
+        }))).then(() => resolve());
       };
       
       deleteRequest.onerror = (event) => {
@@ -1198,7 +1462,7 @@ export const deleteFlashcardTag = async (tagId) => {
       };
       
       transaction.oncomplete = () => {
-        db.close();
+        // db.close(); // 接続を閉じない（キャッシュ再利用のため）
       };
     });
   } catch (error) {
@@ -1312,51 +1576,6 @@ export const importFlashcardData = async (importData, clearExisting = false) => 
     };
   } catch (error) {
     logError(error, CONTEXT, { action: 'importFlashcardData' });
-    throw error;
-  }
-};
-
-/**
- * カード数のカウントを取得する
- * @returns {Promise<Object>} 各ステータスごとのカード数
- */
-export const getFlashcardCounts = async () => {
-  try {
-    const cards = await getAllFlashcards();
-    
-    const counts = {
-      total: cards.length,
-      learned: cards.filter(card => card.studyStatus === 'learned').length,
-      unlearned: cards.filter(card => card.studyStatus === 'unlearned').length
-    };
-    
-    // ジャンルごとのカード数
-    const genreCounts = {};
-    cards.forEach(card => {
-      const genres = card.genres || [];
-      genres.forEach(genreId => {
-        if (!genreCounts[genreId]) {
-          genreCounts[genreId] = {
-            total: 0,
-            learned: 0,
-            unlearned: 0
-          };
-        }
-        
-        genreCounts[genreId].total++;
-        if (card.studyStatus === 'learned') {
-          genreCounts[genreId].learned++;
-        } else {
-          genreCounts[genreId].unlearned++;
-        }
-      });
-    });
-    
-    counts.byGenre = genreCounts;
-    
-    return counts;
-  } catch (error) {
-    logError(error, CONTEXT, { action: 'getFlashcardCounts' });
     throw error;
   }
 }; 
