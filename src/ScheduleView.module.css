@@ -178,9 +178,16 @@
   overflow: hidden;
 }
 
+/* 日付ヘッダー（日付番号と問題数バッジを横並びに） */
+.dateHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+}
+
 .dateNumber {
   font-weight: 600;
-  margin-bottom: 0.3rem;
   font-size: 0.85rem;
   text-align: center;
   line-height: 1.2;
@@ -192,19 +199,32 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: auto;
-  margin-right: auto;
+}
+
+/* 問題数バッジ */
+.questionBadge {
+  background-color: #3b82f6;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 1rem;
+  padding: 0.15rem 0.35rem;
+  min-width: 1.2rem;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* 問題リストエリア */
 .questionList {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
   overflow-y: auto;
   flex: 1;
-  max-height: 90px;
-  padding-right: 2px;
+  font-size: 0.7rem;
 }
 
 /* ドラッグ可能な問題アイテム */
