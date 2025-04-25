@@ -164,6 +164,40 @@ function App() {
     }
   }, []);
   
+  // ★ データリフレッシュ用のユーティリティ関数 ★
+  const refreshData = useCallback(async () => {
+    console.log("データリフレッシュを実行します");
+    
+    try {
+      // ストレージが使用不可の場合はスキップ
+      if (hasStorageError || !isStorageAvailable()) {
+        return;
+      }
+      
+      // 学習データのリロード
+      const refreshedStudyData = await getStudyDataWithFallback();
+      if (refreshedStudyData && Array.isArray(refreshedStudyData)) {
+        setSubjects(refreshedStudyData);
+        console.log("学習データをリフレッシュしました");
+      }
+      
+      // 解答履歴のリロード
+      const refreshedHistoryData = await getAnswerHistoryWithFallback();
+      if (refreshedHistoryData && Array.isArray(refreshedHistoryData)) {
+        setAnswerHistory(refreshedHistoryData);
+        console.log("解答履歴をリフレッシュしました");
+      }
+    } catch (error) {
+      console.error("データリフレッシュ中にエラーが発生しました:", error);
+    }
+  }, [hasStorageError]);
+  
+  // タブ切り替え時にデータをリフレッシュ
+  useEffect(() => {
+    // アクティブタブが変更されたらデータを最新化
+    refreshData();
+  }, [activeTab, refreshData]);
+  
   // ★ 初期データ読み込み処理 (IndexedDB対応) ★
   useEffect(() => {
     try {
@@ -454,7 +488,7 @@ const getQuestionsForDate = (date) => {
   const toggleSubject = (subjectId) => { setExpandedSubjects(prev => ({ ...prev, [subjectId]: !prev[subjectId] })); };
   const toggleChapter = (chapterId) => { setExpandedChapters(prev => ({ ...prev, [chapterId]: !prev[chapterId] })); };
 
-  // ★ 解答記録 & 履歴追加 (変更なし) ★
+  // ★ 解答記録 & 履歴追加 (リフレッシュ処理追加) ★
   const recordAnswer = (questionId, isCorrect, understanding) => { 
     const timestamp = new Date().toISOString(); 
     let updatedQuestionData = null; 
@@ -568,6 +602,16 @@ const getQuestionsForDate = (date) => {
         }; 
       }); 
       
+      // 即時保存処理を追加
+      try {
+        saveStudyData(newSubjects).catch(error => {
+          console.error("IndexedDBへの学習データ保存に失敗:", error);
+          setStorageItem('studyData', newSubjects);
+        });
+      } catch (e) { 
+        console.error("学習データ保存失敗:", e); 
+      }
+      
       return newSubjects; 
     }); 
     
@@ -580,7 +624,21 @@ const getQuestionsForDate = (date) => {
         understanding: understanding, 
       }; 
       
-      setAnswerHistory(prevHistory => [...prevHistory, newHistoryRecord]); 
+      setAnswerHistory(prevHistory => {
+        const updatedHistory = [...prevHistory, newHistoryRecord];
+        
+        // 即時保存処理を追加
+        try {
+          saveAnswerHistory(updatedHistory).catch(error => {
+            console.error("IndexedDBへの解答履歴保存に失敗:", error);
+            setStorageItem('studyHistory', updatedHistory);
+          });
+        } catch (e) { 
+          console.error("解答履歴保存失敗:", e); 
+        }
+        
+        return updatedHistory;
+      }); 
     } else { 
       console.warn("recordAnswer: Failed to find question or update data for", questionId); 
     } 
@@ -640,11 +698,25 @@ const getQuestionsForDate = (date) => {
       }); 
       
       console.log("日付変更完了");
+      
+      // タブを切り替えて戻ってきたときに最新のデータが表示されるよう、
+      // LocalStorageとIndexedDBを即座に更新
+      try {
+        // IndexedDBに保存（優先）
+        saveStudyData(newSubjects).catch(error => {
+          console.error("IndexedDBへの学習データ保存に失敗:", error);
+          // フォールバックとしてLocalStorageに保存
+          setStorageItem('studyData', newSubjects);
+        });
+      } catch (e) { 
+        console.error("学習データ保存失敗:", e); 
+      }
+      
       return newSubjects; 
-    }); 
+    });
   };
 
-  // ★ 個別編集保存 (変更なし) ★
+  // ★ 個別編集保存 (リフレッシュ処理追加) ★
   const saveQuestionEdit = (questionData) => { 
     console.log("編集保存 (App.js):", questionData); 
     console.log("日付変更デバッグ - 受け取ったnextDate:", questionData.nextDate);
@@ -730,13 +802,23 @@ const getQuestionsForDate = (date) => {
       // 変更を保存した旨をコンソールに表示
       console.log("問題編集を保存しました");
       
+      // 即時保存処理を追加
+      try {
+        saveStudyData(newSubjects).catch(error => {
+          console.error("IndexedDBへの学習データ保存に失敗:", error);
+          setStorageItem('studyData', newSubjects);
+        });
+      } catch (e) { 
+        console.error("学習データ保存失敗:", e); 
+      }
+      
       return newSubjects; 
     }); 
     
     setEditingQuestion(null); 
   };
 
-  // ★ 新しい一括編集関数 (変更なし) ★
+  // ★ 新しい一括編集関数 (リフレッシュ処理追加) ★
   const saveBulkEditItems = (itemsToUpdate, specificQuestionIds = null) => { 
     console.log("一括編集実行 (App.js):", itemsToUpdate, "対象:", specificQuestionIds || selectedQuestions); 
     
@@ -816,16 +898,25 @@ const getQuestionsForDate = (date) => {
         // アラートが邪魔なのでコンソールログに変更
         console.log(`${updatedCount}件の問題が更新されました。`);
       } 
+      
+      // 即時保存処理を追加
+      try {
+        saveStudyData(newSubjects).catch(error => {
+          console.error("IndexedDBへの学習データ保存に失敗:", error);
+          setStorageItem('studyData', newSubjects);
+        });
+      } catch (e) { 
+        console.error("学習データ保存失敗:", e); 
+      }
+      
       return newSubjects; 
     }); 
     
-    // 選択リセットは個別問題IDが指定されていない場合のみ行う
+    // 選択をリセット（一括編集後）
     if (!specificQuestionIds) {
-      setBulkEditMode(false); 
-      setSelectedQuestions([]); 
+      setSelectedQuestions([]);
+      setBulkEditMode(false);
     }
-    
-    console.log("一括編集完了"); 
   };
 
   // ★ 古い一括編集保存 (修正) ★
@@ -1290,6 +1381,7 @@ const handleRestoreData = async (backupData) => {
               getQuestionsForDate={getQuestionsForDate}
               editingQuestion={editingQuestion}
               saveQuestionEdit={saveQuestionEdit}
+              refreshData={refreshData}
             />
       </div>
       <div id="notification-area" className="fixed bottom-4 right-4 z-30"></div>
