@@ -28,7 +28,6 @@ const TopNavigation = ({ activeTab, setActiveTab }) => {
     { id: 'today', label: '今日の問題', icon: <Clock size={20} /> },
     { id: 'schedule', label: 'スケジュール', icon: <Calendar size={20} /> },
     { id: 'all', label: '全問題一覧', icon: <List size={20} /> },
-    { id: 'notes', label: 'ノート', icon: <Book size={20} /> },
     { id: 'stats', label: '学習統計', icon: <BookOpen size={20} /> },
     { id: 'ambiguous', label: '曖昧分析', icon: <AlertTriangle size={20} /> },
     { id: 'smeExam', label: '中小企業診断士', icon: <BookOpenIcon size={20} /> },
@@ -39,7 +38,7 @@ const TopNavigation = ({ activeTab, setActiveTab }) => {
   const mobileNavItems = [
     { id: 'today', label: '今日', icon: <Clock size={20} /> },
     { id: 'all', label: '全問題', icon: <List size={20} /> },
-    { id: 'notes', label: 'ノート', icon: <Book size={20} /> },
+    { id: 'stats', label: '統計', icon: <BookOpen size={20} /> },
     { id: 'smeExam', label: '診断士', icon: <BookOpenIcon size={20} /> },
     { id: 'menu', label: 'メニュー', icon: <Menu size={20} />, onClick: () => setIsMenuOpen(true) }
   ];
@@ -49,7 +48,6 @@ const TopNavigation = ({ activeTab, setActiveTab }) => {
     { id: 'today', label: '今日の問題', icon: <Clock size={18} /> },
     { id: 'schedule', label: 'スケジュール', icon: <Calendar size={18} /> },
     { id: 'all', label: '全問題一覧', icon: <List size={18} /> },
-    { id: 'notes', label: 'ノート', icon: <Book size={18} /> },
     { id: 'stats', label: '学習統計', icon: <BookOpen size={18} /> },
     { id: 'ambiguous', label: '曖昧分析', icon: <AlertTriangle size={18} /> },
     { id: 'smeExam', label: '中小企業診断士', icon: <BookOpenIcon size={18} /> },
