@@ -176,10 +176,13 @@ const QuestionEditModal = ({ question, onSave, onClose, formatDate }) => {
       console.log("保存するデータ:", dataToSave);
       console.log("特に次回日付:", dataToSave.nextDate);
       
-      // 保存してアニメーション付きで閉じる
+      // まず先にデータを保存
+      onSave(dataToSave); // App.js の saveQuestionEdit を呼び出す
+      
+      // 保存成功後にアニメーションを表示して閉じる
       setModalAnimation(styles.successModal);
       setTimeout(() => {
-        onSave(dataToSave); // App.js の saveQuestionEdit を呼び出す
+        onClose();
       }, 300);
     } catch (e) {
       console.error("保存処理中にエラーが発生しました:", e);
