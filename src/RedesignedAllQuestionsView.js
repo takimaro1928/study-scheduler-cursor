@@ -525,48 +525,141 @@ const RedesignedAllQuestionsView = ({
   // フィルタリングされた問題のカウントと実際に表示する問題の選択
   const { filteredQuestions, paginatedQuestions } = useMemo(() => {
     // フィルター処理は既存の関数をベースに実装
-    const filtered = []; // フィルタリングロジックを実装
+    const tempFilteredQuestions = [];
     
-    // フィルタリング実装（既存のフィルタリングロジックに基づく）
-    let tempFilteredQuestions = [];
-    
-    // 各科目をループ
-    subjects.forEach(subject => {
-      // 選択されたフィルターに基づいて科目をフィルタリング
-      if (filters.selectedSubjects.length > 0 && !filters.selectedSubjects.includes(subject.id)) {
-        return;
-      }
-      
-      subject.chapters.forEach(chapter => {
-        // 選択されたフィルターに基づいて章をフィルタリング
-        if (filters.selectedChapters.length > 0 && !filters.selectedChapters.includes(chapter.id)) {
+    // subjectsが配列であることを確認
+    if (Array.isArray(subjects)) {
+      // 各科目をループ
+      subjects.forEach(subject => {
+        if (!subject) return;
+        
+        // 選択されたフィルターに基づいて科目をフィルタリング
+        if (filters.selectedSubjects.length > 0 && !filters.selectedSubjects.includes(subject.id)) {
           return;
         }
         
-        // 各問題をループ
-        chapter.questions.forEach(question => {
-          // 問題のフィルタリング条件
-          const matchesFilter = !searchTerm || 
-            question.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (chapter.chapterName && chapter.chapterName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (subject.subjectName && subject.subjectName.toLowerCase().includes(searchTerm.toLowerCase()));
+        // chaptersが配列であることを確認
+        if (Array.isArray(subject.chapters)) {
+          subject.chapters.forEach(chapter => {
+            if (!chapter) return;
             
-          // 解答済みフィルタリング条件
-          const matchesAnsweredFilter = showAnswered || !question.lastAnswered;
-          
-          // すべての条件を満たす場合
-          if (matchesFilter && matchesAnsweredFilter) {
-            tempFilteredQuestions.push({
-              ...question,
-              chapterId: chapter.id,
-              chapterName: chapter.chapterName || '',
-              subjectId: subject.id,
-              subjectName: subject.subjectName || ''
-            });
-          }
-        });
+            // 選択されたフィルターに基づいて章をフィルタリング
+            if (filters.selectedChapters.length > 0 && !filters.selectedChapters.includes(chapter.id)) {
+              return;
+            }
+            
+            // questionsが配列であることを確認
+            if (Array.isArray(chapter.questions)) {
+              // 各問題をループ
+              chapter.questions.forEach(question => {
+                if (!question) return;
+                
+                // 検索フィルタリング (複数キーワード対応)
+                const searchKeywords = searchTerm
+                  .toLowerCase()
+                  .split(/\s+/)
+                  .filter(keyword => keyword.trim() !== "");
+                
+                let matchesSearch = true;
+                
+                if (searchKeywords.length > 0) {
+                  const questionId = question.id?.toLowerCase() || "";
+                  const comment = question.comment?.toLowerCase() || "";
+                  const subjectName = subject.name?.toLowerCase() || subject.subjectName?.toLowerCase() || "";
+                  const chapterName = chapter.name?.toLowerCase() || chapter.chapterName?.toLowerCase() || "";
+                  
+                  // いずれかのキーワードがマッチするかチェック (OR検索)
+                  matchesSearch = searchKeywords.some(
+                    (keyword) =>
+                      questionId.includes(keyword) ||
+                      subjectName.includes(keyword) ||
+                      chapterName.includes(keyword) ||
+                      comment.includes(keyword)
+                  );
+                }
+                
+                // 理解度フィルタリング
+                let matchesUnderstanding = true;
+                if (filters.understanding !== "all") {
+                  matchesUnderstanding = question.understanding?.startsWith(filters.understanding) || false;
+                }
+                
+                // 正解率範囲フィルタリング
+                let matchesCorrectRate = true;
+                const rate = question.correctRate ?? 0;
+                if (filters.correctRateMin && rate < parseInt(filters.correctRateMin, 10)) {
+                  matchesCorrectRate = false;
+                }
+                if (filters.correctRateMax && rate > parseInt(filters.correctRateMax, 10)) {
+                  matchesCorrectRate = false;
+                }
+                
+                // 解答回数範囲フィルタリング
+                let matchesAnswerCount = true;
+                const answerCount = question.answerCount ?? 0;
+                if (filters.answerCountMin && answerCount < parseInt(filters.answerCountMin, 10)) {
+                  matchesAnswerCount = false;
+                }
+                if (filters.answerCountMax && answerCount > parseInt(filters.answerCountMax, 10)) {
+                  matchesAnswerCount = false;
+                }
+                
+                // 次回予定日範囲フィルタリング
+                let matchesNextDate = true;
+                if (question.nextDate) {
+                  const nextDate = new Date(question.nextDate);
+                  if (filters.nextDateStart) {
+                    const startDate = new Date(filters.nextDateStart);
+                    if (nextDate < startDate) matchesNextDate = false;
+                  }
+                  if (filters.nextDateEnd) {
+                    const endDate = new Date(filters.nextDateEnd);
+                    endDate.setHours(23, 59, 59, 999); // 終了日は日の終わりまで
+                    if (nextDate > endDate) matchesNextDate = false;
+                  }
+                } else if (filters.nextDateStart || filters.nextDateEnd) {
+                  // 次回予定日が設定されておらず、フィルターが有効な場合は除外
+                  matchesNextDate = false;
+                }
+                
+                // 最終解答日範囲フィルタリング
+                let matchesLastAnswered = true;
+                if (question.lastAnswered) {
+                  const lastAnswered = new Date(question.lastAnswered);
+                  if (filters.lastAnsweredStart) {
+                    const startDate = new Date(filters.lastAnsweredStart);
+                    if (lastAnswered < startDate) matchesLastAnswered = false;
+                  }
+                  if (filters.lastAnsweredEnd) {
+                    const endDate = new Date(filters.lastAnsweredEnd);
+                    endDate.setHours(23, 59, 59, 999); // 終了日は日の終わりまで
+                    if (lastAnswered > endDate) matchesLastAnswered = false;
+                  }
+                } else if (filters.lastAnsweredStart || filters.lastAnsweredEnd) {
+                  // 最終解答日が設定されておらず、フィルターが有効な場合は除外
+                  matchesLastAnswered = false;
+                }
+                
+                // 解答済みフィルタリング条件
+                const matchesAnsweredFilter = showAnswered || !question.lastAnswered;
+                
+                // すべての条件を満たす場合
+                if (matchesSearch && matchesUnderstanding && matchesCorrectRate && 
+                    matchesAnswerCount && matchesNextDate && matchesLastAnswered && matchesAnsweredFilter) {
+                  tempFilteredQuestions.push({
+                    ...question,
+                    chapterId: chapter.id,
+                    chapterName: chapter.name || chapter.chapterName || '',
+                    subjectId: subject.id,
+                    subjectName: subject.name || subject.subjectName || ''
+                  });
+                }
+              });
+            }
+          });
+        }
       });
-    });
+    }
     
     // 自然順でソート
     tempFilteredQuestions.sort((a, b) => {
@@ -585,7 +678,7 @@ const RedesignedAllQuestionsView = ({
       filteredQuestions: tempFilteredQuestions,
       paginatedQuestions: paginated
     };
-  }, [subjects, searchTerm, showAnswered, currentPage]);
+  }, [subjects, searchTerm, filters, showAnswered, currentPage]);
   
   // 総ページ数の計算
   const totalPages = Math.ceil(totalFilteredCount / PAGE_SIZE);
@@ -1061,12 +1154,64 @@ const RedesignedAllQuestionsView = ({
       <div className="bg-white shadow-md rounded-lg overflow-hidden mb-4">
         {paginatedQuestions.length > 0 ? (
           <table className="min-w-full">
-            {/* テーブルヘッダー部分（既存コード） */}
+            {/* テーブルヘッダー */}
+            <thead>
+              <tr className={styles.tableHeader}>
+                {bulkEditMode && <th className={styles.checkboxHeader}></th>}
+                <th className={styles.idHeader}>ID</th>
+                <th className={styles.subjectHeader}>科目</th>
+                <th className={styles.chapterHeader}>章</th>
+                <th className={styles.understandingHeader}>理解度</th>
+                <th className={styles.actionHeader}></th>
+              </tr>
+            </thead>
+            {/* テーブルボディ */}
             <tbody>
               {paginatedQuestions.map((question) => (
-                <tr key={question.id}>
-                  <td className={styles.questionItem}>
-                    {/* 既存の行レンダリングコード */}
+                <tr key={question.id} className={styles.questionRow}>
+                  {bulkEditMode && (
+                    <td className={styles.checkboxCell}>
+                      <input
+                        type="checkbox"
+                        checked={selectedQuestions.includes(question.id)}
+                        onChange={() => toggleQuestionSelection(question.id)}
+                        className={styles.checkbox}
+                      />
+                    </td>
+                  )}
+                  <td className={styles.idCell}>
+                    <div className={styles.idText}>{question.id}</div>
+                  </td>
+                  <td className={styles.subjectCell}>
+                    <div className={styles.subjectText}
+                      style={{ 
+                        borderLeftColor: getSubjectColorCode(question.subjectName)
+                      }}
+                    >
+                      <HighlightedText text={question.subjectName} searchTerm={searchTerm} />
+                    </div>
+                  </td>
+                  <td className={styles.chapterCell}>
+                    <div className={styles.chapterText}>
+                      <HighlightedText text={question.chapterName} searchTerm={searchTerm} />
+                    </div>
+                  </td>
+                  <td className={styles.understandingCell}>
+                    {question.understanding && (
+                      <div className={getUnderstandingStyle(question.understanding).badgeClass}>
+                        {getUnderstandingStyle(question.understanding).icon}
+                        <span>{question.understanding}</span>
+                      </div>
+                    )}
+                  </td>
+                  <td className={styles.actionCell}>
+                    <button
+                      className={styles.editButton}
+                      onClick={() => setEditingQuestion(question)}
+                    >
+                      <Edit size={16} />
+                      編集
+                    </button>
                   </td>
                 </tr>
               ))}
