@@ -158,6 +158,34 @@ function App() {
     localStorage.getItem('currentTab') || 'today'
   );
   
+  // setActiveTabはsetCurrentTabのエイリアスとして定義
+  const setActiveTab = setCurrentTab;
+  
+  // UIステート
+  const [expandedSubjects, setExpandedSubjects] = useState({});
+  const [expandedChapters, setExpandedChapters] = useState({});
+  const [editingQuestion, setEditingQuestion] = useState(null);
+  const [bulkEditMode, setBulkEditMode] = useState(false);
+  const [selectedQuestions, setSelectedQuestions] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [showExportReminder, setShowExportReminder] = useState(false);
+  const [daysSinceLastExport, setDaysSinceLastExport] = useState(null);
+  const [hasStorageError, setHasStorageError] = useState(false);
+  const [filterText, setFilterText] = useState('');
+  const [showAnswered, setShowAnswered] = useState(false);
+  const [memoryWarningShown, setMemoryWarningShown] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  // グローバルエラーハンドラーの設定
+  useEffect(() => {
+    setupGlobalErrorHandlers();
+    
+    // ローカルストレージの可用性チェック
+    if (!isStorageAvailable()) {
+      setHasStorageError(true);
+    }
+  }, []);
+  
   // 最終データ更新時間の参照を保持
   const lastRefreshTimeRef = useRef(0);
   const REFRESH_THROTTLE_MS = 500; // 500ミリ秒のスロットリング
