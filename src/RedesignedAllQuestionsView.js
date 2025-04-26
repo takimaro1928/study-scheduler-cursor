@@ -383,251 +383,46 @@ const RedesignedAllQuestionsView = ({
 
   // フィルタリングされた問題のカウントと実際に表示する問題の選択
   const { filteredQuestions, paginatedQuestions } = useMemo(() => {
+    // デバッグ情報
+    console.log("RedesignedAllQuestionsView: フィルタリング処理開始");
+    console.log("allQuestions:", allQuestions);
+    console.log("subjects:", subjects);
+    
     // フィルター処理は既存の関数をベースに実装
     const tempFilteredQuestions = [];
     
-    // まずallQuestionsがあればそれを使う
+    // 最も単純なロジックで問題を表示する（デバッグ用）
     if (Array.isArray(allQuestions) && allQuestions.length > 0) {
       console.log(`allQuestionsから${allQuestions.length}件の問題を取得しました`);
       
+      // フィルタリングを一時的に無効化して、全ての問題を表示
       allQuestions.forEach(question => {
-        if (!question) return;
-        
-        // 検索フィルタリング (複数キーワード対応)
-        const searchKeywords = searchTerm
-          .toLowerCase()
-          .split(/\s+/)
-          .filter(keyword => keyword.trim() !== "");
-        
-        let matchesSearch = true;
-        
-        if (searchKeywords.length > 0) {
-          const questionId = question.id?.toLowerCase() || "";
-          const comment = question.comment?.toLowerCase() || "";
-          const subjectName = question.subjectName?.toLowerCase() || "";
-          const chapterName = question.chapterName?.toLowerCase() || "";
-          
-          // いずれかのキーワードがマッチするかチェック (OR検索)
-          matchesSearch = searchKeywords.some(
-            (keyword) =>
-              questionId.includes(keyword) ||
-              subjectName.includes(keyword) ||
-              chapterName.includes(keyword) ||
-              comment.includes(keyword)
-          );
-        }
-        
-        // 科目フィルター
-        let matchesSubject = true;
-        if (filters.selectedSubjects.length > 0) {
-          matchesSubject = filters.selectedSubjects.includes(question.subjectId);
-        }
-        
-        // 章フィルター
-        let matchesChapter = true;
-        if (filters.selectedChapters.length > 0) {
-          matchesChapter = filters.selectedChapters.includes(question.chapterId);
-        }
-        
-        // 理解度フィルタリング
-        let matchesUnderstanding = true;
-        if (filters.understanding !== "all") {
-          matchesUnderstanding = question.understanding?.startsWith(filters.understanding) || false;
-        }
-        
-        // 正解率範囲フィルタリング
-        let matchesCorrectRate = true;
-        const rate = question.correctRate ?? 0;
-        if (filters.correctRateMin && rate < parseInt(filters.correctRateMin, 10)) {
-          matchesCorrectRate = false;
-        }
-        if (filters.correctRateMax && rate > parseInt(filters.correctRateMax, 10)) {
-          matchesCorrectRate = false;
-        }
-        
-        // 解答回数範囲フィルタリング
-        let matchesAnswerCount = true;
-        const answerCount = question.answerCount ?? 0;
-        if (filters.answerCountMin && answerCount < parseInt(filters.answerCountMin, 10)) {
-          matchesAnswerCount = false;
-        }
-        if (filters.answerCountMax && answerCount > parseInt(filters.answerCountMax, 10)) {
-          matchesAnswerCount = false;
-        }
-        
-        // 次回予定日範囲フィルタリング
-        let matchesNextDate = true;
-        if (question.nextDate) {
-          const nextDate = new Date(question.nextDate);
-          if (filters.nextDateStart) {
-            const startDate = new Date(filters.nextDateStart);
-            if (nextDate < startDate) matchesNextDate = false;
-          }
-          if (filters.nextDateEnd) {
-            const endDate = new Date(filters.nextDateEnd);
-            endDate.setHours(23, 59, 59, 999); // 終了日は日の終わりまで
-            if (nextDate > endDate) matchesNextDate = false;
-          }
-        } else if (filters.nextDateStart || filters.nextDateEnd) {
-          // 次回予定日が設定されておらず、フィルターが有効な場合は除外
-          matchesNextDate = false;
-        }
-        
-        // 最終解答日範囲フィルタリング
-        let matchesLastAnswered = true;
-        if (question.lastAnswered) {
-          const lastAnswered = new Date(question.lastAnswered);
-          if (filters.lastAnsweredStart) {
-            const startDate = new Date(filters.lastAnsweredStart);
-            if (lastAnswered < startDate) matchesLastAnswered = false;
-          }
-          if (filters.lastAnsweredEnd) {
-            const endDate = new Date(filters.lastAnsweredEnd);
-            endDate.setHours(23, 59, 59, 999); // 終了日は日の終わりまで
-            if (lastAnswered > endDate) matchesLastAnswered = false;
-          }
-        } else if (filters.lastAnsweredStart || filters.lastAnsweredEnd) {
-          // 最終解答日が設定されておらず、フィルターが有効な場合は除外
-          matchesLastAnswered = false;
-        }
-        
-        // 解答済みフィルタリング条件
-        const matchesAnsweredFilter = showAnswered || !question.lastAnswered;
-        
-        // すべての条件を満たす場合
-        if (matchesSearch && matchesSubject && matchesChapter && 
-            matchesUnderstanding && matchesCorrectRate && 
-            matchesAnswerCount && matchesNextDate && 
-            matchesLastAnswered && matchesAnsweredFilter) {
+        if (question) {
           tempFilteredQuestions.push(question);
         }
       });
     } 
-    // 古い方法（subjectsから直接抽出）はバックアップとして残す
+    // 古い方法も試す（デバッグ用）
     else if (Array.isArray(subjects)) {
-      // 各科目をループ
+      console.log("subjectsからデータを取得します（代替手段）");
+      
+      // すべての科目から問題を抽出
       subjects.forEach(subject => {
         if (!subject) return;
         
-        // 選択されたフィルターに基づいて科目をフィルタリング
-        if (filters.selectedSubjects.length > 0 && !filters.selectedSubjects.includes(subject.id)) {
-          return;
-        }
-        
-        // chaptersが配列であることを確認
         if (Array.isArray(subject.chapters)) {
           subject.chapters.forEach(chapter => {
             if (!chapter) return;
             
-            // 選択されたフィルターに基づいて章をフィルタリング
-            if (filters.selectedChapters.length > 0 && !filters.selectedChapters.includes(chapter.id)) {
-              return;
-            }
-            
-            // questionsが配列であることを確認
             if (Array.isArray(chapter.questions)) {
-              // 各問題をループ
               chapter.questions.forEach(question => {
-                if (!question) return;
-                
-                // 検索フィルタリング (複数キーワード対応)
-                const searchKeywords = searchTerm
-                  .toLowerCase()
-                  .split(/\s+/)
-                  .filter(keyword => keyword.trim() !== "");
-                
-                let matchesSearch = true;
-                
-                if (searchKeywords.length > 0) {
-                  const questionId = question.id?.toLowerCase() || "";
-                  const comment = question.comment?.toLowerCase() || "";
-                  const subjectName = subject.name?.toLowerCase() || subject.subjectName?.toLowerCase() || "";
-                  const chapterName = chapter.name?.toLowerCase() || chapter.chapterName?.toLowerCase() || "";
-                  
-                  // いずれかのキーワードがマッチするかチェック (OR検索)
-                  matchesSearch = searchKeywords.some(
-                    (keyword) =>
-                      questionId.includes(keyword) ||
-                      subjectName.includes(keyword) ||
-                      chapterName.includes(keyword) ||
-                      comment.includes(keyword)
-                  );
-                }
-                
-                // 理解度フィルタリング
-                let matchesUnderstanding = true;
-                if (filters.understanding !== "all") {
-                  matchesUnderstanding = question.understanding?.startsWith(filters.understanding) || false;
-                }
-                
-                // 正解率範囲フィルタリング
-                let matchesCorrectRate = true;
-                const rate = question.correctRate ?? 0;
-                if (filters.correctRateMin && rate < parseInt(filters.correctRateMin, 10)) {
-                  matchesCorrectRate = false;
-                }
-                if (filters.correctRateMax && rate > parseInt(filters.correctRateMax, 10)) {
-                  matchesCorrectRate = false;
-                }
-                
-                // 解答回数範囲フィルタリング
-                let matchesAnswerCount = true;
-                const answerCount = question.answerCount ?? 0;
-                if (filters.answerCountMin && answerCount < parseInt(filters.answerCountMin, 10)) {
-                  matchesAnswerCount = false;
-                }
-                if (filters.answerCountMax && answerCount > parseInt(filters.answerCountMax, 10)) {
-                  matchesAnswerCount = false;
-                }
-                
-                // 次回予定日範囲フィルタリング
-                let matchesNextDate = true;
-                if (question.nextDate) {
-                  const nextDate = new Date(question.nextDate);
-                  if (filters.nextDateStart) {
-                    const startDate = new Date(filters.nextDateStart);
-                    if (nextDate < startDate) matchesNextDate = false;
-                  }
-                  if (filters.nextDateEnd) {
-                    const endDate = new Date(filters.nextDateEnd);
-                    endDate.setHours(23, 59, 59, 999); // 終了日は日の終わりまで
-                    if (nextDate > endDate) matchesNextDate = false;
-                  }
-                } else if (filters.nextDateStart || filters.nextDateEnd) {
-                  // 次回予定日が設定されておらず、フィルターが有効な場合は除外
-                  matchesNextDate = false;
-                }
-                
-                // 最終解答日範囲フィルタリング
-                let matchesLastAnswered = true;
-                if (question.lastAnswered) {
-                  const lastAnswered = new Date(question.lastAnswered);
-                  if (filters.lastAnsweredStart) {
-                    const startDate = new Date(filters.lastAnsweredStart);
-                    if (lastAnswered < startDate) matchesLastAnswered = false;
-                  }
-                  if (filters.lastAnsweredEnd) {
-                    const endDate = new Date(filters.lastAnsweredEnd);
-                    endDate.setHours(23, 59, 59, 999); // 終了日は日の終わりまで
-                    if (lastAnswered > endDate) matchesLastAnswered = false;
-                  }
-                } else if (filters.lastAnsweredStart || filters.lastAnsweredEnd) {
-                  // 最終解答日が設定されておらず、フィルターが有効な場合は除外
-                  matchesLastAnswered = false;
-                }
-                
-                // 解答済みフィルタリング条件
-                const matchesAnsweredFilter = showAnswered || !question.lastAnswered;
-                
-                // すべての条件を満たす場合
-                if (matchesSearch && matchesUnderstanding && matchesCorrectRate && 
-                    matchesAnswerCount && matchesNextDate && matchesLastAnswered && matchesAnsweredFilter) {
+                if (question) {
                   tempFilteredQuestions.push({
                     ...question,
-                    chapterId: chapter.id,
-                    chapterName: chapter.name || chapter.chapterName || '',
                     subjectId: subject.id,
-                    subjectName: subject.name || subject.subjectName || ''
+                    subjectName: subject.name || subject.subjectName || '未分類',
+                    chapterId: chapter.id,
+                    chapterName: chapter.name || chapter.chapterName || '未分類'
                   });
                 }
               });
@@ -637,10 +432,11 @@ const RedesignedAllQuestionsView = ({
       });
     }
     
+    console.log(`フィルタリング後の問題数: ${tempFilteredQuestions.length}`);
+    
     // 自然順でソート
     tempFilteredQuestions.sort((a, b) => {
-      // 既存のソート方法を使用
-      return a.id.localeCompare(b.id, undefined, { numeric: true });
+      return a.id?.localeCompare(b.id, undefined, { numeric: true }) || 0;
     });
     
     // 総件数を保存（ページング計算用）
@@ -650,11 +446,13 @@ const RedesignedAllQuestionsView = ({
     const startIndex = currentPage * PAGE_SIZE;
     const paginated = tempFilteredQuestions.slice(startIndex, startIndex + PAGE_SIZE);
     
+    console.log(`ページング処理後の表示問題数: ${paginated.length}`);
+    
     return { 
       filteredQuestions: tempFilteredQuestions,
       paginatedQuestions: paginated
     };
-  }, [allQuestions, subjects, searchTerm, filters, showAnswered, currentPage]);
+  }, [allQuestions, subjects, currentPage]);
   
   // 総ページ数の計算
   const totalPages = Math.ceil(totalFilteredCount / PAGE_SIZE);
