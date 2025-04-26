@@ -67,11 +67,16 @@ const MainView = ({
   const renderContent = () => {
     switch (activeTab) {
       case 'all':
+        console.log("MainView: 全問題一覧を表示します");
+        console.log("subjects:", subjects);
+        const questionsForAll = getAllQuestions(subjects);
+        console.log(`MainView: getAllQuestionsから${questionsForAll?.length || 0}件の問題を取得しました`);
+        
         return (
           <ErrorBoundary>
             <RedesignedAllQuestionsView
               subjects={subjects}
-              allQuestions={getAllQuestions(subjects)}
+              allQuestions={questionsForAll}
               expandedSubjects={expandedSubjects}
               expandedChapters={expandedChapters}
               toggleSubject={toggleSubject}
