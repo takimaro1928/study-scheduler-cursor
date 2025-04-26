@@ -3,7 +3,7 @@
 // generateInitialData 内の科目データ定義の省略を元に戻し、
 // useMemo を使って今日の問題リストを計算するように修正。
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react'; // useMemo をインポート
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'; // useMemo をインポート, useRefを追加
 // lucide-react のインポート
 import { Calendar, ChevronLeft, ChevronRight, List, Check, X, AlertTriangle, Info, Search, ChevronsUpDown } from 'lucide-react';
 // 他のコンポーネントインポート
@@ -176,17 +176,19 @@ function App() {
   }, []);
   
   // データ再読み込み関数の強化
-  let lastRefreshTime = 0;
+  // useRefを使ってレンダー間で値を保持
+  const lastRefreshTimeRef = useRef(0);
   const REFRESH_THROTTLE_MS = 60000; // 1分間は連続読み込みを防止
 
-  const refreshData = async () => {
+  // refreshData関数をuseCallbackでラップして安定した参照を保持
+  const refreshData = useCallback(async () => {
     // データロードの頻度を制限
     const now = Date.now();
-    if (now - lastRefreshTime < REFRESH_THROTTLE_MS) {
+    if (now - lastRefreshTimeRef.current < REFRESH_THROTTLE_MS) {
       console.log('データ読み込みの頻度を制限しています...');
       return;
     }
-    lastRefreshTime = now;
+    lastRefreshTimeRef.current = now;
 
     console.log("データを強制的に再読み込みしています...");
     
@@ -212,7 +214,7 @@ function App() {
     } catch (error) {
       console.error("データ再読み込み中にエラーが発生しました:", error);
     }
-  };
+  }, [setSubjects, setAnswerHistory, setForceUpdate]);
   
   // タブ切り替え時にデータをリフレッシュ
   useEffect(() => {
