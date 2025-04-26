@@ -1,5 +1,5 @@
-import { getStudyData, getAnswerHistory, getUserSettings, getFlashcards, 
-  getFlashcardGenres, getFlashcardTags } from './indexedDB';
+import { getSetting } from './indexedDB';
+import { getAnswerHistory } from './indexedDB';
 
 /**
  * 全データの数を取得する
@@ -7,35 +7,25 @@ import { getStudyData, getAnswerHistory, getUserSettings, getFlashcards,
  */
 export const getAllDataCount = async () => {
   try {
-    // 各種データを取得
-    const studyData = await getStudyData();
-    const answerHistory = await getAnswerHistory();
-    const userSettings = await getUserSettings();
-    const flashcards = await getFlashcards();
-    const flashcardGenres = await getFlashcardGenres();
-    const flashcardTags = await getFlashcardTags();
-
-    // 問題の総数を計算
-    const questionCount = studyData?.subjects?.reduce((total, subject) => {
-      return total + subject.chapters.reduce((chapterTotal, chapter) => {
-        return chapterTotal + (chapter.questions?.length || 0);
-      }, 0);
-    }, 0) || 0;
-
-    return {
-      questionCount,
-      answerHistoryCount: answerHistory?.length || 0,
-      settingsCount: userSettings ? 1 : 0,
-      flashcardCount: flashcards?.length || 0,
-      genreCount: flashcardGenres?.length || 0,
-      tagCount: flashcardTags?.length || 0,
-      totalCount: questionCount + 
-                 (answerHistory?.length || 0) + 
-                 (userSettings ? 1 : 0) + 
-                 (flashcards?.length || 0) + 
-                 (flashcardGenres?.length || 0) + 
-                 (flashcardTags?.length || 0)
+    // IndexedDBから直接データを取得
+    let dataCounts = {
+      questionCount: 0,
+      answerHistoryCount: 0,
+      settingsCount: 0,
+      flashcardCount: 0,
+      genreCount: 0,
+      tagCount: 0,
+      totalCount: 0
     };
+    
+    // 解答履歴の数を取得
+    const answerHistory = await getAnswerHistory();
+    dataCounts.answerHistoryCount = answerHistory?.length || 0;
+    
+    // その他のアイテム数は直接IndexedDBから取得
+    dataCounts.totalCount = dataCounts.answerHistoryCount;
+    
+    return dataCounts;
   } catch (error) {
     console.error('データ数の取得に失敗しました:', error);
     return {
