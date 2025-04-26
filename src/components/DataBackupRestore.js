@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getDatabaseStats, getAllDataCount } from '../utils/indexedDB';
-import { Save, UploadCloud, Database, AlertCircle, Check, Download, Upload, Info } from 'lucide-react';
+import { Save, UploadCloud, Database, AlertCircle, Check, Download, Upload, Info, Loader, AlertTriangle } from 'lucide-react';
 import styles from '../SettingsPage.module.css';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faDownload, faUpload, faCheck, faExclamationTriangle, faSpinner, faDatabase } from '@fortawesome/free-solid-svg-icons';
 import { formatDate } from '../utils/dateUtils';
 
 const DataBackupRestore = ({ onBackup, onRestore, loadDBStats, userData, userSettings, executeBackup, loadFromFile, getLastExportDate, formatLastExportDate }) => {
@@ -286,7 +284,7 @@ const DataBackupRestore = ({ onBackup, onRestore, loadDBStats, userData, userSet
       
       {getLastExportDate && (
         <p className={styles.lastExportDate}>
-          <FontAwesomeIcon icon={faDatabase} className="mr-1" />
+          <Database size={16} className="mr-1" />
           前回のバックアップ：{formatLastExportDate(getLastExportDate())}
         </p>
       )}
@@ -300,12 +298,12 @@ const DataBackupRestore = ({ onBackup, onRestore, loadDBStats, userData, userSet
         >
           {isExporting ? (
             <>
-              <FontAwesomeIcon icon={faSpinner} spin />
+              <Loader size={16} className="mr-2 animate-spin" />
               バックアップ中...
             </>
           ) : (
             <>
-              <FontAwesomeIcon icon={faDownload} className="mr-2" />
+              <Download size={16} className="mr-2" />
               データをバックアップ
             </>
           )}
@@ -325,12 +323,12 @@ const DataBackupRestore = ({ onBackup, onRestore, loadDBStats, userData, userSet
           <label htmlFor="restore-file" className={styles.fileInputLabel}>
             {selectedFile ? (
               <>
-                <FontAwesomeIcon icon={faCheck} className="mr-1" /> 
+                <Check size={16} className="mr-1" /> 
                 {selectedFile.name}
               </>
             ) : (
               <>
-                <FontAwesomeIcon icon={faUpload} className="mr-1" /> 
+                <Upload size={16} className="mr-1" /> 
                 バックアップファイルを選択
               </>
             )}
@@ -342,9 +340,9 @@ const DataBackupRestore = ({ onBackup, onRestore, loadDBStats, userData, userSet
             disabled={restoreStatus === 'processing'}
           >
             {restoreStatus === 'processing' ? (
-              <FontAwesomeIcon icon={faSpinner} spin className="mr-1" />
+              <Loader size={16} className="mr-1 animate-spin" />
             ) : (
-              <FontAwesomeIcon icon={selectedFile ? faDatabase : faUpload} className="mr-1" />
+              <Database size={16} className="mr-1" />
             )}
             {selectedFile 
               ? (restoreStatus === 'processing' 
