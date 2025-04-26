@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, memo } from 'react';
 import { Check, X, AlertTriangle, ChevronsUpDown, CheckCircle, ChevronUp, ChevronDown } from 'lucide-react';
-// import styles from './TodayView.module.css'; // CSS Modules を使う場合はこの行のコメントを解除し、下の className を styles.*** 形式に変更してください
+import styles from './TodayView.module.css'; // CSSモジュールをインポート
 
 // React.memoを使用してコンポーネントをメモ化
 const TodayView = memo(({ todayQuestions, recordAnswer, formatDate, refreshData }) => {
@@ -126,26 +126,25 @@ const TodayView = memo(({ todayQuestions, recordAnswer, formatDate, refreshData 
   // 各問題の曖昧状態判定のヘルパー関数
   const isAmbiguousPanelOpen = expandedAmbiguousId !== null;
 
-  // CSS Modules を使う場合は className="today-container" を className={styles.todayContainer} 等に変更
   return (
-    <div className="container">
+    <div className={styles.container}>
       {/* ページタイトル */}
-      <h2 className="section-title">
+      <h2 className={styles.sectionTitle}>
         <span>今日解く問題</span>
-        <span className="question-badge">
+        <span className={styles.questionBadge}>
           {formatDate(new Date())}
         </span>
       </h2>
 
-      {/* ★ todayQuestions が null や undefined, 空配列の場合の表示 */}
+      {/* todayQuestions が null や undefined, 空配列の場合の表示 */}
       {!unansweredQuestions || unansweredQuestions.length === 0 ? (
-        <div className="study-card">
+        <div className={styles.studyCard}>
           <p>今日解く問題はありません 🎉</p>
           <p>素晴らしい！ゆっくり休んでください。</p>
         </div>
       ) : (
         // 問題リスト
-        <div className="cards-container">
+        <div className={styles.cardsContainer}>
           {unansweredQuestions.map((question, questionIndex) => {
             // 質問が存在するか確認
             if (!question || !question.id) {
@@ -156,21 +155,21 @@ const TodayView = memo(({ todayQuestions, recordAnswer, formatDate, refreshData 
             const questionState = getQuestionState(question.id);
 
             return (
-              <div key={question.id} className="question-container">
-                <div className="section-title">
-                  <span className="section-dot"></span>
+              <div key={question.id} className={styles.questionContainer}>
+                <div className={styles.sectionTitle}>
+                  <span className={styles.sectionDot}></span>
                   問題 {questionIndex + 1}
                 </div>
                 
                 {/* --- 問題文表示エリア --- */}
-                <div className="question-content">
+                <div className={styles.questionContent}>
                   {question.content}
                 </div>
                 
                 {/* --- 解答表示ボタン --- */}
-                <div className="answer-toggle-container">
+                <div className={styles.answerToggleContainer}>
                   <button 
-                    className="answer-toggle-button"
+                    className={styles.answerToggleButton}
                     onClick={() => handleAnswerToggle(question.id)}
                   >
                     {showAnswers[question.id] ? '解答を隠す' : '解答を表示'}
@@ -179,8 +178,8 @@ const TodayView = memo(({ todayQuestions, recordAnswer, formatDate, refreshData 
                 
                 {/* --- 解答文表示エリア --- */}
                 {showAnswers[question.id] && (
-                  <div className="answer-content">
-                    <div className="section-title"><span className="section-dot"></span>解答</div>
+                  <div className={styles.answerContent}>
+                    <div className={styles.sectionTitle}><span className={styles.sectionDot}></span>解答</div>
                     {question.answer}
                   </div>
                 )}
@@ -188,10 +187,10 @@ const TodayView = memo(({ todayQuestions, recordAnswer, formatDate, refreshData 
                 {/* 理解度選択ボタン群 */}
                 {questionState.showComprehension && (
                   <>
-                    <div className="understanding-buttons">
+                    <div className={styles.understandingButtons}>
                       <button
-                        className={`understanding-button correct-button ${
-                          comprehensionStates[question.id] === 'understood' ? 'selected' : ''
+                        className={`${styles.understandingButton} ${styles.correctButton} ${
+                          comprehensionStates[question.id] === 'understood' ? styles.selected : ''
                         }`}
                         onClick={() => handleComprehensionClick(question.id, 'understood')}
                         disabled={expandedAmbiguousId !== null}
@@ -200,8 +199,8 @@ const TodayView = memo(({ todayQuestions, recordAnswer, formatDate, refreshData 
                         <span>理解できた</span>
                       </button>
                       <button
-                        className={`understanding-button incorrect-button ${
-                          comprehensionStates[question.id] === 'ambiguous' ? 'selected' : ''
+                        className={`${styles.understandingButton} ${styles.incorrectButton} ${
+                          comprehensionStates[question.id] === 'ambiguous' ? styles.selected : ''
                         }`}
                         onClick={() => handleAmbiguousClick(question.id)}
                         disabled={expandedAmbiguousId !== null && expandedAmbiguousId !== question.id}
@@ -215,28 +214,28 @@ const TodayView = memo(({ todayQuestions, recordAnswer, formatDate, refreshData 
 
                 {/* 曖昧理由選択パネル */}
                 {expandedAmbiguousId === question.id && (
-                  <div className="ambiguous-reasons-panel animate-fade-in">
-                    <div className="ambiguous-reasons-title">理解できた理由を選択してください：</div>
-                    <div className="ambiguous-reasons-list">
+                  <div className={`${styles.ambiguousReasonsPanel} ${styles.animateFadeIn}`}>
+                    <div className={styles.ambiguousReasonsTitle}>理解できた理由を選択してください：</div>
+                    <div className={styles.ambiguousReasonsList}>
                       {ambiguousReasons.map(reason => (
                         <button
                           key={reason.id}
-                          className={`ambiguous-reason-button ${selectedAmbiguousReason === reason.id ? 'selected' : ''}`}
+                          className={`${styles.ambiguousReasonButton} ${selectedAmbiguousReason === reason.id ? styles.selected : ''}`}
                           onClick={() => handleSelectAmbiguousReason(reason.id)}
                         >
                           {reason.text}
                         </button>
                       ))}
                     </div>
-                    <div className="ambiguous-reasons-actions">
+                    <div className={styles.ambiguousReasonsActions}>
                       <button 
-                        className="ambiguous-cancel-button"
+                        className={styles.ambiguousCancelButton}
                         onClick={handleCancelAmbiguousReason}
                       >
                         キャンセル
                       </button>
                       <button 
-                        className="ambiguous-confirm-button"
+                        className={styles.ambiguousConfirmButton}
                         onClick={handleConfirmAmbiguousReason}
                         disabled={!selectedAmbiguousReason}
                       >
