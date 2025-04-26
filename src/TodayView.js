@@ -98,12 +98,12 @@ const TodayView = memo(({ todayQuestions, recordAnswer, formatDate, refreshData 
   };
 
   const ambiguousReasons = [ // 6つの理由
-    { id: 1, text: '偶然正解した' },
-    { id: 2, text: '正解の選択肢は理解していたが、他の選択肢の意味が分かっていなかった' },
-    { id: 3, text: '合っていたが、別の理由を思い浮かべていた' },
-    { id: 4, text: '自信はなかったけど、これかなとは思っていた' }, 
-    { id: 5, text: '問題を覚えてしまっていた' }, 
-    { id: 6, text: 'その他' }
+    { id: 1, text: '偶然正解した', days: 8 },
+    { id: 2, text: '正解の選択肢は理解していたが、他の選択肢の意味が分かっていなかった', days: 8 },
+    { id: 3, text: '合っていたが、別の理由を思い浮かべていた', days: 8 },
+    { id: 4, text: '自信はなかったけど、これかなとは思っていた', days: 8 },
+    { id: 5, text: '問題を覚えてしまっていた', days: 8 },
+    { id: 6, text: 'その他', days: 8 }
   ];
 
   // 変更を適用した後のデータ更新
@@ -184,30 +184,51 @@ const TodayView = memo(({ todayQuestions, recordAnswer, formatDate, refreshData 
                   </div>
                 )}
 
+                {/* 正解・不正解ボタン */}
+                {!questionState.showComprehension && (
+                  <div className={styles.answerButtons}>
+                    <button
+                      className={styles.correctButton}
+                      onClick={() => handleAnswerClick(question.id, true)}
+                    >
+                      正解
+                    </button>
+                    <button
+                      className={styles.incorrectButton}
+                      onClick={() => handleAnswerClick(question.id, false)}
+                    >
+                      不正解
+                    </button>
+                  </div>
+                )}
+
                 {/* 理解度選択ボタン群 */}
                 {questionState.showComprehension && (
                   <>
-                    <div className={styles.understandingButtons}>
-                      <button
-                        className={`${styles.understandingButton} ${styles.correctButton} ${
-                          comprehensionStates[question.id] === 'understood' ? styles.selected : ''
-                        }`}
-                        onClick={() => handleComprehensionClick(question.id, 'understood')}
-                        disabled={expandedAmbiguousId !== null}
-                      >
-                        <Check size={18} />
-                        <span>理解できた</span>
-                      </button>
-                      <button
-                        className={`${styles.understandingButton} ${styles.incorrectButton} ${
-                          comprehensionStates[question.id] === 'ambiguous' ? styles.selected : ''
-                        }`}
-                        onClick={() => handleAmbiguousClick(question.id)}
-                        disabled={expandedAmbiguousId !== null && expandedAmbiguousId !== question.id}
-                      >
-                        <AlertTriangle size={18} />
-                        <span>曖昧・偶然</span>
-                      </button>
+                    <div className={styles.understandingChoice}>
+                      <p className={styles.choiceHeader}>理解度を選択</p>
+                      <div className={styles.understandingButtons}>
+                        <button
+                          className={`${styles.understandingButton} ${styles.correctButton} ${
+                            comprehensionStates[question.id] === 'understood' ? styles.selected : ''
+                          }`}
+                          onClick={() => handleComprehensionClick(question.id, 'understood')}
+                          disabled={expandedAmbiguousId !== null}
+                        >
+                          <Check size={18} />
+                          <span>理解済み</span>
+                        </button>
+                        <button
+                          className={`${styles.understandingButton} ${styles.ambiguousButton} ${
+                            comprehensionStates[question.id] === 'ambiguous' ? styles.selected : ''
+                          }`}
+                          onClick={() => handleAmbiguousClick(question.id)}
+                          disabled={expandedAmbiguousId !== null && expandedAmbiguousId !== question.id}
+                        >
+                          <AlertTriangle size={18} />
+                          <span>曖昧</span>
+                        </button>
+                      </div>
                     </div>
                   </>
                 )}
@@ -215,32 +236,21 @@ const TodayView = memo(({ todayQuestions, recordAnswer, formatDate, refreshData 
                 {/* 曖昧理由選択パネル */}
                 {expandedAmbiguousId === question.id && (
                   <div className={`${styles.ambiguousReasonsPanel} ${styles.animateFadeIn}`}>
-                    <div className={styles.ambiguousReasonsTitle}>理解できた理由を選択してください：</div>
+                    <div className={styles.ambiguousReasonsTitle}>曖昧だった理由を選択してください:</div>
                     <div className={styles.ambiguousReasonsList}>
                       {ambiguousReasons.map(reason => (
-                        <button
-                          key={reason.id}
-                          className={`${styles.ambiguousReasonButton} ${selectedAmbiguousReason === reason.id ? styles.selected : ''}`}
+                        <div 
+                          key={reason.id} 
+                          className={`${styles.ambiguousReasonItem} ${selectedAmbiguousReason === reason.id ? styles.selectedReason : ''}`}
                           onClick={() => handleSelectAmbiguousReason(reason.id)}
                         >
-                          {reason.text}
-                        </button>
+                          <div className={styles.reasonContent}>
+                            <span className={styles.reasonDot}></span>
+                            <span>{reason.text}</span>
+                          </div>
+                          <span className={styles.daysBadge}>{reason.days}日後</span>
+                        </div>
                       ))}
-                    </div>
-                    <div className={styles.ambiguousReasonsActions}>
-                      <button 
-                        className={styles.ambiguousCancelButton}
-                        onClick={handleCancelAmbiguousReason}
-                      >
-                        キャンセル
-                      </button>
-                      <button 
-                        className={styles.ambiguousConfirmButton}
-                        onClick={handleConfirmAmbiguousReason}
-                        disabled={!selectedAmbiguousReason}
-                      >
-                        確定
-                      </button>
                     </div>
                   </div>
                 )}
