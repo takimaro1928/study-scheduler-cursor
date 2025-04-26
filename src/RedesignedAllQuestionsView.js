@@ -384,6 +384,8 @@ const RedesignedAllQuestionsView = ({
   // フィルタリングされた問題のカウントと実際に表示する問題の選択
   const { filteredQuestions, paginatedQuestions, filteredSubjects } = useMemo(() => {
     console.log("RedesignedAllQuestionsView: フィルタリング処理開始");
+    console.log("subjects:", subjects);
+    console.log("allQuestions:", allQuestions);
     
     // フィルタリングされたサブジェクトデータを保持
     let tempFilteredSubjects = [];
@@ -405,11 +407,16 @@ const RedesignedAllQuestionsView = ({
       // 科目ごとの処理
       tempFilteredSubjects = subjects
         .map((subject) => {
-          if (!subject?.chapters) return { ...subject, chapters: [] };
+          if (!subject?.chapters) {
+            console.log(`警告: 科目 ${subject?.name || subject?.id || '不明'} にchaptersがありません`);
+            return { ...subject, chapters: [] };
+          }
   
           // 科目名を取得
           const subjectName = subject.name || subject.subjectName || "未分類";
           const subjectId = subject.id;
+          
+          console.log(`科目処理中: ${subjectName}, ${subject.chapters.length}章`);
   
           // 科目フィルター (アクティブな場合のみ適用)
           if (
@@ -422,7 +429,12 @@ const RedesignedAllQuestionsView = ({
           // 章ごとの処理
           const filteredChapters = subject.chapters
             .map((chapter) => {
-              if (!chapter?.questions) return { ...chapter, questions: [] };
+              if (!chapter?.questions) {
+                console.log(`警告: 章 ${chapter?.name || chapter?.id || '不明'} にquestionsがありません`);
+                return { ...chapter, questions: [] };
+              }
+              
+              console.log(`章処理中: ${chapter.name || chapter.chapterName || '不明'}, ${chapter.questions.length}問`);
   
               // 章名を取得
               const chapterName = chapter.name || chapter.chapterName || "未分類";
@@ -639,6 +651,8 @@ const RedesignedAllQuestionsView = ({
       
       // 問題データはあるがsubjectsがない場合は、仮の科目構造を作成
       if (tempFilteredQuestions.length > 0 && tempFilteredSubjects.length === 0) {
+        console.log("問題データから科目構造を生成します");
+        
         // 問題からユニークな科目を抽出
         const subjectMap = new Map();
         
@@ -674,7 +688,11 @@ const RedesignedAllQuestionsView = ({
           ...subject,
           chapters: Array.from(subject.chapters.values())
         }));
+        
+        console.log(`科目構造生成完了: ${tempFilteredSubjects.length}科目`);
       }
+    } else {
+      console.warn("警告: subjects と allQuestions の両方が空または無効です");
     }
     
     console.log(`フィルタリング後の問題数: ${tempFilteredQuestions.length}`);
@@ -693,6 +711,11 @@ const RedesignedAllQuestionsView = ({
     const paginated = tempFilteredQuestions.slice(startIndex, startIndex + PAGE_SIZE);
     
     console.log(`ページング処理後の表示問題数: ${paginated.length}`);
+    
+    // subjects と allQuestions が共に空の場合、ダミーデータを作成（開発用）
+    if (tempFilteredSubjects.length === 0 && tempFilteredQuestions.length === 0) {
+      console.warn("データが存在しません。初期化されていない可能性があります。");
+    }
     
     return { 
       filteredQuestions: tempFilteredQuestions,
@@ -757,9 +780,11 @@ const RedesignedAllQuestionsView = ({
     );
   };
 
-  // すべてのフィルターをリセット
+  // リセットボタンの動作を改善
   const resetAllFilters = () => {
+    console.log("すべてのフィルターをリセットします");
     setSearchTerm("");
+    setCurrentPage(0);
     setFilters({
       understanding: "all",
       selectedSubjects: [],
@@ -773,6 +798,13 @@ const RedesignedAllQuestionsView = ({
       lastAnsweredStart: "",
       lastAnsweredEnd: "",
     });
+    setShowAnswered(true);
+    
+    // データの再読み込み
+    if (refreshData) {
+      console.log("データを再読み込みします");
+      setTimeout(refreshData, 100);
+    }
   };
 
   // ★ 科目内の全問題選択/選択解除 ★
