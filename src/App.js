@@ -1635,6 +1635,24 @@ useEffect(() => {
     }
   };
 
+  // ★★★ アコーディオン開閉 ★★★
+  // 科目と章の開閉状態を制御する関数
+  const toggleSubject = (subjectId) => {
+    console.log(`科目トグル: ${subjectId}`);
+    setExpandedSubjects(prev => ({
+      ...prev,
+      [subjectId]: !prev[subjectId]
+    }));
+  };
+  
+  const toggleChapter = (chapterId) => {
+    console.log(`章トグル: ${chapterId}`);
+    setExpandedChapters(prev => ({
+      ...prev,
+      [chapterId]: !prev[chapterId]
+    }));
+  };
+
   // ★ アプリ全体のレンダリング (エラー状態対応) ★
   return (
   <ErrorBoundary>
@@ -1701,6 +1719,8 @@ useEffect(() => {
               setShowAnswered={setShowAnswered}
               expandedSubjects={expandedSubjects} 
               expandedChapters={expandedChapters}
+              toggleSubject={toggleSubject}
+              toggleChapter={toggleChapter}
               saveComment={saveComment}
               blockSaveOperations={blockSaveOperations}
               addQuestion={addQuestion}
@@ -1731,9 +1751,3 @@ const blockSaveOperations = (duration = 60000) => {
   
   return true;
 };
-
-// ★★★ アコーディオン開閉 ★★★
-// 科目と章の開閉状態を制御する関数
-  const setExpandedSubjects = (prev => ({
-    ...prev,
-  }));
