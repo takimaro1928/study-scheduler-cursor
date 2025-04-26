@@ -202,14 +202,6 @@ function App() {
         setAnswerHistory(history);
       }
       
-      // 日付と時刻の更新
-      const today = new Date();
-      setCurrentDate(today);
-      
-      // 日ごとの問題リストを再計算
-      const newTodayQuestions = getQuestionsForDate(today);
-      setTodayQuestionsList(newTodayQuestions);
-      
     } catch (error) {
       console.error("データ再読み込み中にエラーが発生しました:", error);
     }
