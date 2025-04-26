@@ -1528,7 +1528,6 @@ useEffect(() => {
 
 export default App;
 
-// cleanupMemoryUsage 関数の近くに次の関数を追加
 // データ保存操作の一時ブロック機能
 const blockSaveOperations = (duration = 60000) => {
   console.log(`データ保存操作を${duration/1000}秒間ブロックします`);
@@ -1541,94 +1540,5 @@ const blockSaveOperations = (duration = 60000) => {
   }, duration);
   
   return true;
-};
-
-// indexedDBにアクセスするコードを修正
-// cleanupMemoryUsage関数の中のindexedDB.blockSaveOperations呼び出しを修正
-
-// 以下のコードを探して:
-// if (typeof indexedDB.blockSaveOperations === 'function') {
-//   indexedDB.blockSaveOperations(60000); // 1分間データ保存をブロック
-// }
-
-// 次のように置き換え:
-// データ保存操作を一時的にブロック
-blockSaveOperations(60000); // 1分間データ保存をブロック
-
-// App関数内、return文の前に追加
-// 自動クリーンアップのトリガーを設定
-useEffect(() => {
-  // メモリ使用量が高い場合に自動的にクリーンアップを実行
-  const memoryWatcher = setInterval(() => {
-    try {
-      if (window.performance && window.performance.memory) {
-        const memoryInfo = window.performance.memory;
-        const usedRatio = memoryInfo.usedJSHeapSize / memoryInfo.jsHeapSizeLimit;
-        
-        // 使用率が60%を超えたらクリーンアップを実行
-        if (usedRatio > 0.6) {
-          console.log(`メモリ使用率が高いため(${Math.round(usedRatio * 100)}%)、自動クリーンアップを実行します`);
-          cleanupMemoryUsage(true);
-          
-          // データ保存操作を一時的にブロック
-          blockSaveOperations(60000); // 1分間データ保存をブロック
-        }
-      }
-    } catch (e) {
-      console.error('メモリ監視エラー:', e);
-    }
-  }, 30000); // 30秒ごとにチェック
-  
-  return () => clearInterval(memoryWatcher);
-}, []);
-
-// 日付が変わったときに更新するuseEffectを追加
-useEffect(() => {
-  // 毎日午前0時に日付を更新
-  const updateDate = () => {
-    const newDate = new Date().toISOString().split('T')[0];
-    setCurrentDate(newDate);
-  };
-
-  // 初回実行
-  updateDate();
-
-  // 1時間ごとにチェック（日付が変わったかどうか）
-  const interval = setInterval(() => {
-    const newDate = new Date().toISOString().split('T')[0];
-    if (newDate !== currentDate) {
-      updateDate();
-    }
-  }, 3600000); // 1時間 = 3600000ミリ秒
-
-  return () => clearInterval(interval);
-}, [currentDate]);
-
-// App関数内で、他の関数定義の近くに追加
-// メモリ使用量をクリーンアップする関数
-const cleanupMemoryUsage = (showMessage = false) => {
-  try {
-    // 不要なオブジェクトをクリア
-    if (window.gc) {
-      window.gc();
-    }
-    
-    // キャッシュをクリア
-    if ('caches' in window) {
-      caches.keys().then(names => {
-        for (let name of names) {
-          caches.delete(name);
-        }
-      });
-    }
-    
-    if (showMessage) {
-      alert('メモリクリーンアップが完了しました。一時的にデータ保存が停止されます。');
-    }
-    
-    console.log('メモリクリーンアップが実行されました');
-  } catch (e) {
-    console.error('メモリクリーンアップエラー:', e);
-  }
 };
 
