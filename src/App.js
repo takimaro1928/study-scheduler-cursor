@@ -158,6 +158,8 @@ function App() {
   const [showAnswered, setShowAnswered] = useState(false);
   // パフォーマンスモニタリング用の状態変数を追加（App関数内のステート定義部分に追加）
   const [memoryWarningShown, setMemoryWarningShown] = useState(false);
+  // App関数内の先頭部分（他のuseState宣言の近く）に以下を追加
+  const [forceUpdate, setForceUpdate] = useState(0);
     
   // グローバルエラーハンドラーの設定
   useEffect(() => {
