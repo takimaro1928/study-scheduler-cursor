@@ -39,6 +39,8 @@ import {
   getDatabaseStats 
 } from './utils/indexedDB';
 import { createBackup, restoreFromBackup } from './utils/backup-restore';
+// 他のコンポーネントインポートの近くに追加
+import NotesPage from './NotesPage.js'; // NotesPageコンポーネントのインポート（.js拡張子を追加）
 
 // 問題生成関数 (IDゼロパディング、understanding='理解○' 固定)
 function generateQuestions(prefix, start, end) {
@@ -160,6 +162,8 @@ function App() {
   const [memoryWarningShown, setMemoryWarningShown] = useState(false);
   // App関数内の先頭部分（他のuseState宣言の近く）に以下を追加
   const [forceUpdate, setForceUpdate] = useState(0);
+  // App関数内のuseState定義部分に以下を追加
+  const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
     
   // グローバルエラーハンドラーの設定
   useEffect(() => {
@@ -1384,57 +1388,33 @@ useEffect(() => {
 // App関数内で以下のコードを追加
 
 // メモリ監視とデータクリーンアップのための関数
-const cleanupMemoryUsage = (force = false) => {
-  // 実行頻度を制限するためのフラグチェック
-  if (window._isCleanupRunning) {
-    console.log('クリーンアップ処理が既に実行中です');
-    return false;
-  }
-  
-  window._isCleanupRunning = true;
-  console.log('メモリ使用状況チェック・クリーンアップ実行');
-  
+const cleanupMemoryUsage = (showMessage = false) => {
   try {
-    // 強制クリーンアップまたはメモリ使用量が閾値を超えた場合に実行
-    if (force || (window.performance && window.performance.memory && 
-        window.performance.memory.usedJSHeapSize > window.performance.memory.jsHeapSizeLimit * 0.7)) {
-      
-      console.log('大規模メモリクリーンアップを実行します');
-      
-      // 1. 解答履歴の古いデータを削除（90日以上前のデータ）
-      cleanupOldAnswerHistory(90)
-        .then(count => {
-          if (count > 0) {
-            console.log(`${count}件の古い解答履歴を削除しました`);
-          }
-        })
-        .catch(err => console.error('履歴クリーンアップエラー:', err))
-        .finally(() => {
-          // 完了時にフラグをリセット
-          window._isCleanupRunning = false;
-        });
-      
-      // 2. 内部キャッシュをクリア - forceUpdateは最小限に使用
-      // UIの再描画は必要な場合のみに限定
-      if (force) {
-        setForceUpdate(prev => prev + 1);
-      }
-      
-      // 3. 不要な配列を削除（参照を切る）
-      if (localStorage.getItem('tempDataCache')) {
-        localStorage.removeItem('tempDataCache');
-      }
-      
-      return true;
+    // 不要なオブジェクトをクリア
+    if (window.gc) {
+      window.gc();
     }
+    
+    // キャッシュをクリア
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        for (let name of names) {
+          caches.delete(name);
+        }
+      });
+    }
+    
+    if (showMessage) {
+      alert('メモリクリーンアップが完了しました。一時的にデータ保存が停止されます。');
+    }
+    
+    // データ保存操作を一時的にブロック
+    blockSaveOperations(60000); // 1分間データ保存をブロック
+    
+    console.log('メモリクリーンアップが実行されました');
   } catch (e) {
-    console.error('クリーンアップ処理でエラーが発生しました:', e);
-  } finally {
-    // 確実にフラグをリセット
-    window._isCleanupRunning = false;
+    console.error('メモリクリーンアップエラー:', e);
   }
-  
-  return false;
 };
 
 // 定期的なクリーンアップを実行するためのuseEffect
@@ -1548,7 +1528,35 @@ useEffect(() => {
 
 export default App;
 
-// 自動クリーンアップのトリガーを強化
+// cleanupMemoryUsage 関数の近くに次の関数を追加
+// データ保存操作の一時ブロック機能
+const blockSaveOperations = (duration = 60000) => {
+  console.log(`データ保存操作を${duration/1000}秒間ブロックします`);
+  window._blockSaveUntil = Date.now() + duration;
+  
+  // タイマーをセットしてブロック解除
+  setTimeout(() => {
+    window._blockSaveUntil = 0;
+    console.log('データ保存操作のブロックを解除しました');
+  }, duration);
+  
+  return true;
+};
+
+// indexedDBにアクセスするコードを修正
+// cleanupMemoryUsage関数の中のindexedDB.blockSaveOperations呼び出しを修正
+
+// 以下のコードを探して:
+// if (typeof indexedDB.blockSaveOperations === 'function') {
+//   indexedDB.blockSaveOperations(60000); // 1分間データ保存をブロック
+// }
+
+// 次のように置き換え:
+// データ保存操作を一時的にブロック
+blockSaveOperations(60000); // 1分間データ保存をブロック
+
+// App関数内、return文の前に追加
+// 自動クリーンアップのトリガーを設定
 useEffect(() => {
   // メモリ使用量が高い場合に自動的にクリーンアップを実行
   const memoryWatcher = setInterval(() => {
@@ -1563,9 +1571,7 @@ useEffect(() => {
           cleanupMemoryUsage(true);
           
           // データ保存操作を一時的にブロック
-          if (typeof blockSaveOperations === 'function') {
-            blockSaveOperations(60000); // 1分間データ保存をブロック
-          }
+          blockSaveOperations(60000); // 1分間データ保存をブロック
         }
       }
     } catch (e) {
@@ -1575,3 +1581,54 @@ useEffect(() => {
   
   return () => clearInterval(memoryWatcher);
 }, []);
+
+// 日付が変わったときに更新するuseEffectを追加
+useEffect(() => {
+  // 毎日午前0時に日付を更新
+  const updateDate = () => {
+    const newDate = new Date().toISOString().split('T')[0];
+    setCurrentDate(newDate);
+  };
+
+  // 初回実行
+  updateDate();
+
+  // 1時間ごとにチェック（日付が変わったかどうか）
+  const interval = setInterval(() => {
+    const newDate = new Date().toISOString().split('T')[0];
+    if (newDate !== currentDate) {
+      updateDate();
+    }
+  }, 3600000); // 1時間 = 3600000ミリ秒
+
+  return () => clearInterval(interval);
+}, [currentDate]);
+
+// App関数内で、他の関数定義の近くに追加
+// メモリ使用量をクリーンアップする関数
+const cleanupMemoryUsage = (showMessage = false) => {
+  try {
+    // 不要なオブジェクトをクリア
+    if (window.gc) {
+      window.gc();
+    }
+    
+    // キャッシュをクリア
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        for (let name of names) {
+          caches.delete(name);
+        }
+      });
+    }
+    
+    if (showMessage) {
+      alert('メモリクリーンアップが完了しました。一時的にデータ保存が停止されます。');
+    }
+    
+    console.log('メモリクリーンアップが実行されました');
+  } catch (e) {
+    console.error('メモリクリーンアップエラー:', e);
+  }
+};
+
