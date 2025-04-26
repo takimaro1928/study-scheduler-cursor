@@ -191,96 +191,9 @@ const RedesignedAllQuestionsView = ({
   // ページング用のstate追加
   const [currentPage, setCurrentPage] = useState(0);
   const [totalFilteredCount, setTotalFilteredCount] = useState(0);
-
-  // 現在選択されている科目のインデックス
-  const [currentSubjectIndex, setCurrentSubjectIndex] = useState(0);
   
-  // 科目間のページ移動処理
-  const handleSubjectPageChange = (newIndex) => {
-    if (newIndex >= 0 && newIndex < filteredSubjects.length) {
-      setCurrentSubjectIndex(newIndex);
-      // 章の展開状態をリセットせず、現在の状態を保持
-    }
-  };
-
-  // 現在表示すべき科目を取得
-  const currentSubject = useMemo(() => {
-    return filteredSubjects.length > 0 ? filteredSubjects[currentSubjectIndex] : null;
-  }, [filteredSubjects, currentSubjectIndex]);
-
-  // 科目が変わったときは科目インデックスをリセット
-  useEffect(() => {
-    if (filteredSubjects.length > 0 && currentSubjectIndex >= filteredSubjects.length) {
-      setCurrentSubjectIndex(0);
-    }
-  }, [filteredSubjects.length, currentSubjectIndex]);
-
-  // 科目ページャーコンポーネント
-  const SubjectPaginator = () => {
-    if (filteredSubjects.length <= 1) return null;
-    
-    return (
-      <div className="flex justify-center items-center my-4">
-        <button 
-          onClick={() => handleSubjectPageChange(0)} 
-          disabled={currentSubjectIndex === 0}
-          className="px-3 py-1 mx-1 bg-gray-200 rounded disabled:opacity-50"
-        >
-          ≪ 最初
-        </button>
-        <button 
-          onClick={() => handleSubjectPageChange(currentSubjectIndex - 1)} 
-          disabled={currentSubjectIndex === 0}
-          className="px-3 py-1 mx-1 bg-gray-200 rounded disabled:opacity-50"
-        >
-          ＜ 前の科目
-        </button>
-        
-        <div className="mx-2">
-          {currentSubjectIndex + 1} / {filteredSubjects.length} 科目
-        </div>
-        
-        <button 
-          onClick={() => handleSubjectPageChange(currentSubjectIndex + 1)} 
-          disabled={currentSubjectIndex >= filteredSubjects.length - 1}
-          className="px-3 py-1 mx-1 bg-gray-200 rounded disabled:opacity-50"
-        >
-          次の科目 ＞
-        </button>
-        <button 
-          onClick={() => handleSubjectPageChange(filteredSubjects.length - 1)} 
-          disabled={currentSubjectIndex >= filteredSubjects.length - 1}
-          className="px-3 py-1 mx-1 bg-gray-200 rounded disabled:opacity-50"
-        >
-          最後 ≫
-        </button>
-      </div>
-    );
-  };
-
-  // 科目選択ドロップダウン
-  const SubjectSelector = () => {
-    if (filteredSubjects.length <= 1) return null;
-    
-    return (
-      <div className="my-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">科目を選択:</label>
-        <select 
-          value={currentSubjectIndex}
-          onChange={(e) => handleSubjectPageChange(parseInt(e.target.value, 10))}
-          className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-        >
-          {filteredSubjects.map((subject, index) => (
-            <option key={subject.id} value={index}>
-              {subject.name || subject.subjectName || "未分類"} ({subject.chapters.reduce(
-                (total, chapter) => total + chapter.questions.length, 0
-              )}問)
-            </option>
-          ))}
-        </select>
-      </div>
-    );
-  };
+  // 検索条件に合った科目のみフィルタリング
+  const [currentSubjectIndex, setCurrentSubjectIndex] = useState(0);
 
   // ページリセット用の効果
   useEffect(() => {
@@ -321,68 +234,10 @@ const RedesignedAllQuestionsView = ({
     setChapterOptions(chapters);
   };
   
-  // アクティブなフィルター数を計算する関数
-  const updateActiveFiltersCount = () => {
-    let count = 0;
-
-    // 検索語句
-    if (searchTerm.trim()) count++;
-
-    // 理解度
-    if (filters.understanding !== "all") count++;
-
-    // 科目
-    if (
-      filters.selectedSubjects.length > 0 &&
-      filters.selectedSubjects.length < subjectOptions.length
-    )
-      count++;
-
-    // 章
-    if (
-      filters.selectedChapters.length > 0 &&
-      filters.selectedChapters.length < chapterOptions.length
-    )
-      count++;
-
-    // 正解率
-    if (filters.correctRateMin || filters.correctRateMax) count++;
-
-    // 解答回数
-    if (filters.answerCountMin || filters.answerCountMax) count++;
-
-    // 次回予定日
-    if (filters.nextDateStart || filters.nextDateEnd) count++;
-
-    // 最終解答日
-    if (filters.lastAnsweredStart || filters.lastAnsweredEnd) count++;
-
-    setActiveFiltersCount(count);
-  };
-  
-  // 選択された科目に基づいて章オプションを更新
+  // アクティブなフィルター数を計算
   useEffect(() => {
-    updateChapterOptions();
-  }, [filters.selectedSubjects]);
-  
-  // subjects が更新されたときにフィルタリングを再適用
-  useEffect(() => {
-    // フィルターカウントを再計算
     updateActiveFiltersCount();
-    
-    // データが変更されていれば科目・章オプションを再ロード
-    if (subjects && subjects.length > 0) {
-      // 科目オプションを抽出
-      const subjectOpts = subjects.map((subject) => ({
-        id: subject.id,
-        name: subject.name || subject.subjectName || "未分類",
-      }));
-      
-      setSubjectOptions(subjectOpts);
-      updateChapterOptions();
-      console.log("RedesignedAllQuestionsView: subjects 更新を検出");
-    }
-  }, [subjects]);
+  }, [filters, searchTerm, subjectOptions.length, chapterOptions.length]);
 
   // 科目選択を切り替える
   const toggleSubjectSelection = (subjectId) => {
@@ -466,10 +321,68 @@ const RedesignedAllQuestionsView = ({
     });
   };
 
-  // アクティブなフィルター数を計算
+  // アクティブなフィルター数を計算する関数
+  const updateActiveFiltersCount = () => {
+    let count = 0;
+
+    // 検索語句
+    if (searchTerm.trim()) count++;
+
+    // 理解度
+    if (filters.understanding !== "all") count++;
+
+    // 科目
+    if (
+      filters.selectedSubjects.length > 0 &&
+      filters.selectedSubjects.length < subjectOptions.length
+    )
+      count++;
+
+    // 章
+    if (
+      filters.selectedChapters.length > 0 &&
+      filters.selectedChapters.length < chapterOptions.length
+    )
+      count++;
+
+    // 正解率
+    if (filters.correctRateMin || filters.correctRateMax) count++;
+
+    // 解答回数
+    if (filters.answerCountMin || filters.answerCountMax) count++;
+
+    // 次回予定日
+    if (filters.nextDateStart || filters.nextDateEnd) count++;
+
+    // 最終解答日
+    if (filters.lastAnsweredStart || filters.lastAnsweredEnd) count++;
+
+    setActiveFiltersCount(count);
+  };
+  
+  // 選択された科目に基づいて章オプションを更新
   useEffect(() => {
+    updateChapterOptions();
+  }, [filters.selectedSubjects]);
+  
+  // subjects が更新されたときにフィルタリングを再適用
+  useEffect(() => {
+    // フィルターカウントを再計算
     updateActiveFiltersCount();
-  }, [filters, searchTerm, subjectOptions.length, chapterOptions.length]);
+    
+    // データが変更されていれば科目・章オプションを再ロード
+    if (subjects && subjects.length > 0) {
+      // 科目オプションを抽出
+      const subjectOpts = subjects.map((subject) => ({
+        id: subject.id,
+        name: subject.name || subject.subjectName || "未分類",
+      }));
+      
+      setSubjectOptions(subjectOpts);
+      updateChapterOptions();
+      console.log("RedesignedAllQuestionsView: subjects 更新を検出");
+    }
+  }, [subjects]);
 
   // フィルタリングされた問題のカウントと実際に表示する問題の選択
   const { filteredQuestions, paginatedQuestions, filteredSubjects } = useMemo(() => {
@@ -813,7 +726,7 @@ const RedesignedAllQuestionsView = ({
       filteredSubjects: tempFilteredSubjects
     };
   }, [subjects, allQuestions, searchTerm, filters, showAnswered, currentPage]);
-  
+
   // 総ページ数の計算
   const totalPages = Math.ceil(totalFilteredCount / PAGE_SIZE);
   
@@ -825,6 +738,104 @@ const RedesignedAllQuestionsView = ({
       // ページトップにスクロール
       window.scrollTo(0, 0);
     }
+  };
+
+  // 科目が変わったときは科目インデックスをリセット
+  useEffect(() => {
+    // filteredSubjectsが存在し、かつ長さがある場合
+    if (filteredSubjects && filteredSubjects.length > 0 && currentSubjectIndex >= filteredSubjects.length) {
+      setCurrentSubjectIndex(0);
+    }
+  }, [filteredSubjects, currentSubjectIndex]);
+
+  // 現在表示すべき科目を取得（filteredSubjectsが空の場合はnullを返す）
+  const currentSubject = useMemo(() => {
+    // filteredSubjectsがundefinedや空の場合
+    if (!filteredSubjects || filteredSubjects.length === 0) {
+      return null;
+    }
+    // 安全なインデックスを計算（範囲外の場合は0を使用）
+    const safeIndex = currentSubjectIndex < filteredSubjects.length ? 
+                      currentSubjectIndex : 0;
+    return filteredSubjects[safeIndex];
+  }, [filteredSubjects, currentSubjectIndex]);
+
+  // 科目間のページ移動処理
+  const handleSubjectPageChange = (newIndex) => {
+    // filteredSubjectsの長さチェック
+    if (filteredSubjects && newIndex >= 0 && newIndex < filteredSubjects.length) {
+      setCurrentSubjectIndex(newIndex);
+      // 章の展開状態をリセットせず、現在の状態を保持
+    }
+  };
+
+  // 科目ページャーコンポーネント
+  const SubjectPaginator = () => {
+    // filteredSubjectsの長さチェック
+    if (!filteredSubjects || filteredSubjects.length <= 1) return null;
+    
+    return (
+      <div className={styles.paginatorContainer}>
+        <button 
+          onClick={() => handleSubjectPageChange(0)} 
+          disabled={currentSubjectIndex === 0}
+          className={styles.paginatorButton}
+        >
+          ≪ 最初
+        </button>
+        <button 
+          onClick={() => handleSubjectPageChange(currentSubjectIndex - 1)} 
+          disabled={currentSubjectIndex === 0}
+          className={styles.paginatorButton}
+        >
+          ＜ 前の科目
+        </button>
+        
+        <div className={styles.paginatorInfo}>
+          {currentSubjectIndex + 1} / {filteredSubjects.length} 科目
+        </div>
+        
+        <button 
+          onClick={() => handleSubjectPageChange(currentSubjectIndex + 1)} 
+          disabled={currentSubjectIndex >= filteredSubjects.length - 1}
+          className={styles.paginatorButton}
+        >
+          次の科目 ＞
+        </button>
+        <button 
+          onClick={() => handleSubjectPageChange(filteredSubjects.length - 1)} 
+          disabled={currentSubjectIndex >= filteredSubjects.length - 1}
+          className={styles.paginatorButton}
+        >
+          最後 ≫
+        </button>
+      </div>
+    );
+  };
+
+  // 科目選択ドロップダウン
+  const SubjectSelector = () => {
+    // filteredSubjectsの長さチェック
+    if (!filteredSubjects || filteredSubjects.length <= 1) return null;
+    
+    return (
+      <div className={styles.selectorContainer}>
+        <label className={styles.selectorLabel}>科目を選択:</label>
+        <select 
+          value={currentSubjectIndex}
+          onChange={(e) => handleSubjectPageChange(parseInt(e.target.value, 10))}
+          className={styles.selectorDropdown}
+        >
+          {filteredSubjects.map((subject, index) => (
+            <option key={subject.id} value={index}>
+              {subject.name || subject.subjectName || "未分類"} ({subject.chapters.reduce(
+                (total, chapter) => total + chapter.questions.length, 0
+              )}問)
+            </option>
+          ))}
+        </select>
+      </div>
+    );
   };
   
   // ページャーコンポーネント
@@ -898,40 +909,38 @@ const RedesignedAllQuestionsView = ({
   };
 
   // ★ 科目内の全問題選択/選択解除 ★
-  const toggleSelectAllForSubject = (subject) => {
-    if (!subject || !Array.isArray(subject.chapters)) return;
-
-    // 科目内の全問題IDを収集
-    const allQuestionIdsInSubject = [];
-    subject.chapters.forEach((chapter) => {
-      if (Array.isArray(chapter.questions)) {
-        chapter.questions.forEach((question) => {
-          if (question && question.id) {
-            allQuestionIdsInSubject.push(question.id);
+  const toggleSelectAllForSubject = (subjectId) => {
+    if (!subjects) return;
+    
+    const subject = subjects.find(s => s.id === subjectId);
+    if (!subject || !subject.chapters) return;
+    
+    // 科目内のすべての問題IDを収集
+    const questionIds = subject.chapters.flatMap(chapter => 
+      chapter.questions.map(q => q.id)
+    );
+    
+    if (questionIds.length === 0) return;
+    
+    // すべての問題が選択されているかチェック
+    const allSelected = questionIds.every(id => selectedQuestions.includes(id));
+    
+    if (allSelected) {
+      // すべて選択されている場合は解除
+      setSelectedQuestions(prevSelected => 
+        prevSelected.filter(id => !questionIds.includes(id))
+      );
+    } else {
+      // 一部または全く選択されていない場合は全て選択
+      setSelectedQuestions(prevSelected => {
+        const newSelected = [...prevSelected];
+        questionIds.forEach(id => {
+          if (!newSelected.includes(id)) {
+            newSelected.push(id);
           }
         });
-      }
-    });
-
-    if (allQuestionIdsInSubject.length === 0) return;
-
-    // 全て選択されているかチェック
-    const allSelected = allQuestionIdsInSubject.every((id) =>
-      selectedQuestions.includes(id)
-    );
-
-    if (allSelected) {
-      // 全て選択されていれば、全て解除
-      const newSelectedQuestions = selectedQuestions.filter(
-        (id) => !allQuestionIdsInSubject.includes(id)
-      );
-      toggleQuestionSelection(newSelectedQuestions);
-    } else {
-      // そうでなければ、全て選択
-      const newSelectedQuestions = [
-        ...new Set([...selectedQuestions, ...allQuestionIdsInSubject]),
-      ];
-      toggleQuestionSelection(newSelectedQuestions);
+        return newSelected;
+      });
     }
   };
 
@@ -1003,7 +1012,7 @@ const RedesignedAllQuestionsView = ({
                       className={styles.bulkCheckboxContainer}
                       onClick={(e) => {
                         e.stopPropagation();
-                        toggleSelectAllForSubject && toggleSelectAllForSubject(currentSubject);
+                        toggleSelectAllForSubject && toggleSelectAllForSubject(currentSubject.id);
                       }}
                     >
                       <input
