@@ -3,17 +3,20 @@
 // props で getTodayQuestions の代わりに todayQuestions を受け取り、
 // 表示部分で科目名・章名を安全に表示するように修正。
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { Check, X, AlertTriangle, ChevronsUpDown, CheckCircle, ChevronUp, ChevronDown } from 'lucide-react';
 // import styles from './TodayView.module.css'; // CSS Modules を使う場合はこの行のコメントを解除し、下の className を styles.*** 形式に変更してください
 
-// props で getTodayQuestions の代わりに todayQuestions を受け取る
-const TodayView = ({ todayQuestions, recordAnswer, formatDate, refreshData }) => {
+// React.memoを使用してコンポーネントをメモ化
+const TodayView = memo(({ todayQuestions, recordAnswer, formatDate, refreshData }) => {
   // const todayQuestions = getTodayQuestions(); // ← この行は不要になったので削除またはコメントアウト
 
   const [expandedAmbiguousId, setExpandedAmbiguousId] = useState(null);
   const [questionStates, setQuestionStates] = useState({});
   const [answeredQuestions, setAnsweredQuestions] = useState([]);
+  const [showAnswers, setShowAnswers] = useState({});
+  const [comprehensionStates, setComprehensionStates] = useState({});
+  const [selectedAmbiguousReason, setSelectedAmbiguousReason] = useState(null);
 
   // --- ハンドラ関数群 (変更なし) ---
   const handleAnswerClick = (questionId, isCorrect) => {
@@ -27,30 +30,80 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate, refreshData }) =>
       setQuestionStates(prev => { const newState = {...prev}; delete newState[questionId]; return newState; });
     }
   };
+
+  const handleComprehensionClick = (questionId, state) => {
+    if (state === 'understood') {
+      handleUnderstandClick(questionId);
+    } else {
+      setComprehensionStates(prev => ({
+        ...prev,
+        [questionId]: state
+      }));
+    }
+  };
+
   const handleAmbiguousClick = (questionId) => {
+    setComprehensionStates(prev => ({
+      ...prev,
+      [questionId]: 'ambiguous'
+    }));
     setExpandedAmbiguousId(prevId => (prevId === questionId ? null : questionId));
   };
+
+  const handleSelectAmbiguousReason = (reasonId) => {
+    setSelectedAmbiguousReason(reasonId);
+  };
+
+  const handleConfirmAmbiguousReason = () => {
+    if (expandedAmbiguousId && selectedAmbiguousReason) {
+      const reason = ambiguousReasons.find(r => r.id === selectedAmbiguousReason);
+      selectAmbiguousReason(expandedAmbiguousId, reason.text);
+    }
+  };
+
+  const handleCancelAmbiguousReason = () => {
+    setExpandedAmbiguousId(null);
+    setSelectedAmbiguousReason(null);
+  };
+
+  const handleAnswerToggle = (questionId) => {
+    setShowAnswers(prev => ({
+      ...prev,
+      [questionId]: !prev[questionId]
+    }));
+  };
+
   const selectAmbiguousReason = (questionId, reason) => {
     recordAnswer(questionId, true, `曖昧△:${reason}`);
     setExpandedAmbiguousId(null); // 理由を選んだらパネルを閉じる
+    setSelectedAmbiguousReason(null);
     // 解答したら問題を非表示にする
     setAnsweredQuestions(prev => [...prev, questionId]);
     // 解答したら理解度選択状態はリセット
     setQuestionStates(prev => { const newState = {...prev}; delete newState[questionId]; return newState; });
+    setComprehensionStates(prev => { const newState = {...prev}; delete newState[questionId]; return newState; });
   };
+
   const handleUnderstandClick = (questionId) => {
     recordAnswer(questionId, true, '理解○');
     // 解答したら問題を非表示にする
     setAnsweredQuestions(prev => [...prev, questionId]);
     // 解答したら理解度選択状態はリセット
     setQuestionStates(prev => { const newState = {...prev}; delete newState[questionId]; return newState; });
+    setComprehensionStates(prev => { const newState = {...prev}; delete newState[questionId]; return newState; });
   };
-   const getQuestionState = (questionId) => {
+
+  const getQuestionState = (questionId) => {
     return questionStates[questionId] || { showComprehension: false };
   };
+
   const ambiguousReasons = [ // 6つの理由
-    '偶然正解した', '正解の選択肢は理解していたが、他の選択肢の意味が分かっていなかった', '合っていたが、別の理由を思い浮かべていた',
-    '自信はなかったけど、これかなとは思っていた', '問題を覚えてしまっていた', 'その他'
+    { id: 1, text: '偶然正解した' },
+    { id: 2, text: '正解の選択肢は理解していたが、他の選択肢の意味が分かっていなかった' },
+    { id: 3, text: '合っていたが、別の理由を思い浮かべていた' },
+    { id: 4, text: '自信はなかったけど、これかなとは思っていた' }, 
+    { id: 5, text: '問題を覚えてしまっていた' }, 
+    { id: 6, text: 'その他' }
   ];
 
   // 変更を適用した後のデータ更新
@@ -69,6 +122,9 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate, refreshData }) =>
   
   // 未回答の問題のみフィルタリング
   const unansweredQuestions = todayQuestions ? todayQuestions.filter(q => !answeredQuestions.includes(q.id)) : [];
+
+  // 各問題の曖昧状態判定のヘルパー関数
+  const isAmbiguousPanelOpen = expandedAmbiguousId !== null;
 
   // CSS Modules を使う場合は className="today-container" を className={styles.todayContainer} 等に変更
   return (
@@ -89,118 +145,123 @@ const TodayView = ({ todayQuestions, recordAnswer, formatDate, refreshData }) =>
         </div>
       ) : (
         // 問題リスト
-        <div className="study-cards-container">
-          {unansweredQuestions.map(question => {
-            // ★ question が null や undefined でないことを確認
+        <div className="cards-container">
+          {unansweredQuestions.map((question, questionIndex) => {
+            // 質問が存在するか確認
             if (!question || !question.id) {
-                console.warn("Rendering invalid question data:", question);
-                return null; // 不正なデータはスキップ
+              console.error('Invalid question object', question);
+              return null;
             }
+
             const questionState = getQuestionState(question.id);
-            const isAmbiguousPanelOpen = expandedAmbiguousId === question.id;
 
             return (
-              // 問題カード
-              <div key={question.id} className="study-card">
-                <div className="study-card-content">
-                  {/* 問題情報 - ★ nullish coalescing (?? '?') を使って安全に表示 */}
-                  <div className="subject-name">{question.subjectName || question.subject?.name || '?'}</div>
-                  <div className="chapter-name">{question.chapterName || question.chapter?.name || '?'}</div>
-                  <div className="question-badge">
-                    問題 {question.id}
+              <div key={question.id} className="question-container">
+                <div className="section-title">
+                  <span className="section-dot"></span>
+                  問題 {questionIndex + 1}
+                </div>
+                
+                {/* --- 問題文表示エリア --- */}
+                <div className="question-content">
+                  {question.content}
+                </div>
+                
+                {/* --- 解答表示ボタン --- */}
+                <div className="answer-toggle-container">
+                  <button 
+                    className="answer-toggle-button"
+                    onClick={() => handleAnswerToggle(question.id)}
+                  >
+                    {showAnswers[question.id] ? '解答を隠す' : '解答を表示'}
+                  </button>
+                </div>
+                
+                {/* --- 解答文表示エリア --- */}
+                {showAnswers[question.id] && (
+                  <div className="answer-content">
+                    <div className="section-title"><span className="section-dot"></span>解答</div>
+                    {question.answer}
                   </div>
+                )}
 
-                  {/* --- 正誤ボタンエリア --- */}
-                  {!questionState.showComprehension && (
-                    <div>
-                      <div className="section-title"><span className="section-dot"></span>解答結果</div>
-                      <div className="answer-buttons-container">
-                        <button
-                          className="answer-button bg-white border-green-400 min-w-[160px]"
-                          onClick={() => handleAnswerClick(question.id, true)}
-                          disabled={questionState.showComprehension || isAmbiguousPanelOpen || false}
-                        >
-                          正解
-                        </button>
-                        <button
-                          className="answer-button bg-white border-red-400 min-w-[160px]"
-                          onClick={() => handleAnswerClick(question.id, false)}
-                          disabled={questionState.showComprehension || isAmbiguousPanelOpen || false}
-                        >
-                          不正解
-                        </button>
-                      </div>
+                {/* 理解度選択ボタン群 */}
+                {questionState.showComprehension && (
+                  <>
+                    <div className="understanding-buttons">
+                      <button
+                        className={`understanding-button correct-button ${
+                          comprehensionStates[question.id] === 'understood' ? 'selected' : ''
+                        }`}
+                        onClick={() => handleComprehensionClick(question.id, 'understood')}
+                        disabled={expandedAmbiguousId !== null}
+                      >
+                        <Check size={18} />
+                        <span>理解できた</span>
+                      </button>
+                      <button
+                        className={`understanding-button incorrect-button ${
+                          comprehensionStates[question.id] === 'ambiguous' ? 'selected' : ''
+                        }`}
+                        onClick={() => handleAmbiguousClick(question.id)}
+                        disabled={expandedAmbiguousId !== null && expandedAmbiguousId !== question.id}
+                      >
+                        <AlertTriangle size={18} />
+                        <span>曖昧・偶然</span>
+                      </button>
                     </div>
-                  )}
+                  </>
+                )}
 
-                  {/* --- 理解度ボタンエリア (モダンデザイン) --- */}
-                  {questionState.showComprehension && (
-                    <div className="mt-4">
-                      <div className="understanding-buttons-container">
+                {/* 曖昧理由選択パネル */}
+                {expandedAmbiguousId === question.id && (
+                  <div className="ambiguous-reasons-panel animate-fade-in">
+                    <div className="ambiguous-reasons-title">理解できた理由を選択してください：</div>
+                    <div className="ambiguous-reasons-list">
+                      {ambiguousReasons.map(reason => (
                         <button
-                          className={`understanding-button correct-button px-6 py-2 rounded-lg min-w-[160px] font-medium flex items-center justify-center gap-2 ${
-                            questionState.showComprehension === true ? 'selected' : ''
-                          }`}
-                          onClick={() => handleUnderstandClick(question.id)}
-                          disabled={isAmbiguousPanelOpen || false}
+                          key={reason.id}
+                          className={`ambiguous-reason-button ${selectedAmbiguousReason === reason.id ? 'selected' : ''}`}
+                          onClick={() => handleSelectAmbiguousReason(reason.id)}
                         >
-                          <CheckCircle size={16} />
-                          理解済み
-                          <ChevronUp size={16} />
-                        </button>
-                        <button
-                          className={`understanding-button incorrect-button px-6 py-2 rounded-lg min-w-[160px] font-medium flex items-center justify-center gap-2 ${
-                            questionState.showComprehension === false ? 'selected' : ''
-                          }`}
-                          onClick={() => handleAmbiguousClick(question.id)}
-                          disabled={isAmbiguousPanelOpen || false}
-                        >
-                          <AlertTriangle size={16} />
-                          曖昧
-                          <ChevronDown size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div> {/* End of card content */}
-
-                {/* --- 曖昧理由選択パネル (モダンデザイン) --- */}
-                {isAmbiguousPanelOpen && (
-                  <div className="reason-panel-modern">
-                    <div className="reason-panel-title-modern">
-                      曖昧だった理由を選択してください:
-                    </div>
-                    <div className="reason-options-list">
-                      {ambiguousReasons.map((reason, index) => (
-                        <button
-                          key={index}
-                          onClick={() => selectAmbiguousReason(question.id, reason)}
-                          className="reason-option-modern"
-                        >
-                          <div className="reason-option-content">
-                            <span className="reason-dot"></span>
-                            <span className="reason-text">{reason}</span>
-                          </div>
-                          <span className="reason-badge">
-                            {reason === '偶然正解した' ? '2日後' :
-                             reason === '正解の選択肢は理解していたが、他の選択肢の意味が分かっていなかった' ? '3日後' :
-                             reason === '合っていたが、別の理由を思い浮かべていた' ? '3日後' :
-                             reason === '自信はなかったけど、これかなとは思っていた' ? '4日後' :
-                             reason === '問題を覚えてしまっていた' ? '5日後' :
-                             '4日後'}
-                          </span>
+                          {reason.text}
                         </button>
                       ))}
                     </div>
+                    <div className="ambiguous-reasons-actions">
+                      <button 
+                        className="ambiguous-cancel-button"
+                        onClick={handleCancelAmbiguousReason}
+                      >
+                        キャンセル
+                      </button>
+                      <button 
+                        className="ambiguous-confirm-button"
+                        onClick={handleConfirmAmbiguousReason}
+                        disabled={!selectedAmbiguousReason}
+                      >
+                        確定
+                      </button>
+                    </div>
                   </div>
                 )}
-              </div> // 問題カード end
+              </div>
             );
           })}
-        </div> // 問題リスト end
+        </div>
       )}
-    </div> // 全体コンテナ end
+    </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // 最適化されたprops比較ロジック
+  // 質問リストが同じ長さで内容も変わっていなければ再レンダリングしない
+  if (prevProps.todayQuestions?.length === nextProps.todayQuestions?.length) {
+    // IDの比較だけを行い、完全一致なら再レンダリングしない
+    const prevIds = prevProps.todayQuestions.map(q => q.id).join(',');
+    const nextIds = nextProps.todayQuestions.map(q => q.id).join(',');
+    return prevIds === nextIds;
+  }
+  return false; // 長さが異なる場合は再レンダリング
+});
 
 export default TodayView;
