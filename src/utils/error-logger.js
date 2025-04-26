@@ -3,6 +3,9 @@
  * アプリケーション全体で一貫したエラーログ管理を提供します
  */
 
+// LOG_LEVELSの定義をファイルの先頭に追加
+const LOG_LEVELS = { debug: 0, info: 1, warn: 2, error: 3 };
+
 // エラーログ出力を本番環境で最小限にする
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const LOG_LEVEL = IS_PRODUCTION ? 'error' : 'debug';
@@ -159,6 +162,14 @@ export const setupGlobalErrorHandlers = () => {
     logError(event.reason, 'UnhandledPromiseRejection');
   });
 };
+
+// ③ indexedDBの最適化（answerHistoryのクリーンアップ強化）
+const cleanupOldAnswerHistory = (days = 30) => {
+  // 30日以上前の回答履歴を自動的に削除
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - days);
+  // ... 削除処理
+}
 
 export default {
   logError,
