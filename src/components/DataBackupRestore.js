@@ -1,12 +1,25 @@
-import React, { useState } from 'react';
-import { getDatabaseStats } from '../utils/indexedDB';
-import { Save, UploadCloud, Database, AlertCircle, Check } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { getDatabaseStats, getAllDataCount } from '../utils/indexedDB';
+import { Save, UploadCloud, Database, AlertCircle, Check, Download, Upload, Info } from 'lucide-react';
+import styles from '../SettingsPage.module.css';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faDownload, faUpload, faCheck, faExclamationTriangle, faSpinner, faDatabase } from '@fortawesome/free-solid-svg-icons';
+import { formatDate } from '../utils/dateUtils';
 
-const DataBackupRestore = ({ onBackup, onRestore }) => {
+const DataBackupRestore = ({ onBackup, onRestore, loadDBStats, userData, userSettings, executeBackup, loadFromFile, getLastExportDate, formatLastExportDate }) => {
   const [backupStatus, setBackupStatus] = useState(null);
   const [restoreStatus, setRestoreStatus] = useState(null);
   const [stats, setStats] = useState(null);
   const [restoreFile, setRestoreFile] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const fileInputRef = useRef(null);
+  const [dataCounts, setDataCounts] = useState({ studyData: 0, answerHistory: 0, userSettings: 0, flashcards: 0 });
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState(false);
+  const [importSuccess, setImportSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [lastExportedDate, setLastExportedDate] = useState(null);
 
   // データベース統計情報を取得
   const loadStats = async () => {
@@ -19,16 +32,30 @@ const DataBackupRestore = ({ onBackup, onRestore }) => {
   };
 
   // コンポーネントマウント時に統計情報を読み込む
-  React.useEffect(() => {
+  useEffect(() => {
     loadStats();
+    updateDataCount();
+    const storedDate = localStorage.getItem('lastExportDate');
+    if (storedDate) {
+      setLastExportedDate(new Date(storedDate));
+    }
   }, []);
+
+  const updateDataCount = async () => {
+    try {
+      const counts = await getAllDataCount();
+      setDataCounts(counts);
+    } catch (error) {
+      console.error('Error getting data counts:', error);
+    }
+  };
 
   // バックアップを実行
   const handleBackup = async () => {
     try {
-      setBackupStatus('実行中...');
+      setBackupStatus('processing');
       await onBackup();
-      setBackupStatus('完了');
+      setBackupStatus('success');
       
       // 成功メッセージを5秒後に消す
       setTimeout(() => {
@@ -36,7 +63,7 @@ const DataBackupRestore = ({ onBackup, onRestore }) => {
       }, 5000);
     } catch (error) {
       console.error('バックアップに失敗しました:', error);
-      setBackupStatus('失敗: ' + error.message);
+      setBackupStatus('error');
     }
   };
 
@@ -44,20 +71,19 @@ const DataBackupRestore = ({ onBackup, onRestore }) => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setRestoreFile(file);
+      setSelectedFile(file);
       setRestoreStatus(null);
     }
   };
 
   // 復元を実行
   const handleRestore = async () => {
-    if (!restoreFile) {
-      setRestoreStatus('ファイルを選択してください');
+    if (!selectedFile) {
       return;
     }
 
     try {
-      setRestoreStatus('読み込み中...');
+      setRestoreStatus('processing');
       
       const reader = new FileReader();
       reader.onload = async (e) => {
@@ -71,172 +97,303 @@ const DataBackupRestore = ({ onBackup, onRestore }) => {
 
           // 復元実行
           await onRestore(data);
-          setRestoreStatus('復元完了');
+          setRestoreStatus('success');
           
           // ステータスリセット
           setTimeout(() => {
             setRestoreStatus(null);
-            setRestoreFile(null);
+            setSelectedFile(null);
             // ファイル入力をリセット
-            document.getElementById('restore-file-input').value = '';
+            if (fileInputRef.current) fileInputRef.current.value = '';
             // 統計情報を更新
             loadStats();
           }, 5000);
         } catch (error) {
           console.error('データ復元中にエラーが発生しました:', error);
-          setRestoreStatus('エラー: ' + error.message);
+          setRestoreStatus('error');
         }
       };
 
       reader.onerror = () => {
-        setRestoreStatus('ファイル読み込みエラー');
+        setRestoreStatus('error');
       };
 
-      reader.readAsText(restoreFile);
+      reader.readAsText(selectedFile);
     } catch (error) {
       console.error('復元処理中にエラーが発生しました:', error);
-      setRestoreStatus('エラー: ' + error.message);
+      setRestoreStatus('error');
     }
   };
 
-  return (
-    <div className="rounded-lg shadow-lg bg-white overflow-hidden">
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-4 text-white">
-        <h2 className="text-lg font-bold flex items-center">
-          <Database className="mr-2 h-5 w-5" /> データバックアップと復元
-        </h2>
-      </div>
+  const handleRestoreClick = () => {
+    if (selectedFile) {
+      handleRestore();
+    } else if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    setExportSuccess(false);
+    setErrorMessage('');
+
+    try {
+      const exportData = {
+        studyData: await exportStore('studyData'),
+        answerHistory: await exportStore('answerHistory'),
+        userSettings: await exportStore('userSettings'),
+        flashcards: await exportStore('flashcards'),
+        flashcardGenres: await exportStore('flashcardGenres'),
+        flashcardTags: await exportStore('flashcardTags'),
+        exportDate: new Date().toISOString()
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
       
-      {/* データベース統計情報 */}
-      {stats && (
-        <div className="p-4 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
-            <Database className="mr-2 h-4 w-4 text-blue-500" /> データベース状態
-          </h3>
+      const now = new Date();
+      const dateStr = formatDate(now, 'yyyyMMdd_HHmmss');
+      
+      link.href = url;
+      link.download = `study_scheduler_backup_${dateStr}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      localStorage.setItem('lastExportDate', now.toISOString());
+      setLastExportedDate(now);
+      setExportSuccess(true);
+      
+      setTimeout(() => {
+        setExportSuccess(false);
+      }, 3000);
+      
+      await updateDataCount();
+    } catch (error) {
+      console.error('Export error:', error);
+      setErrorMessage('エクスポート中にエラーが発生しました: ' + error.message);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportStore = (storeName) => {
+    return new Promise((resolve, reject) => {
+      const openRequest = indexedDB.open('StudySchedulerDB');
+      
+      openRequest.onerror = () => reject(new Error(`Failed to open database: ${openRequest.error}`));
+      
+      openRequest.onsuccess = (event) => {
+        const db = event.target.result;
+        const transaction = db.transaction(storeName, 'readonly');
+        const store = transaction.objectStore(storeName);
+        const request = store.getAll();
+        
+        request.onerror = () => reject(new Error(`Failed to get ${storeName} data: ${request.error}`));
+        
+        request.onsuccess = () => resolve(request.result);
+      };
+    });
+  };
+
+  const importStore = (storeName, data) => {
+    return new Promise((resolve, reject) => {
+      const openRequest = indexedDB.open('StudySchedulerDB');
+      
+      openRequest.onerror = () => reject(new Error(`Failed to open database: ${openRequest.error}`));
+      
+      openRequest.onsuccess = (event) => {
+        const db = event.target.result;
+        const transaction = db.transaction(storeName, 'readwrite');
+        const store = transaction.objectStore(storeName);
+        
+        // 既存のデータを削除
+        const clearRequest = store.clear();
+        
+        clearRequest.onerror = () => reject(new Error(`Failed to clear ${storeName}: ${clearRequest.error}`));
+        
+        clearRequest.onsuccess = () => {
+          // 新しいデータを追加
+          let completed = 0;
+          let errors = 0;
           
-          <div className="flex justify-between items-center bg-gray-50 p-3 rounded-md">
-            <div>
-              <div className="text-sm font-medium text-gray-800">
-                合計エントリ数: <span className="text-blue-600">{stats.totalEntries}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-x-8 mt-2">
-                {stats.stores && Object.entries(stats.stores).map(([store, info]) => (
-                  <div key={store} className="text-xs text-gray-600 flex items-center">
-                    <span className="w-3 h-3 rounded-full bg-blue-400 mr-1.5"></span>
-                    <span className="font-medium">{store}:</span> {info.entries}件
-                  </div>
-                ))}
-              </div>
-            </div>
+          if (data.length === 0) {
+            resolve();
+            return;
+          }
+          
+          data.forEach((item) => {
+            const addRequest = store.add(item);
+            
+            addRequest.onerror = () => {
+              console.error(`Failed to add item to ${storeName}:`, addRequest.error);
+              errors++;
+              if (completed + errors === data.length) {
+                if (errors > 0) {
+                  reject(new Error(`${errors} errors occurred while importing ${storeName}`));
+                } else {
+                  resolve();
+                }
+              }
+            };
+            
+            addRequest.onsuccess = () => {
+              completed++;
+              if (completed + errors === data.length) {
+                resolve();
+              }
+            };
+          });
+        };
+      };
+    });
+  };
+
+  const readFileAsText = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (event) => resolve(event.target.result);
+      reader.onerror = () => reject(new Error('ファイルの読み込みに失敗しました'));
+      
+      reader.readAsText(file);
+    });
+  };
+
+  return (
+    <div>
+      {/* データ統計情報表示 */}
+      {stats && (
+        <div className={styles.statsContainer}>
+          <div className={styles.statsItem}>
+            <span className={styles.statsLabel}>合計エントリ数</span>
+            <span className={styles.statsValue}>{stats.totalEntries}</span>
           </div>
+          {stats.stores && Object.entries(stats.stores).map(([store, info]) => (
+            <div key={store} className={styles.statsItem}>
+              <span className={styles.statsLabel}>{store}</span>
+              <span className={styles.statsValue}>{info.entries}件</span>
+            </div>
+          ))}
         </div>
       )}
       
-      <div className="p-4">
-        {/* バックアップセクション */}
-        <div className="mb-6 bg-blue-50 p-4 rounded-lg">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
-            <Save className="mr-2 h-4 w-4 text-blue-500" /> バックアップ作成
-          </h3>
-          
-          <p className="text-xs text-gray-600 mb-3">
-            現在の学習データと解答履歴を全てバックアップします。データは端末にダウンロードされます。
-          </p>
-          
-          <div className="flex items-center">
-            <button 
-              onClick={handleBackup}
-              className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-150 ease-in-out"
-            >
-              <Save className="mr-2 h-4 w-4" />
-              バックアップ作成
-            </button>
-            
-            {backupStatus && (
-              <div className={`ml-3 flex items-center ${
-                backupStatus === '完了' 
-                  ? 'text-green-600 bg-green-50 px-3 py-1 rounded-full' 
-                  : 'text-gray-600'
-              }`}>
-                {backupStatus === '完了' ? (
-                  <><Check className="h-4 w-4 mr-1" /> {backupStatus}</>
-                ) : (
-                  backupStatus
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+      <p className={styles.settingsDescription}>
+        アプリのデータをファイルに保存/復元できます。定期的なバックアップをお勧めします。
+      </p>
+      
+      {getLastExportDate && (
+        <p className={styles.lastExportDate}>
+          <FontAwesomeIcon icon={faDatabase} className="mr-1" />
+          前回のバックアップ：{formatLastExportDate(getLastExportDate())}
+        </p>
+      )}
+      
+      <div className={styles.actionGroup}>
+        {/* バックアップボタン */}
+        <button 
+          className={styles.exportButton} 
+          onClick={handleExport}
+          disabled={isExporting}
+        >
+          {isExporting ? (
+            <>
+              <FontAwesomeIcon icon={faSpinner} spin />
+              バックアップ中...
+            </>
+          ) : (
+            <>
+              <FontAwesomeIcon icon={faDownload} className="mr-2" />
+              データをバックアップ
+            </>
+          )}
+        </button>
         
         {/* 復元セクション */}
-        <div className="bg-indigo-50 p-4 rounded-lg">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
-            <UploadCloud className="mr-2 h-4 w-4 text-indigo-500" /> データ復元
-          </h3>
+        <div className={styles.fileInputWrapper}>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className={styles.fileInput}
+            accept=".json"
+            id="restore-file"
+          />
           
-          <p className="text-xs text-gray-600 mb-3">
-            バックアップファイルからデータを復元します。現在のデータは上書きされます。
-          </p>
-          
-          <div className="flex flex-col gap-3">
-            <div className="relative">
-              <input
-                id="restore-file-input"
-                type="file"
-                accept=".json"
-                onChange={handleFileChange}
-                className="block w-full text-sm text-gray-500
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-md file:border-0
-                  file:text-sm file:font-medium
-                  file:bg-indigo-100 file:text-indigo-700
-                  hover:file:bg-indigo-200
-                  cursor-pointer"
-              />
-            </div>
-            
-            <div className="flex items-center">
-              <button
-                onClick={handleRestore}
-                disabled={!restoreFile}
-                className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors duration-150 ease-in-out ${
-                  restoreFile
-                    ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                }`}
-              >
-                <UploadCloud className="mr-2 h-4 w-4" />
-                復元実行
-              </button>
-              
-              {restoreStatus && (
-                <div className={`ml-3 flex items-center text-sm ${
-                  restoreStatus === '復元完了' 
-                    ? 'text-green-600 bg-green-50 px-3 py-1 rounded-full' 
-                    : restoreStatus.includes('エラー') 
-                      ? 'text-red-600 bg-red-50 px-3 py-1 rounded-full' 
-                      : 'text-gray-600'
-                }`}>
-                  {restoreStatus === '復元完了' ? (
-                    <><Check className="h-4 w-4 mr-1" /> {restoreStatus}</>
-                  ) : restoreStatus.includes('エラー') ? (
-                    <><AlertCircle className="h-4 w-4 mr-1" /> {restoreStatus}</>
-                  ) : (
-                    restoreStatus
-                  )}
-                </div>
-              )}
-            </div>
-            
-            {!restoreStatus && (
-              <p className="text-xs text-red-500 flex items-center mt-1">
-                <AlertCircle className="h-3 w-3 mr-1" />
-                復元を実行すると現在のデータは上書きされます
-              </p>
+          <label htmlFor="restore-file" className={styles.fileInputLabel}>
+            {selectedFile ? (
+              <>
+                <FontAwesomeIcon icon={faCheck} className="mr-1" /> 
+                {selectedFile.name}
+              </>
+            ) : (
+              <>
+                <FontAwesomeIcon icon={faUpload} className="mr-1" /> 
+                バックアップファイルを選択
+              </>
             )}
-          </div>
+          </label>
+          
+          <button 
+            className={`${styles.importButton} ${!selectedFile ? styles.importButtonDisabled : ''}`} 
+            onClick={handleRestoreClick}
+            disabled={restoreStatus === 'processing'}
+          >
+            {restoreStatus === 'processing' ? (
+              <FontAwesomeIcon icon={faSpinner} spin className="mr-1" />
+            ) : (
+              <FontAwesomeIcon icon={selectedFile ? faDatabase : faUpload} className="mr-1" />
+            )}
+            {selectedFile 
+              ? (restoreStatus === 'processing' 
+                  ? '復元中...' 
+                  : restoreStatus === 'success' 
+                    ? '復元完了' 
+                    : restoreStatus === 'error' 
+                      ? '復元失敗' 
+                      : '復元実行') 
+              : '選択して復元'}
+          </button>
         </div>
       </div>
+      
+      {/* 状態メッセージ */}
+      {restoreStatus === 'error' && (
+        <div className={styles.errorMessage}>
+          <AlertCircle size={16} className={styles.errorIcon} />
+          <p>復元に失敗しました。ファイル形式が正しくないか、データが破損している可能性があります。</p>
+        </div>
+      )}
+      
+      {restoreStatus === 'success' && (
+        <div className={styles.successMessage}>
+          <Check size={16} className={styles.successIcon} />
+          <p>データの復元が完了しました。</p>
+        </div>
+      )}
+      
+      {backupStatus === 'error' && (
+        <div className={styles.errorMessage}>
+          <AlertCircle size={16} className={styles.errorIcon} />
+          <p>バックアップの作成に失敗しました。</p>
+        </div>
+      )}
+      
+      {exportSuccess && (
+        <div className={styles.successMessage}>
+          <Check size={16} className={styles.successIcon} />
+          <p>データのバックアップが完了しました</p>
+        </div>
+      )}
+      
+      {errorMessage && (
+        <div className={styles.errorMessage}>
+          <AlertCircle className={styles.errorIcon} size={18} />
+          <div>{errorMessage}</div>
+        </div>
+      )}
     </div>
   );
 };
