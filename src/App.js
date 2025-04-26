@@ -42,51 +42,132 @@ import { createBackup, restoreFromBackup } from './utils/backup-restore';
 // 他のコンポーネントインポートの近くに追加
 import NotesPage from './NotesPage'; // NotesPageコンポーネントのインポート
 
-// 問題生成関数 (IDゼロパディング、understanding='理解○' 固定)
-function generateQuestions(prefix, start, end) {
-    const questions = [];
-    for (let i = start; i <= end; i++) {
-        const today = new Date();
-        const nextDate = new Date();
-        nextDate.setDate(today.getDate() + Math.floor(Math.random() * 30));
-        questions.push({
-            // ID生成: プレフィックス + ゼロパディングした番号
-            id: `${prefix}${i.toString().padStart(2, '0')}`,
-            number: i,
-            correctRate: Math.floor(Math.random() * 100),
-            lastAnswered: new Date(today.getTime() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000), // Dateオブジェクトで保持
-            nextDate: nextDate.toISOString(), // ISO文字列で保持
-            interval: ['1日', '3日', '7日', '14日', '1ヶ月', '2ヶ月'][Math.floor(Math.random() * 6)],
-            answerCount: Math.floor(Math.random() * 10),
-            understanding: '理解○', // 固定
-            previousUnderstanding: null,
-            comment: '', // コメント用の空文字列
-        });
-    } return questions;
-}
+// ★★★ 問題データの生成 ★★★
+// 問題データを生成する補助関数
+const generateQuestions = (prefix, startNum, count) => {
+  const questions = [];
+  
+  for (let i = 0; i < count; i++) {
+    const questionNum = startNum + i;
+    const id = `${prefix}${String(questionNum).padStart(3, '0')}`;
+    
+    questions.push({
+      id,
+      question: `これは${prefix}科目の問題${questionNum}です。この問題文はサンプルとして自動生成されています。`,
+      choices: [
+        { id: `${id}-1`, text: '選択肢1' },
+        { id: `${id}-2`, text: '選択肢2' },
+        { id: `${id}-3`, text: '選択肢3' },
+        { id: `${id}-4`, text: '選択肢4' }
+      ],
+      correctAnswerIndex: Math.floor(Math.random() * 4),
+      explanation: `この問題の解説文です。実際のアプリでは、ここに詳しい解説が入ります。`,
+      imageUrl: null,
+      category: 'サンプル',
+      difficulty: Math.floor(Math.random() * 3) + 1,
+      tags: ['サンプル', 'テスト'],
+      createdAt: new Date().toISOString(),
+      lastModified: new Date().toISOString()
+    });
+  }
+  
+  return questions;
+};
 
-// ★★★ 初期データ生成関数 generateInitialData (省略なし) ★★★
+// ★★★ 初期データの生成 ★★★
+// 初期データを生成する関数 
 const generateInitialData = () => {
-    console.log("generateInitialData が呼ばれました (サンプルデータ生成)"); // 確認用ログ
-    const pastExamSubjectPrefixMap = { "企業経営理論": "企経", "運営管理": "運営", "経済学・経済政策": "経済", "経営情報システム": "情報", "経営法務": "法務", "中小企業経営・政策": "中小", };
-    const subjects = [
-        // --- 科目 1: 経営管理論 ---
-        { id: 1, subjectId: 1, subjectName: "経営管理論", notes: "<p></p>", chapters: [ { id: 101, chapterId: 101, chapterName: "企業活動と経営戦略の全体概要 Q1-1", questions: generateQuestions('1-1-Q', 1, 2) }, { id: 102, chapterId: 102, chapterName: "事業戦略（競争戦略） Q1-2", questions: generateQuestions('1-2-Q', 1, 16) }, { id: 103, chapterId: 103, chapterName: "企業戦略（成長戦略） Q1-3", questions: generateQuestions('1-3-Q', 1, 27) }, { id: 104, chapterId: 104, chapterName: "技術経営 Q1-4", questions: generateQuestions('1-4-Q', 1, 14) }, { id: 105, chapterId: 105, chapterName: "企業の社会的責任（CSR）とコーポレートガバナンス Q1-5", questions: generateQuestions('1-5-Q', 1, 5) }, { id: 106, chapterId: 106, chapterName: "組織構造論 Q2-1", questions: generateQuestions('2-1-Q', 1, 18) }, { id: 107, chapterId: 107, chapterName: "組織行動論 Q2-2", questions: generateQuestions('2-2-Q', 1, 21) }, { id: 108, chapterId: 108, chapterName: "人的資源管理 Q2-3", questions: generateQuestions('2-3-Q', 1, 12) }, { id: 109, chapterId: 109, chapterName: "マーケティングの基礎概念 Q3-1", questions: generateQuestions('3-1-Q', 1, 2) }, { id: 110, chapterId: 110, chapterName: "マーケティングマネジメント戦略の展開 Q3-2", questions: generateQuestions('3-2-Q', 1, 5) }, { id: 111, chapterId: 111, chapterName: "マーケティングリサーチ Q3-3", questions: generateQuestions('3-3-Q', 1, 4) }, { id: 112, chapterId: 112, chapterName: "消費者購買行動と組織購買行動 Q3-4", questions: generateQuestions('3-4-Q', 1, 8) }, { id: 113, chapterId: 113, chapterName: "製品戦略 Q3-5", questions: generateQuestions('3-5-Q', 1, 13) }, { id: 114, chapterId: 114, chapterName: "価格戦略 Q3-6", questions: generateQuestions('3-6-Q', 1, 8) }, { id: 115, chapterId: 115, chapterName: "チャネル・物流戦略 Q3-7", questions: generateQuestions('3-7-Q', 1, 7) }, { id: 116, chapterId: 116, chapterName: "プロモーション戦略 Q3-8", questions: generateQuestions('3-8-Q', 1, 7) }, { id: 117, chapterId: 117, chapterName: "関係性マーケティングとデジタルマーケティング Q3-9", questions: generateQuestions('3-9-Q', 1, 4) } ] },
-        // --- 科目 2: 運営管理 ---
-        { id: 2, subjectId: 2, subjectName: "運営管理", notes: "<p></p>", chapters: [ { id: 201, chapterId: 201, chapterName: "生産管理概論 Q1-1", questions: generateQuestions('2-1-1-Q', 1, 10) }, { id: 202, chapterId: 202, chapterName: "生産のプランニング Q1-2", questions: generateQuestions('2-1-2-Q', 1, 52) }, { id: 203, chapterId: 203, chapterName: "生産のオペレーション Q1-3", questions: generateQuestions('2-1-3-Q', 1, 35) }, { id: 204, chapterId: 204, chapterName: "製造業における情報システム Q1-4", questions: generateQuestions('2-1-4-Q', 1, 6) }, { id: 205, chapterId: 205, chapterName: "店舗・商業集積 Q2-1", questions: generateQuestions('2-2-1-Q', 1, 9) }, { id: 206, chapterId: 206, chapterName: "商品仕入・販売（マーチャンダイジング） Q2-2", questions: generateQuestions('2-2-2-Q', 1, 23) }, { id: 207, chapterId: 207, chapterName: "物流・輸配送管理 Q2-3", questions: generateQuestions('2-2-3-Q', 1, 18) }, { id: 208, chapterId: 208, chapterName: "販売流通情報システム Q2-4", questions: generateQuestions('2-2-4-Q', 1, 17) } ] },
-        // --- 科目 3: 経済学 ---
-        { id: 3, subjectId: 3, subjectName: "経済学", notes: "<p></p>", chapters: [ { id: 301, chapterId: 301, chapterName: "企業行動の分析 Q1", questions: generateQuestions('3-1-Q', 1, 19) }, { id: 302, chapterId: 302, chapterName: "消費者行動の分析 Q2", questions: generateQuestions('3-2-Q', 1, 22) }, { id: 303, chapterId: 303, chapterName: "市場均衡と厚生分析 Q3", questions: generateQuestions('3-3-Q', 1, 23) }, { id: 304, chapterId: 304, chapterName: "不完全競争 Q4", questions: generateQuestions('3-4-Q', 1, 15) }, { id: 305, chapterId: 305, chapterName: "市場の失敗と政府の役割 Q5", questions: generateQuestions('3-5-Q', 1, 15) }, { id: 306, chapterId: 306, chapterName: "国民経済計算と主要経済指標 Q6", questions: generateQuestions('3-6-Q', 1, 13) }, { id: 307, chapterId: 307, chapterName: "財市場の分析 Q7", questions: generateQuestions('3-7-Q', 1, 11) }, { id: 308, chapterId: 308, chapterName: "貨幣市場とIS-LM分析 Q8", questions: generateQuestions('3-8-Q', 1, 14) }, { id: 309, chapterId: 309, chapterName: "雇用と物価水準 Q9", questions: generateQuestions('3-9-Q', 1, 8) }, { id: 310, chapterId: 310, chapterName: "消費、投資、財政金融政策に関する理論 Q10", questions: generateQuestions('3-10-Q', 1, 11) }, { id: 311, chapterId: 311, chapterName: "国際マクロ経済 Q11", questions: generateQuestions('3-11-Q', 1, 6) }, { id: 312, chapterId: 312, chapterName: "景気循環と経済成長 Q12", questions: generateQuestions('3-12-Q', 1, 3) } ] },
-        // --- 科目 4: 経営情報システム ---
-        { id: 4, subjectId: 4, subjectName: "経営情報システム", notes: "<p></p>", chapters: [ { id: 401, chapterId: 401, chapterName: "情報技術に関する基礎知識 Q1", questions: generateQuestions('4-1-Q', 1, 178) }, { id: 402, chapterId: 402, chapterName: "ソフトウェア開発 Q2", questions: generateQuestions('4-2-Q', 1, 38) }, { id: 403, chapterId: 403, chapterName: "経営情報管理 Q3", questions: generateQuestions('4-3-Q', 1, 35) }, { id: 404, chapterId: 404, chapterName: "統計解析 Q4", questions: generateQuestions('4-4-Q', 1, 9) } ] },
-        // --- 科目 5: 経営法務 ---
-        { id: 5, subjectId: 5, subjectName: "経営法務", notes: "<p></p>", chapters: [ { id: 501, chapterId: 501, chapterName: "民法その他の知識 Q1", questions: generateQuestions('5-1-Q', 1, 54) }, { id: 502, chapterId: 502, chapterName: "会社法等に関する知識 Q2", questions: generateQuestions('5-2-Q', 1, 123) }, { id: 503, chapterId: 503, chapterName: "資本市場に関する知識 Q3", questions: generateQuestions('5-3-Q', 1, 12) }, { id: 504, chapterId: 504, chapterName: "倒産等に関する知識 Q4", questions: generateQuestions('5-4-Q', 1, 16) }, { id: 505, chapterId: 505, chapterName: "知的財産権等に関する知識 Q5", questions: generateQuestions('5-5-Q', 1, 107) }, { id: 506, chapterId: 506, chapterName: "その他経営法務に関する知識 Q6", questions: generateQuestions('5-6-Q', 1, 19) } ] },
-        // --- 科目 6: 中小企業経営・政策 ---
-        { id: 6, subjectId: 6, subjectName: "中小企業経営・中小企業政策", notes: "<p></p>", chapters: [ { id: 601, chapterId: 601, chapterName: "中小企業経営/中小企業概論 Q1-1", questions: generateQuestions('6-1-1-Q', 1, 31) }, { id: 602, chapterId: 602, chapterName: "中小企業経営/令和5年度の中小企業の動向 Q1-2", questions: generateQuestions('6-1-2-Q', 1, 40) }, { id: 603, chapterId: 603, chapterName: "中小企業経営/環境変化に対応する中小企業 Q1-3", questions: generateQuestions('6-1-3-Q', 1, 14) }, { id: 604, chapterId: 604, chapterName: "中小企業経営/経営課題に立ち向かう小規模業者業 Q1-4", questions: generateQuestions('6-1-4-Q', 1, 32) }, { id: 605, chapterId: 605, chapterName: "中小企業政策/中小企業政策の基本 Q2-1", questions: generateQuestions('6-2-1-Q', 1, 14) }, { id: 606, chapterId: 606, chapterName: "中小企業政策/中小企業施策 Q2-2", questions: generateQuestions('6-2-2-Q', 1, 68) }, { id: 607, chapterId: 607, chapterName: "中小企業政策/中小企業政策の変遷 Q2-3", questions: generateQuestions('6-2-3-Q', 1, 1) } ] },
-        // --- 科目 7: 過去問題集 ---
-        { id: 7, subjectId: 7, subjectName: "過去問題集", notes: "<p></p>", chapters: [ { id: 701, chapterId: 701, chapterName: "企業経営理論 令和6年度", questionCount: 40 }, { id: 702, chapterId: 702, chapterName: "企業経営理論 令和5年度", questionCount: 37 }, { id: 703, chapterId: 703, chapterName: "企業経営理論 令和4年度", questionCount: 37 }, { id: 704, chapterId: 704, chapterName: "企業経営理論 令和3年度", questionCount: 38 }, { id: 705, chapterId: 705, chapterName: "企業経営理論 令和2年度", questionCount: 36 }, { id: 706, chapterId: 706, chapterName: "運営管理 令和6年度", questionCount: 41 }, { id: 707, chapterId: 707, chapterName: "運営管理 令和5年度", questionCount: 37 }, { id: 708, chapterId: 708, chapterName: "運営管理 令和4年度", questionCount: 39 }, { id: 709, chapterId: 709, chapterName: "運営管理 令和3年度", questionCount: 41 }, { id: 710, chapterId: 710, chapterName: "運営管理 令和2年度", questionCount: 42 }, { id: 711, chapterId: 711, chapterName: "経済学・経済政策 令和6年度", questionCount: 22 }, { id: 712, chapterId: 712, chapterName: "経済学・経済政策 令和5年度", questionCount: 22 }, { id: 713, chapterId: 713, chapterName: "経済学・経済政策 令和4年度", questionCount: 21 }, { id: 714, chapterId: 714, chapterName: "経済学・経済政策 令和3年度", questionCount: 23 }, { id: 715, chapterId: 715, chapterName: "経済学・経済政策 令和2年度", questionCount: 22 }, { id: 716, chapterId: 716, chapterName: "経営情報システム 令和6年度", questionCount: 23 }, { id: 717, chapterId: 717, chapterName: "経営情報システム 令和5年度", questionCount: 25 }, { id: 718, chapterId: 718, chapterName: "経営情報システム 令和4年度", questionCount: 24 }, { id: 719, chapterId: 719, chapterName: "経営情報システム 令和3年度", questionCount: 25 }, { id: 720, chapterId: 720, chapterName: "経営情報システム 令和2年度", questionCount: 25 }, { id: 721, chapterId: 721, chapterName: "経営法務 令和6年度", questionCount: 24 }, { id: 722, chapterId: 722, chapterName: "経営法務 令和5年度", questionCount: 21 }, { id: 723, chapterId: 723, chapterName: "経営法務 令和4年度", questionCount: 22 }, { id: 724, chapterId: 724, chapterName: "経営法務 令和3年度", questionCount: 20 }, { id: 725, chapterId: 725, chapterName: "経営法務 令和2年度", questionCount: 22 }, { id: 726, chapterId: 726, chapterName: "中小企業経営・政策 令和6年度", questionCount: 11 }, { id: 727, chapterId: 727, chapterName: "中小企業経営・政策 令和5年度", questionCount: 22 }, { id: 728, chapterId: 728, chapterName: "中小企業経営・政策 令和4年度", questionCount: 22 }, { id: 729, chapterId: 729, chapterName: "中小企業経営・政策 令和3年度", questionCount: 22 }, { id: 730, chapterId: 730, chapterName: "中小企業経営・政策 令和2年度", questionCount: 22 }, ].map(chapterInfo => { const yearMatch = chapterInfo.chapterName.match(/令和(\d+)年度/); const subjectMatch = chapterInfo.chapterName.match(/^(.+?)\s+令和/); if (yearMatch && subjectMatch) { const year = `R${yearMatch[1].padStart(2, '0')}`; const subjectName = subjectMatch[1]; const prefixBase = pastExamSubjectPrefixMap[subjectName] || subjectName.replace(/[・/]/g, ''); const prefix = `過去問-${year}-${prefixBase}-Q`; return { id: chapterInfo.id, chapterId: chapterInfo.chapterId, chapterName: chapterInfo.chapterName, questions: generateQuestions(prefix, 1, chapterInfo.questionCount) }; } else { console.warn(`Could not parse year/subject from chapter name: ${chapterInfo.chapterName}`); return { id: chapterInfo.id, chapterId: chapterInfo.chapterId, chapterName: chapterInfo.chapterName, questions: [] }; } }) }
-    ];
-    subjects.forEach((s) => { s.subjectId = s.id; s.chapters.forEach((c) => { c.chapterId = c.id; }); });
-    return subjects;
+  console.log("初期データを生成中...");
+  
+  // 問題ID接頭辞
+  const genPrefix = {
+    keiei: 'KE',  // 経営管理論
+    unei: 'UN',   // 運営管理
+    keizai: 'KZ', // 経済学
+    system: 'SY', // 経営情報システム
+    houmu: 'HM',  // 経営法務
+    chusho: 'CS', // 中小企業経営・政策
+    kako: 'KK'    // 過去問
+  };
+  
+  // 各科目のサンプル問題を数問ずつ生成
+  const subjectsData = [
+    {
+      id: 'subject-01',
+      name: '経営管理論',
+      color: '#4f46e5',
+      order: 1,
+      chapters: [
+        {
+          id: 'keiei-ch1',
+          name: '経営戦略の基礎',
+          questions: generateQuestions(genPrefix.keiei, 1, 5)
+        },
+        {
+          id: 'keiei-ch2',
+          name: '経営組織論',
+          questions: generateQuestions(genPrefix.keiei, 6, 5)
+        }
+      ]
+    },
+    {
+      id: 'subject-02',
+      name: '経済学',
+      color: '#ef4444',
+      order: 2,
+      chapters: [
+        {
+          id: 'keizai-ch1',
+          name: 'ミクロ経済学',
+          questions: generateQuestions(genPrefix.keizai, 1, 3)
+        },
+        {
+          id: 'keizai-ch2',
+          name: 'マクロ経済学',
+          questions: generateQuestions(genPrefix.keizai, 4, 3)
+        }
+      ]
+    },
+    {
+      id: 'subject-03',
+      name: '運営管理',
+      color: '#10b981',
+      order: 3,
+      chapters: [
+        {
+          id: 'unei-ch1',
+          name: '生産管理',
+          questions: generateQuestions(genPrefix.unei, 1, 3)
+        },
+        {
+          id: 'unei-ch2',
+          name: '品質管理',
+          questions: generateQuestions(genPrefix.unei, 4, 3)
+        }
+      ]
+    },
+    {
+      id: 'subject-04',
+      name: '経営情報システム',
+      color: '#3b82f6',
+      order: 4,
+      chapters: [
+        {
+          id: 'system-ch1',
+          name: 'IT基礎',
+          questions: generateQuestions(genPrefix.system, 1, 3)
+        },
+        {
+          id: 'system-ch2',
+          name: 'システム開発',
+          questions: generateQuestions(genPrefix.system, 4, 3)
+        }
+      ]
+    }
+  ];
+  
+  console.log(`初期データ生成完了: ${subjectsData.length}科目`);
+  return subjectsData;
 };
 
 // ★ 自然順ソート用の比較関数定義 (変更なし) ★
@@ -117,26 +198,39 @@ const calculateTotalQuestionCount = (subjects) => {
 // 全問題を取得する関数
 const getAllQuestions = (subjectsData) => {
   const allQuestions = [];
-  if (!subjectsData) return allQuestions;
+  if (!subjectsData || !Array.isArray(subjectsData)) return allQuestions;
+  
+  console.log(`getAllQuestions: 科目数=${subjectsData.length}`);
   
   subjectsData.forEach(subject => {
-    if (subject.chapters) {
-      subject.chapters.forEach(chapter => {
-        if (chapter.questions) {
-          chapter.questions.forEach(question => {
-            allQuestions.push({
-              ...question,
-              subject: subject.name || subject.subjectName,
-              chapter: chapter.name || chapter.chapterName,
-              id: question.id,
-              number: question.number
-            });
-          });
-        }
+    if (!subject || !subject.chapters || !Array.isArray(subject.chapters)) return;
+    
+    const subjectName = subject.name || subject.subjectName || '未分類';
+    console.log(`科目「${subjectName}」: 章数=${subject.chapters.length}`);
+    
+    subject.chapters.forEach(chapter => {
+      if (!chapter || !chapter.questions || !Array.isArray(chapter.questions)) return;
+      
+      const chapterName = chapter.name || chapter.chapterName || '未分類';
+      console.log(`章「${chapterName}」: 問題数=${chapter.questions.length}`);
+      
+      chapter.questions.forEach(question => {
+        if (!question) return;
+        
+        allQuestions.push({
+          ...question,
+          subject: subjectName,
+          chapter: chapterName,
+          subjectName: subjectName,
+          chapterName: chapterName,
+          id: question.id,
+          number: question.number
+        });
       });
-    }
+    });
   });
   
+  console.log(`getAllQuestions: 合計${allQuestions.length}問を取得しました`);
   return allQuestions;
 };
 
@@ -229,89 +323,95 @@ function App() {
     refreshData();
   }, [currentTab, refreshData]);
   
-  // ★ 初期データ読み込み処理 (IndexedDB対応) ★
+  // ★★★ 初期化 ★★★
   useEffect(() => {
-    try {
-      // ストレージ使用不可の場合は初期データを生成
-      if (hasStorageError) {
-        setSubjects(generateInitialData());
-        console.log('ストレージ使用不可のため、メモリ上で初期学習データを生成');
-        return;
-      }
-      
-      // 学習データのロード (IndexedDBを優先、フォールバックとしてLocalStorage)
-      getStudyDataWithFallback()
-        .then(studyDataToSet => {
-          if (studyDataToSet && Array.isArray(studyDataToSet)) {
-            // データ形式の互換性チェック
-            studyDataToSet.forEach(subject => { 
-              // notes プロパティの初期化を削除
-              
-              subject?.chapters?.forEach(chapter => { 
-                chapter?.questions?.forEach(q => { 
-                  if (q) { 
-                    if (q.lastAnswered && !(q.lastAnswered instanceof Date)) { 
-                      const parsedDate = new Date(q.lastAnswered); 
-                      q.lastAnswered = !isNaN(parsedDate) ? parsedDate : null; 
-                    } 
-                    if (typeof q.understanding === 'undefined') { 
-                      q.understanding = '理解○'; 
-                    } 
-                    if (typeof q.comment === 'undefined') { 
-                      q.comment = ''; 
-                    } 
-                  } 
-                }); 
-              }); 
-            });
-            setSubjects(studyDataToSet);
-            console.log('学習データを読み込み完了');
-            
-            // 展開状態の初期設定
-            const initialExpandedSubjectsState = {};
-            studyDataToSet.forEach(subject => { 
-              if (subject?.id) { 
-                initialExpandedSubjectsState[subject.id] = false; 
-              } 
-            }); 
-            if (studyDataToSet.length > 0 && studyDataToSet[0]?.id) { 
-              initialExpandedSubjectsState[studyDataToSet[0].id] = true; 
-            }
-            setExpandedSubjects(initialExpandedSubjectsState);
-          } else {
-            const initialData = generateInitialData();
+    console.log("アプリ初期化を開始します...");
+    
+    // 初期化試行
+    const initialize = async () => {
+      try {
+        // まずIndexedDBから読み込みを試みる
+        const data = await getStudyDataWithFallback().catch(() => null);
+        
+        if (data && Array.isArray(data) && data.length > 0) {
+          console.log(`データベースから${data.length}件の科目データを読み込みました`);
+          setSubjects(data);
+        } else {
+          // データベースから読み込めなかった場合、初期データを生成
+          console.log("保存されたデータが見つからないため、初期データを生成します");
+          const initialData = generateInitialData();
+          console.log(`初期データを生成しました: ${initialData.length}科目`);
+          
+          if (initialData && Array.isArray(initialData) && initialData.length > 0) {
             setSubjects(initialData);
-            console.log('保存データがないため初期学習データを生成');
-          }
-        })
-        .catch(error => {
-          console.error("学習データ読み込みエラー:", error);
-          setSubjects(generateInitialData());
-        });
-
-      // 履歴データのロード (IndexedDBを優先、フォールバックとしてLocalStorage)
-      getAnswerHistoryWithFallback()
-        .then(historyDataToSet => {
-          if (Array.isArray(historyDataToSet)) {
-            setAnswerHistory(historyDataToSet);
-            console.log('解答履歴読み込み完了');
+            
+            // 生成したデータを保存
+            try {
+              await saveStudyData(initialData);
+              console.log("初期データをデータベースに保存しました");
+            } catch (error) {
+              console.error("データベースへの初期データ保存に失敗:", error);
+              setStorageItem('studyData', initialData);
+              console.log("初期データをLocalStorageに保存しました（フォールバック）");
+            }
           } else {
-            setAnswerHistory([]);
-            console.log('解答履歴がないか無効なため、空の配列を設定');
+            console.error("初期データの生成に失敗しました");
+            // フォールバックとして空の配列を設定
+            setSubjects([]);
+            alert("データの初期化に失敗しました。ページを再読み込みしてください。");
           }
-        })
-        .catch(error => {
-          console.error("解答履歴読み込みエラー:", error);
+        }
+        
+        // 解答履歴も同様に読み込む
+        const historyData = await getAnswerHistoryWithFallback().catch(() => null);
+        
+        if (historyData && Array.isArray(historyData)) {
+          console.log(`データベースから${historyData.length}件の解答履歴を読み込みました`);
+          setAnswerHistory(historyData);
+        } else {
+          console.log("解答履歴データが見つからないため、新規作成します");
           setAnswerHistory([]);
-        });
-
-      console.log("初期データロード処理開始");
-    } catch (error) {
-      console.error("初期データロード中に予期せぬエラーが発生しました:", error);
-      // エラー発生時も初期データを設定してアプリが機能するようにする
-      setSubjects(generateInitialData());
-    }
-  }, [hasStorageError]);
+        }
+      } catch (error) {
+        console.error("初期化中にエラーが発生しました:", error);
+        setHasStorageError(true);
+        
+        // バックアップとして初期データを生成
+        try {
+          const fallbackData = generateInitialData();
+          setSubjects(fallbackData);
+          alert("データの読み込みに問題が発生しましたが、初期データを生成しました。");
+        } catch (e) {
+          console.error("フォールバックデータ生成にも失敗:", e);
+          setSubjects([]);
+          alert("データの初期化に失敗しました。ページを再読み込みしてください。");
+        }
+      }
+    };
+    
+    initialize();
+    
+    // データベース初期化
+    const initializeDatabase = async () => {
+      try {
+        await openDatabase();
+        console.log('データベース接続を確立しました');
+        
+        // データベース使用状況を確認
+        const stats = await getDatabaseStats();
+        console.log('データベース統計:', stats);
+      } catch (error) {
+        console.error('データベース初期化エラー:', error);
+      }
+    };
+    
+    initializeDatabase();
+    
+    // アプリ終了時にデータベース接続を閉じる
+    return () => {
+      closeDatabase();
+    };
+  }, []);
 
   // ★ データ保存処理 (IndexedDB対応) ★
   useEffect(() => {
@@ -554,164 +654,158 @@ const getQuestionsForDate = (date) => {
   return questions.sort((a, b) => naturalSortCompare(a.id, b.id));
 };
 
-  // ★ アコーディオン開閉 (変更なし) ★
-  const toggleSubject = (subjectId) => { setExpandedSubjects(prev => ({ ...prev, [subjectId]: !prev[subjectId] })); };
-  const toggleChapter = (chapterId) => { setExpandedChapters(prev => ({ ...prev, [chapterId]: !prev[chapterId] })); };
-
-  // ★ 解答記録 & 履歴追加 (リフレッシュ処理追加) ★
-  const recordAnswer = (questionId, isCorrect, understanding) => { 
-    const timestamp = new Date().toISOString(); 
-    let updatedQuestionData = null; 
+  // ★★★ 回答記録 ★★★
+  // 問題への回答を記録する関数
+  const recordAnswer = (questionId, isCorrect, understanding = '理解○') => {
+    console.log(`回答記録: ID=${questionId}, 正解=${isCorrect}, 理解度=${understanding}`);
     
-    setSubjects(prevSubjects => { 
-      if (!Array.isArray(prevSubjects)) return []; 
-      
-      const newSubjects = prevSubjects.map(subject => { 
-        if (!subject?.chapters) return subject; 
-        
-        return { 
-          ...subject, 
-          id: subject.id, 
-          name: subject.name, 
-          chapters: subject.chapters.map(chapter => { 
-            if (!chapter?.questions) return chapter; 
-            
-            return { 
-              ...chapter, 
-              id: chapter.id, 
-              name: chapter.name,
-              questions: chapter.questions.map(q => { 
-                if (q?.id === questionId) { 
-                  const question = { ...q }; 
-                  const previousUnderstanding = question.understanding; 
-                  const today = new Date(); 
-                  let nextDate = new Date(); 
-                  let newInterval = ''; 
-                  
-                  // 曖昧な理解の場合、理由ごとに次回の復習日を調整
-                  if (understanding.startsWith('曖昧△')) {
-                    // 曖昧な理由に基づいて日数を決定
-                    const reason = understanding.split(':')[1] || '';
-                    let daysToAdd = 4; // デフォルトは4日後
-                    
-                    if (reason === '偶然正解した') {
-                      daysToAdd = 2; // 最も短い復習間隔
-                      newInterval = '2日';
-                    } else if (reason === '正解の選択肢は理解していたが、他の選択肢の意味が分かっていなかった') {
-                      daysToAdd = 3;
-                      newInterval = '3日';
-                    } else if (reason === '合っていたが、別の理由を思い浮かべていた') {
-                      daysToAdd = 3;
-                      newInterval = '3日';
-                    } else if (reason === '自信はなかったけど、これかなとは思っていた') {
-                      daysToAdd = 4;
-                      newInterval = '4日';
-                    } else if (reason === '問題を覚えてしまっていた') {
-                      daysToAdd = 5;
-                      newInterval = '5日';
-                    } else if (reason === 'その他') {
-                      daysToAdd = 4;
-                      newInterval = '4日';
-                    }
-                    
-                    nextDate.setDate(today.getDate() + daysToAdd);
-                    console.log(`曖昧理由「${reason}」のため、${daysToAdd}日後に設定`);
-                  } else if (isCorrect && understanding === '理解○') { 
-                    const isFirstCorrect = question.understanding === '未学習'; 
-                    const baseInterval = isFirstCorrect ? '1日' : (previousUnderstanding?.startsWith('曖昧△') ? '14日' : (question.interval || '1日')); 
-                    
-                    switch(baseInterval) { 
-                      case '1日': 
-                        nextDate.setDate(today.getDate() + 3); 
-                        newInterval = '3日'; 
-                        break; 
-                      case '3日': 
-                        nextDate.setDate(today.getDate() + 7); 
-                        newInterval = '7日'; 
-                        break; 
-                      case '7日': 
-                        nextDate.setDate(today.getDate() + 14); 
-                        newInterval = '14日'; 
-                        break; 
-                      case '14日': 
-                        nextDate.setMonth(today.getMonth() + 1); 
-                        newInterval = '1ヶ月'; 
-                        break; 
-                      case '1ヶ月': 
-                        nextDate.setMonth(today.getMonth() + 2); 
-                        newInterval = '2ヶ月'; 
-                        break; 
-                      default: 
-                        nextDate.setMonth(today.getMonth() + 2); 
-                        newInterval = '2ヶ月'; 
-                        break; 
-                    } 
-                  } else {
-                    nextDate.setDate(today.getDate() + 1); 
-                    newInterval = '1日'; 
-                  } 
-                  
-                  updatedQuestionData = { 
-                    ...question, 
-                    lastAnswered: today, 
-                    nextDate: nextDate.toISOString(), 
-                    interval: newInterval, 
-                    answerCount: (question.answerCount || 0) + 1, 
-                    understanding: understanding, 
-                    previousUnderstanding: previousUnderstanding, 
-                    correctRate: calculateCorrectRate(question, isCorrect), 
-                    comment: q.comment, 
-                  }; 
-                  
-                  return updatedQuestionData; 
-                } 
-                return q; 
-              }) 
-            }; 
-          }) 
-        }; 
-      }); 
-      
-      // 即時保存処理を追加
-      try {
-        saveStudyData(newSubjects).catch(error => {
-          console.error("IndexedDBへの学習データ保存に失敗:", error);
-          setStorageItem('studyData', newSubjects);
-        });
-      } catch (e) { 
-        console.error("学習データ保存失敗:", e); 
+    // 回答履歴に追加
+    const timestamp = new Date().toISOString();
+    const historyItem = {
+      id: `answer-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      questionId,
+      isCorrect,
+      understanding,
+      timestamp
+    };
+    
+    setAnswerHistory(prev => {
+      // 50件を超える場合は古いものから削除
+      const newHistory = [historyItem, ...prev];
+      if (newHistory.length > 1000) {
+        return newHistory.slice(0, 1000);
+      }
+      return newHistory;
+    });
+    
+    // 科目データを更新
+    setSubjects(prevSubjects => {
+      if (!prevSubjects || !Array.isArray(prevSubjects)) {
+        console.error('科目データが無効です');
+        return prevSubjects;
       }
       
-      return newSubjects; 
-    }); 
-    
-    if (updatedQuestionData) { 
-      const newHistoryRecord = { 
-        id: crypto.randomUUID ? crypto.randomUUID() : `history-${Date.now()}-${Math.random()}`, 
-        questionId: questionId, 
-        timestamp: timestamp, 
-        isCorrect: isCorrect, 
-        understanding: understanding, 
-      }; 
+      const today = new Date();
+      const nextDate = new Date(today);
+      let newInterval = '1日';
+      let previousUnderstanding = '';
       
-      setAnswerHistory(prevHistory => {
-        const updatedHistory = [...prevHistory, newHistoryRecord];
+      // 問題の理解度に応じて次の復習日を決定
+      const newSubjects = prevSubjects.map(subject => {
+        if (!subject || !Array.isArray(subject.chapters)) return subject;
         
-        // 即時保存処理を追加
-        try {
-          saveAnswerHistory(updatedHistory).catch(error => {
-            console.error("IndexedDBへの解答履歴保存に失敗:", error);
-            setStorageItem('studyHistory', updatedHistory);
+        const newChapters = subject.chapters.map(chapter => {
+          if (!chapter || !Array.isArray(chapter.questions)) return chapter;
+          
+          const newQuestions = chapter.questions.map(question => {
+            if (!question || question.id !== questionId) return question;
+            
+            // 現在の理解度を保存
+            previousUnderstanding = question.understanding || '未学習';
+            
+            // 問題のステータスを更新
+            if (!isCorrect) {
+              // 不正解の場合
+              nextDate.setDate(today.getDate() + 1);
+              newInterval = '1日';
+              
+              return {
+                ...question,
+                lastAnswered: timestamp,
+                understanding: '不正解×',
+                interval: newInterval,
+                nextDate: nextDate.toISOString()
+              };
+            } else if (isCorrect && understanding.startsWith('曖昧△')) {
+              // 曖昧理解の場合
+              const reason = understanding.split(':')[1] || '';
+              let daysToAdd = 3;
+              
+              if (reason === '偶然正解した') {
+                daysToAdd = 2;
+                newInterval = '2日';
+              } else if (reason === '正解の選択肢は理解していたが、他の選択肢の意味が分かっていなかった') {
+                daysToAdd = 3;
+                newInterval = '3日';
+              } else if (reason === '合っていたが、別の理由を思い浮かべていた') {
+                daysToAdd = 3;
+                newInterval = '3日';
+              } else if (reason === '自信はなかったけど、これかなとは思っていた') {
+                daysToAdd = 4;
+                newInterval = '4日';
+              } else if (reason === '問題を覚えてしまっていた') {
+                daysToAdd = 5;
+                newInterval = '5日';
+              } else if (reason === 'その他') {
+                daysToAdd = 4;
+                newInterval = '4日';
+              }
+              
+              nextDate.setDate(today.getDate() + daysToAdd);
+              
+              return {
+                ...question,
+                lastAnswered: timestamp,
+                understanding,
+                interval: newInterval,
+                nextDate: nextDate.toISOString()
+              };
+            } else if (isCorrect && understanding === '理解○') {
+              // 完全理解の場合
+              const isFirstCorrect = question.understanding === '未学習';
+              const baseInterval = isFirstCorrect ? '1日' : (previousUnderstanding?.startsWith('曖昧△') ? '14日' : (question.interval || '1日'));
+              
+              switch(baseInterval) {
+                case '1日':
+                  nextDate.setDate(today.getDate() + 3);
+                  newInterval = '3日';
+                  break;
+                case '3日':
+                  nextDate.setDate(today.getDate() + 7);
+                  newInterval = '7日';
+                  break;
+                case '7日':
+                  nextDate.setDate(today.getDate() + 14);
+                  newInterval = '14日';
+                  break;
+                case '14日':
+                  nextDate.setMonth(today.getMonth() + 1);
+                  newInterval = '1ヶ月';
+                  break;
+                case '1ヶ月':
+                  nextDate.setMonth(today.getMonth() + 3);
+                  newInterval = '3ヶ月';
+                  break;
+                default:
+                  nextDate.setMonth(today.getMonth() + 6);
+                  newInterval = '6ヶ月';
+              }
+              
+              return {
+                ...question,
+                lastAnswered: timestamp,
+                understanding,
+                interval: newInterval,
+                nextDate: nextDate.toISOString()
+              };
+            }
+            
+            // デフォルト（変更なし）
+            return question;
           });
-        } catch (e) { 
-          console.error("解答履歴保存失敗:", e); 
-        }
+          
+          return { ...chapter, questions: newQuestions };
+        });
         
-        return updatedHistory;
-      }); 
-    } else { 
-      console.warn("recordAnswer: Failed to find question or update data for", questionId); 
-    } 
+        return { ...subject, chapters: newChapters };
+      });
+      
+      return newSubjects;
+    });
+    
+    // データをストレージに保存
+    saveStudyData(subjects); // 修正: subjects →　subjects
+    saveAnswerHistory(answerHistory); // 修正: answerHistory → answerHistory
   };
 
   // ★ コメント保存用の関数 (変更なし) ★
@@ -989,10 +1083,27 @@ const getQuestionsForDate = (date) => {
   // ★ 一括編集 選択切り替え (変更なし) ★
   const toggleQuestionSelection = (questionId) => { setSelectedQuestions(prev => { if (prev.includes(questionId)) { return prev.filter(id => id !== questionId); } else { return [...prev, questionId]; } }); };
 
-  // ★ 日付フォーマット (変更なし) ★
-   const formatDate = (date) => { if (!date) return '----/--/--'; try { const d = (date instanceof Date) ? date : new Date(date); if (isNaN(d.getTime())) return '無効日付'; const year = d.getFullYear(); const month = d.getMonth() + 1; const day = d.getDate(); return `${year}/${month.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}`; } catch(e) { console.error("formatDateエラー:", e, date); return 'エラー'; } };
+  // ★★★ 日付フォーマット ★★★
+  // 日付を「YYYY/MM/DD」形式にフォーマットする関数
+  const formatDate = (date) => { 
+    if (!date) return '----/--/--'; 
+    
+    try { 
+      const d = (date instanceof Date) ? date : new Date(date); 
+      if (isNaN(d.getTime())) return '無効日付'; 
+      
+      const year = d.getFullYear(); 
+      const month = d.getMonth() + 1; 
+      const day = d.getDate(); 
+      
+      return `${year}/${month.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}`; 
+    } catch(e) { 
+      console.error("formatDateエラー:", e, date); 
+      return 'エラー'; 
+    } 
+  };
 
-  // ★ 完全リセット関数 (既存) ★
+  // ★★★ 完全リセット関数 (既存) ★
   const resetAllData = () => {
     console.log("全学習データのリセットを実行します...");
     if (window.confirm("本当にすべての学習データ（解答履歴含む）をリセットしますか？\nこの操作は元に戻せません。")) {
@@ -1458,6 +1569,55 @@ useEffect(() => {
   }
 }, [currentTab]);
 
+  // ★★★ 今日の問題を計算 ★★★
+  // useMemoを使って今日の問題リストを効率的に計算
+  const todayQuestions = useMemo(() => {
+    console.log("今日の問題リストを計算中...");
+    if (!Array.isArray(subjects) || subjects.length === 0) {
+      console.log("科目データがないため、今日の問題はありません");
+      return [];
+    }
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // 今日の0時0分0秒に設定
+    
+    // すべての問題を取得
+    const allQuestions = getAllQuestions(subjects);
+    
+    // 今日解くべき問題をフィルタリング
+    const todayQuestions = allQuestions.filter(question => {
+      // nextDateが今日以前の問題を今日解くべき問題とする
+      if (!question.nextDate) return false;
+      
+      const nextDate = new Date(question.nextDate);
+      nextDate.setHours(0, 0, 0, 0);
+      
+      return nextDate <= today;
+    });
+    
+    console.log(`今日解くべき問題: ${todayQuestions.length}問`);
+    return todayQuestions;
+  }, [subjects]); // subjectsが変更されたときのみ再計算
+
+  // ★★★ メインビューのレンダリング ★★★
+  // 現在のタブに応じたコンポーネントをレンダリング
+  const renderMainView = () => {
+    switch (currentTab) {
+      case 'today':
+        return (
+          <ErrorBoundary>
+            <TodayView 
+              todayQuestions={todayQuestions}
+              recordAnswer={recordAnswer}
+              formatDate={formatDate}
+              refreshData={refreshData}
+            />
+          </ErrorBoundary>
+        );
+      // ... existing code ...
+    }
+  };
+
   // ★ アプリ全体のレンダリング (エラー状態対応) ★
   return (
   <ErrorBoundary>
@@ -1555,5 +1715,21 @@ const blockSaveOperations = (duration = 60000) => {
   }, duration);
   
   return true;
+};
+
+// ★★★ アコーディオン開閉 ★★★
+// 科目と章の開閉状態を制御する関数
+const toggleSubject = (subjectId) => { 
+  setExpandedSubjects(prev => ({ 
+    ...prev, 
+    [subjectId]: !prev[subjectId] 
+  })); 
+};
+
+const toggleChapter = (chapterId) => { 
+  setExpandedChapters(prev => ({ 
+    ...prev, 
+    [chapterId]: !prev[chapterId] 
+  })); 
 };
 
