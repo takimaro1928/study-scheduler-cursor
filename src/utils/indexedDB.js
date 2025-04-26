@@ -22,6 +22,24 @@ const STORES = {
 // データベース接続のキャッシュ
 let dbConnection = null;
 
+// データの保存頻度制限機能を追加
+let lastSaveTime = 0;
+const SAVE_THROTTLE_MS = 5000; // 5秒間は同じデータの再保存を防止
+
+/**
+ * 保存処理の頻度を制限するヘルパー関数
+ * @returns {boolean} 保存処理を実行すべきかどうか
+ */
+const shouldThrottleSave = () => {
+  const now = Date.now();
+  if (now - lastSaveTime < SAVE_THROTTLE_MS) {
+    // console.log('保存頻度を制限しています...');
+    return true;
+  }
+  lastSaveTime = now;
+  return false;
+};
+
 /**
  * IndexedDBがサポートされているか確認
  * @returns {boolean} サポートされている場合はtrue
@@ -199,34 +217,39 @@ export const saveData = (storeName, data, key = null) => {
  * @returns {Promise<any>} 保存結果
  */
 export const saveStudyData = (subjects) => {
-  return new Promise((resolve, reject) => {
-    try {
-      // タイムスタンプを追加（深いコピーは避ける）
-      const dataToSave = { 
-        subjects,
-        timestamp: new Date().toISOString() 
-      };
-      
-      // まずLocalStorageにバックアップ（重いオペレーションなので必要な場合のみ実行）
-      try {
-        if (subjects && subjects.length > 0) {
-          localStorage.setItem('studyData_backup', JSON.stringify(dataToSave));
-        }
-      } catch (e) {
-        console.warn('IndexedDB: LocalStorageへのバックアップに失敗しました', e);
-      }
-      
-      saveData(STORES.STUDY_DATA, dataToSave, 'main')
-        .then((result) => {
-          resolve(result);
-        })
-        .catch((error) => {
-          reject(error);
-        });
-    } catch (e) {
-      reject(e);
+  // 頻度制限をチェック
+  if (shouldThrottleSave()) {
+    return Promise.resolve('throttled');
+  }
+
+  // データの変化がない場合は保存をスキップする機能
+  let cachedSubjectsHash = localStorage.getItem('subjectsHash');
+  let currentSubjectsHash;
+  
+  try {
+    // 簡易的なハッシュ計算（データの一部をJSONに変換）
+    const sampledData = subjects.map(s => ({ 
+      id: s.id, 
+      count: s.chapters?.length || 0
+    }));
+    currentSubjectsHash = JSON.stringify(sampledData);
+    
+    // ハッシュが同じ場合は保存をスキップ
+    if (cachedSubjectsHash === currentSubjectsHash) {
+      return Promise.resolve('unchanged');
     }
-  });
+  } catch (e) {
+    // ハッシュ計算エラーは無視して保存を続行
+  }
+  
+  console.log('学習データをIndexedDBに保存しました');
+  
+  // バックアップ用にハッシュを保存
+  if (currentSubjectsHash) {
+    localStorage.setItem('subjectsHash', currentSubjectsHash);
+  }
+  
+  return saveData(STORES.STUDY_DATA, subjects);
 };
 
 /**
@@ -235,108 +258,26 @@ export const saveStudyData = (subjects) => {
  * @returns {Promise<any>} 保存結果 
  */
 export const saveAnswerHistory = (history) => {
-  return new Promise((resolve, reject) => {
-    // データが空の場合は何もしない
-    if (!Array.isArray(history) || history.length === 0) {
-      resolve();
-      return;
-    }
-
-    openDatabase()
-      .then(db => {
-        try {
-          const transaction = db.transaction(STORES.ANSWER_HISTORY, 'readwrite');
-          const store = transaction.objectStore(STORES.ANSWER_HISTORY);
-          
-          // バッチサイズを定義（一度に処理する件数）
-          const BATCH_SIZE = 50;
-          let processed = 0;
-          let errors = 0;
-          
-          // バックアップとしてローカルストレージに保存（最新の100件のみ）
-          try {
-            if (history.length > 0) {
-              const recentHistory = history.slice(-100);
-              localStorage.setItem('studyHistory', JSON.stringify(recentHistory));
-            }
-          } catch (e) {
-            console.warn('ローカルストレージへの履歴バックアップに失敗しました', e);
-          }
-          
-          // データをバッチに分割
-          const batches = [];
-          for (let i = 0; i < history.length; i += BATCH_SIZE) {
-            batches.push(history.slice(i, i + BATCH_SIZE));
-          }
-          
-          let currentBatchIndex = 0;
-          
-          // バッチ処理関数
-          const processBatch = () => {
-            if (currentBatchIndex >= batches.length) {
-              // すべてのバッチ処理完了
-              transaction.oncomplete = () => {
-                console.log(`解答履歴を保存しました: ${processed}件成功、${errors}件エラー`);
-                resolve();
-              };
-              return;
-            }
-            
-            const currentBatch = batches[currentBatchIndex];
-            
-            // このバッチ内のすべてのデータを処理
-            Promise.all(currentBatch.map(item => {
-              return new Promise((resolveItem) => {
-                try {
-                  const request = store.add(item);
-                  
-                  request.onsuccess = () => {
-                    processed++;
-                    resolveItem();
-                  };
-                  
-                  request.onerror = (e) => {
-                    errors++;
-                    console.warn('履歴保存エラー:', e.target.error);
-                    resolveItem(); // エラーでも続行
-                  };
-                } catch (e) {
-                  errors++;
-                  console.warn('履歴処理エラー:', e);
-                  resolveItem(); // エラーでも続行
-                }
-              });
-            }))
-            .then(() => {
-              // メモリを解放するために明示的にバッチ参照を削除
-              batches[currentBatchIndex] = null;
-              
-              // GCを促進（オプショナル）
-              if (window.gc) {
-                try { window.gc(); } catch (e) {}
-              }
-              
-              // 次のバッチへ進む
-              currentBatchIndex++;
-              
-              // 非同期でタスクをスケジュール
-              setTimeout(processBatch, 0);
-            });
-          };
-          
-          // バッチ処理を開始
-          processBatch();
-          
-          transaction.onerror = (event) => {
-            reject(event.target.error);
-          };
-        } catch (error) {
-          logError(error, CONTEXT, { action: 'saveAnswerHistory' });
-          reject(error);
-        }
-      })
-      .catch(reject);
-  });
+  // 頻度制限をチェック
+  if (shouldThrottleSave()) {
+    return Promise.resolve('throttled');
+  }
+  
+  // データの変化がない場合は保存をスキップする機能
+  let cachedHistoryLength = localStorage.getItem('historyLength');
+  const currentHistoryLength = history?.length || 0;
+  
+  // 履歴の長さが変わっていない場合はスキップ
+  if (cachedHistoryLength && parseInt(cachedHistoryLength) === currentHistoryLength) {
+    return Promise.resolve('unchanged');
+  }
+  
+  console.log('解答履歴をIndexedDBに保存しました');
+  
+  // バックアップ用に長さを保存
+  localStorage.setItem('historyLength', currentHistoryLength.toString());
+  
+  return saveData(STORES.ANSWER_HISTORY, history);
 };
 
 /**
