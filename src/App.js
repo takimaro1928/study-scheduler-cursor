@@ -173,7 +173,7 @@ function App() {
   
   // データ再読み込み関数の強化
   let lastRefreshTime = 0;
-  const REFRESH_THROTTLE_MS = 10000; // 10秒間は連続読み込みを防止
+  const REFRESH_THROTTLE_MS = 60000; // 1分間は連続読み込みを防止
 
   const refreshData = async () => {
     // データロードの頻度を制限
@@ -384,61 +384,69 @@ useEffect(() => {
 }, []);
     
 const todayQuestionsList = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayTime = today.getTime();
-    const questions = [];
-    // 冗長なログ出力を削除
-    // console.log("Calculating todayQuestionsList using useMemo. Subjects length:", subjects?.length);
+  const startTime = Date.now();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayTime = today.getTime();
+  const questions = [];
 
-    if (!Array.isArray(subjects) || subjects.length === 0) {
-        // console.warn("todayQuestionsList (useMemo): subjects is empty.");
-        return questions;
-    }
+  // データがない場合は早期リターン
+  if (!Array.isArray(subjects) || subjects.length === 0) {
+    return questions;
+  }
 
+  try {
+    // 計算量を削減した処理
+    let questionCount = 0;
+    
     subjects.forEach((subject) => {
-      if (!subject || !Array.isArray(subject.chapters)) {
-           // console.warn("todayQuestionsList (useMemo): Invalid subject or chapters structure:", subject);
-           return; // この subject をスキップ
-      }
-      // 両方のプロパティ名をサポート
+      if (!subject || !Array.isArray(subject.chapters)) return;
+      
       const currentSubjectName = subject.subjectName || subject.name || '?';
-
+      
       subject.chapters.forEach((chapter) => {
-        if (!chapter || !Array.isArray(chapter.questions)) {
-             // console.warn("todayQuestionsList (useMemo): Invalid chapter or questions structure:", chapter);
-             return; // この chapter をスキップ
-        }
-        // 両方のプロパティ名をサポート
+        if (!chapter || !Array.isArray(chapter.questions)) return;
+        
         const currentChapterName = chapter.chapterName || chapter.name || '?';
-
+        
+        // 最大500問までに制限（パフォーマンス向上のため）
+        if (questionCount >= 500) return;
+        
         chapter.questions.forEach(question => {
-            if (!question?.nextDate) return;
-            try {
-                const nextDate = new Date(question.nextDate);
-                if (isNaN(nextDate.getTime())) return;
-                nextDate.setHours(0, 0, 0, 0);
-                if (nextDate.getTime() === todayTime) {
-                    // ログ出力を削除
-                    // console.log(`[Today - useMemo] Found match: ${question.id}. Subject: ${currentSubjectName}, Chapter: ${currentChapterName}`);
-                    // 両方のプロパティを設定
-                    questions.push({
-                        ...question,
-                        subjectName: currentSubjectName,
-                        chapterName: currentChapterName,
-                        // 下位互換性のために name も設定
-                        name: question.name || question.id
-                    });
-                }
-            } catch (e) { 
-                // console.error("[Today - useMemo] Error processing question:", e, question); 
+          if (!question?.nextDate) return;
+          try {
+            const nextDate = new Date(question.nextDate);
+            if (isNaN(nextDate.getTime())) return;
+            nextDate.setHours(0, 0, 0, 0);
+            if (nextDate.getTime() === todayTime) {
+              // 無駄なログを出力しない
+              questions.push({
+                ...question,
+                subjectName: currentSubjectName,
+                chapterName: currentChapterName,
+                name: question.name || question.id
+              });
+              questionCount++;
             }
+          } catch (e) { 
+            // エラーは静かに無視
+          }
         });
       });
     });
-    // 問題IDでソート
-    return questions.sort((a, b) => naturalSortCompare(a.id, b.id));
-}, [subjects]);
+    
+    // デバッグログを最小限にする
+    const endTime = Date.now();
+    if (endTime - startTime > 100) { // 処理に100ms以上かかった場合のみ記録
+      console.log(`todayQuestionsList計算: ${questions.length}問を${endTime - startTime}msで処理`);
+    }
+  } catch (e) {
+    console.error('todayQuestionsList計算エラー:', e);
+  }
+  
+  // 問題IDでソート
+  return questions.sort((a, b) => (a.id).localeCompare(b.id, undefined, { numeric: true }));
+}, [subjects, currentDate]); // 日付が変わった時だけ再計算
 
 const getQuestionsForDate = (date) => {
   const targetDate = new Date(date);
@@ -1539,3 +1547,31 @@ useEffect(() => {
 }
 
 export default App;
+
+// 自動クリーンアップのトリガーを強化
+useEffect(() => {
+  // メモリ使用量が高い場合に自動的にクリーンアップを実行
+  const memoryWatcher = setInterval(() => {
+    try {
+      if (window.performance && window.performance.memory) {
+        const memoryInfo = window.performance.memory;
+        const usedRatio = memoryInfo.usedJSHeapSize / memoryInfo.jsHeapSizeLimit;
+        
+        // 使用率が60%を超えたらクリーンアップを実行
+        if (usedRatio > 0.6) {
+          console.log(`メモリ使用率が高いため(${Math.round(usedRatio * 100)}%)、自動クリーンアップを実行します`);
+          cleanupMemoryUsage(true);
+          
+          // データ保存操作を一時的にブロック
+          if (typeof blockSaveOperations === 'function') {
+            blockSaveOperations(60000); // 1分間データ保存をブロック
+          }
+        }
+      }
+    } catch (e) {
+      console.error('メモリ監視エラー:', e);
+    }
+  }, 30000); // 30秒ごとにチェック
+  
+  return () => clearInterval(memoryWatcher);
+}, []);
