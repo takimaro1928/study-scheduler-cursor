@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getDatabaseStats, getAllDataCount } from '../utils/indexedDB';
+import { getDatabaseStats } from '../utils/indexedDB';
+import { getAllDataCount } from '../utils/dataUtils';
 import { Save, UploadCloud, Database, AlertCircle, Check, Download, Upload, Info, Loader, AlertTriangle } from 'lucide-react';
 import styles from '../SettingsPage.module.css';
 import { formatDate } from '../utils/dateUtils';
