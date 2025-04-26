@@ -6,7 +6,7 @@ import { logError, logWarning } from './error-logger';
 
 // データベース設定
 const DB_NAME = 'study-scheduler-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // バージョンを上げて新しいデータベーススキーマを適用
 const CONTEXT = 'IndexedDB';
 
 // ストア（テーブル）名
@@ -95,48 +95,57 @@ export const openDatabase = () => {
       // データベースのアップグレードが必要な場合
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
+        const oldVersion = event.oldVersion;
+        console.log(`データベースをバージョン ${oldVersion} から ${DB_VERSION} にアップグレードします`);
         
-        // studyDataストア - 科目、チャプター、問題のデータを保存
-        if (!db.objectStoreNames.contains(STORES.STUDY_DATA)) {
-          db.createObjectStore(STORES.STUDY_DATA, { keyPath: 'id', autoIncrement: true });
-        }
-        
-        // answerHistoryストア - 解答履歴を保存
-        if (!db.objectStoreNames.contains(STORES.ANSWER_HISTORY)) {
-          const answerHistoryStore = db.createObjectStore(STORES.ANSWER_HISTORY, { 
-            keyPath: 'id', 
-            autoIncrement: true 
-          });
-          // タイムスタンプとクエスチョンIDでインデックスを作成（検索を高速化）
-          answerHistoryStore.createIndex('timestamp', 'timestamp', { unique: false });
-          answerHistoryStore.createIndex('questionId', 'questionId', { unique: false });
-        }
-        
-        // userSettingsストア - ユーザー設定を保存
-        if (!db.objectStoreNames.contains(STORES.USER_SETTINGS)) {
-          db.createObjectStore(STORES.USER_SETTINGS, { keyPath: 'key' });
-        }
-        
-        // flashcardsストア - 用語暗記カードデータを保存
-        if (!db.objectStoreNames.contains(STORES.FLASHCARDS)) {
-          const flashcardsStore = db.createObjectStore(STORES.FLASHCARDS, { keyPath: 'id' });
-          // インデックスを作成して検索とソートを高速化
-          flashcardsStore.createIndex('term', 'term', { unique: false });
-          flashcardsStore.createIndex('genres', 'genres', { unique: false, multiEntry: true });
-          flashcardsStore.createIndex('tags', 'tags', { unique: false, multiEntry: true });
-          flashcardsStore.createIndex('createdAt', 'createdAt', { unique: false });
-          flashcardsStore.createIndex('lastStudied', 'lastStudied', { unique: false });
-          flashcardsStore.createIndex('studyStatus', 'studyStatus', { unique: false });
-        }
-        
-        // ジャンル管理用のストア
-        if (!db.objectStoreNames.contains(STORES.FLASHCARD_GENRES)) {
-          db.createObjectStore(STORES.FLASHCARD_GENRES, { keyPath: 'id' });
-        }
-        
-        // タグ管理用のストア
-        if (!db.objectStoreNames.contains(STORES.FLASHCARD_TAGS)) {
-          db.createObjectStore(STORES.FLASHCARD_TAGS, { keyPath: 'id' });
+        try {
+          // studyDataストア - 科目、チャプター、問題のデータを保存
+          if (!db.objectStoreNames.contains(STORES.STUDY_DATA)) {
+            db.createObjectStore(STORES.STUDY_DATA, { keyPath: 'id', autoIncrement: true });
+          }
+          
+          // answerHistoryストア - 解答履歴を保存
+          if (!db.objectStoreNames.contains(STORES.ANSWER_HISTORY)) {
+            const answerHistoryStore = db.createObjectStore(STORES.ANSWER_HISTORY, { 
+              keyPath: 'id', 
+              autoIncrement: true 
+            });
+            // タイムスタンプとクエスチョンIDでインデックスを作成（検索を高速化）
+            answerHistoryStore.createIndex('timestamp', 'timestamp', { unique: false });
+            answerHistoryStore.createIndex('questionId', 'questionId', { unique: false });
+          }
+          
+          // userSettingsストア - ユーザー設定を保存
+          if (!db.objectStoreNames.contains(STORES.USER_SETTINGS)) {
+            db.createObjectStore(STORES.USER_SETTINGS, { keyPath: 'key' });
+          }
+          
+          // flashcardsストア - 用語暗記カードデータを保存
+          if (!db.objectStoreNames.contains(STORES.FLASHCARDS)) {
+            const flashcardsStore = db.createObjectStore(STORES.FLASHCARDS, { keyPath: 'id' });
+            // インデックスを作成して検索とソートを高速化
+            flashcardsStore.createIndex('term', 'term', { unique: false });
+            flashcardsStore.createIndex('genres', 'genres', { unique: false, multiEntry: true });
+            flashcardsStore.createIndex('tags', 'tags', { unique: false, multiEntry: true });
+            flashcardsStore.createIndex('createdAt', 'createdAt', { unique: false });
+            flashcardsStore.createIndex('lastStudied', 'lastStudied', { unique: false });
+            flashcardsStore.createIndex('studyStatus', 'studyStatus', { unique: false });
+          }
+          
+          // ジャンル管理用のストア
+          if (!db.objectStoreNames.contains(STORES.FLASHCARD_GENRES)) {
+            db.createObjectStore(STORES.FLASHCARD_GENRES, { keyPath: 'id' });
+          }
+          
+          // タグ管理用のストア
+          if (!db.objectStoreNames.contains(STORES.FLASHCARD_TAGS)) {
+            db.createObjectStore(STORES.FLASHCARD_TAGS, { keyPath: 'id' });
+          }
+          
+          console.log('データベーススキーマのアップグレードが完了しました');
+        } catch (error) {
+          console.error('データベースアップグレード中にエラーが発生しました:', error);
+          logError(error, CONTEXT, { action: 'onupgradeneeded' });
         }
       };
       
@@ -166,6 +175,12 @@ export const openDatabase = () => {
         const error = new Error('データベース接続エラー: ' + event.target.errorCode);
         logError(error, CONTEXT);
         reject(error);
+      };
+      
+      // ブロック対象外にする
+      request.onblocked = (event) => {
+        console.warn('データベース接続がブロックされています。他のタブを閉じてください。');
+        logWarning('データベース接続がブロックされています', CONTEXT);
       };
     } catch (error) {
       logError(error, CONTEXT, { action: 'openDatabase' });
