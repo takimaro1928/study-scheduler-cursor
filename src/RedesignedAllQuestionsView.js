@@ -192,6 +192,96 @@ const RedesignedAllQuestionsView = ({
   const [currentPage, setCurrentPage] = useState(0);
   const [totalFilteredCount, setTotalFilteredCount] = useState(0);
 
+  // 現在選択されている科目のインデックス
+  const [currentSubjectIndex, setCurrentSubjectIndex] = useState(0);
+  
+  // 科目間のページ移動処理
+  const handleSubjectPageChange = (newIndex) => {
+    if (newIndex >= 0 && newIndex < filteredSubjects.length) {
+      setCurrentSubjectIndex(newIndex);
+      // 章の展開状態をリセットせず、現在の状態を保持
+    }
+  };
+
+  // 現在表示すべき科目を取得
+  const currentSubject = useMemo(() => {
+    return filteredSubjects.length > 0 ? filteredSubjects[currentSubjectIndex] : null;
+  }, [filteredSubjects, currentSubjectIndex]);
+
+  // 科目が変わったときは科目インデックスをリセット
+  useEffect(() => {
+    if (filteredSubjects.length > 0 && currentSubjectIndex >= filteredSubjects.length) {
+      setCurrentSubjectIndex(0);
+    }
+  }, [filteredSubjects.length, currentSubjectIndex]);
+
+  // 科目ページャーコンポーネント
+  const SubjectPaginator = () => {
+    if (filteredSubjects.length <= 1) return null;
+    
+    return (
+      <div className="flex justify-center items-center my-4">
+        <button 
+          onClick={() => handleSubjectPageChange(0)} 
+          disabled={currentSubjectIndex === 0}
+          className="px-3 py-1 mx-1 bg-gray-200 rounded disabled:opacity-50"
+        >
+          ≪ 最初
+        </button>
+        <button 
+          onClick={() => handleSubjectPageChange(currentSubjectIndex - 1)} 
+          disabled={currentSubjectIndex === 0}
+          className="px-3 py-1 mx-1 bg-gray-200 rounded disabled:opacity-50"
+        >
+          ＜ 前の科目
+        </button>
+        
+        <div className="mx-2">
+          {currentSubjectIndex + 1} / {filteredSubjects.length} 科目
+        </div>
+        
+        <button 
+          onClick={() => handleSubjectPageChange(currentSubjectIndex + 1)} 
+          disabled={currentSubjectIndex >= filteredSubjects.length - 1}
+          className="px-3 py-1 mx-1 bg-gray-200 rounded disabled:opacity-50"
+        >
+          次の科目 ＞
+        </button>
+        <button 
+          onClick={() => handleSubjectPageChange(filteredSubjects.length - 1)} 
+          disabled={currentSubjectIndex >= filteredSubjects.length - 1}
+          className="px-3 py-1 mx-1 bg-gray-200 rounded disabled:opacity-50"
+        >
+          最後 ≫
+        </button>
+      </div>
+    );
+  };
+
+  // 科目選択ドロップダウン
+  const SubjectSelector = () => {
+    if (filteredSubjects.length <= 1) return null;
+    
+    return (
+      <div className="my-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">科目を選択:</label>
+        <select 
+          value={currentSubjectIndex}
+          onChange={(e) => handleSubjectPageChange(parseInt(e.target.value, 10))}
+          className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+        >
+          {filteredSubjects.map((subject, index) => (
+            <option key={subject.id} value={index}>
+              {subject.name || subject.subjectName || "未分類"} ({subject.chapters.reduce(
+                (total, chapter) => total + chapter.questions.length, 0
+              )}問)
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  };
+
   // ページリセット用の効果
   useEffect(() => {
     // フィルターが変更されたらページを1ページ目に戻す
@@ -874,168 +964,180 @@ const RedesignedAllQuestionsView = ({
     return (
       <div className={styles.hierarchicalList}>
         {filteredSubjects.length > 0 ? (
-          filteredSubjects.map((subject) => (
-            <div key={subject.id} className={styles.subjectSection}>
-              {/* 科目ヘッダー */}
-              <div 
-                className={styles.subjectHeader}
-                onClick={() => toggleSubject && toggleSubject(subject.id)}
-                style={{ 
-                  borderLeftColor: getSubjectColorCode(subject.name || subject.subjectName)
-                }}
-              >
-                {expandedSubjects[subject.id] ? (
-                  <ChevronDown className={styles.chevronIcon} />
-                ) : (
-                  <ChevronRight className={styles.chevronIcon} />
-                )}
-                <span className={styles.subjectName}>
-                  {subject.name || subject.subjectName || "未分類"}
-                </span>
-                <span className={styles.questionCount}>
-                  {subject.chapters.reduce(
-                    (total, chapter) => total + chapter.questions.length,
-                    0
-                  )}問
-                </span>
+          <>
+            {/* 科目ページャーを表示 */}
+            <SubjectPaginator />
+            
+            {/* 科目セレクターを表示 */}
+            <SubjectSelector />
+            
+            {/* 現在の科目のみ表示 */}
+            {currentSubject && (
+              <div key={currentSubject.id} className={styles.subjectSection}>
+                {/* 科目ヘッダー */}
+                <div 
+                  className={styles.subjectHeader}
+                  onClick={() => toggleSubject && toggleSubject(currentSubject.id)}
+                  style={{ 
+                    borderLeftColor: getSubjectColorCode(currentSubject.name || currentSubject.subjectName)
+                  }}
+                >
+                  {expandedSubjects[currentSubject.id] ? (
+                    <ChevronDown className={styles.chevronIcon} />
+                  ) : (
+                    <ChevronRight className={styles.chevronIcon} />
+                  )}
+                  <span className={styles.subjectName}>
+                    {currentSubject.name || currentSubject.subjectName || "未分類"}
+                  </span>
+                  <span className={styles.questionCount}>
+                    {currentSubject.chapters.reduce(
+                      (total, chapter) => total + chapter.questions.length,
+                      0
+                    )}問
+                  </span>
+                  
+                  {/* 一括編集モード時、科目内全ての問題を選択するチェックボックス */}
+                  {bulkEditMode && (
+                    <div 
+                      className={styles.bulkCheckboxContainer}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSelectAllForSubject && toggleSelectAllForSubject(currentSubject);
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        className={styles.bulkCheckbox}
+                        checked={
+                          currentSubject.chapters.every(chapter =>
+                            chapter.questions.every(q => selectedQuestions.includes(q.id))
+                          )
+                        }
+                        onChange={() => {}} // イベントハンドラは親divで処理
+                      />
+                    </div>
+                  )}
+                </div>
                 
-                {/* 一括編集モード時、科目内全ての問題を選択するチェックボックス */}
-                {bulkEditMode && (
-                  <div 
-                    className={styles.bulkCheckboxContainer}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleSelectAllForSubject && toggleSelectAllForSubject(subject);
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      className={styles.bulkCheckbox}
-                      checked={
-                        subject.chapters.every(chapter =>
-                          chapter.questions.every(q => selectedQuestions.includes(q.id))
-                        )
-                      }
-                      onChange={() => {}} // イベントハンドラは親divで処理
-                    />
+                {/* 展開時の章リスト */}
+                {expandedSubjects[currentSubject.id] && (
+                  <div className={styles.chaptersContainer}>
+                    {currentSubject.chapters.map((chapter) => (
+                      <div key={chapter.id} className={styles.chapterSection}>
+                        {/* 章ヘッダー */}
+                        <div 
+                          className={styles.chapterHeader}
+                          onClick={() => toggleChapter && toggleChapter(chapter.id)}
+                        >
+                          {expandedChapters[chapter.id] ? (
+                            <ChevronDown className={styles.chevronIconSmall} />
+                          ) : (
+                            <ChevronRight className={styles.chevronIconSmall} />
+                          )}
+                          <span className={styles.chapterName}>
+                            {chapter.name || chapter.chapterName || "未分類"}
+                          </span>
+                          <span className={styles.questionCount}>
+                            {chapter.questions.length}問
+                          </span>
+                        </div>
+                        
+                        {/* 展開時の問題リスト */}
+                        {expandedChapters[chapter.id] && (
+                          <div className={styles.questionsContainer}>
+                            {chapter.questions.map((question) => (
+                              <div 
+                                key={question.id} 
+                                className={styles.questionCard}
+                                style={{
+                                  borderLeftColor: getSubjectColorCode(currentSubject.name || currentSubject.subjectName)
+                                }}
+                              >
+                                {/* 一括編集モード時のチェックボックス */}
+                                {bulkEditMode && (
+                                  <div className={styles.questionCheckbox}>
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedQuestions.includes(question.id)}
+                                      onChange={() => toggleQuestionSelection && toggleQuestionSelection(question.id)}
+                                      className={styles.checkbox}
+                                    />
+                                  </div>
+                                )}
+                                
+                                {/* 問題カード内容 */}
+                                <div className={styles.questionInfo}>
+                                  <div className={styles.questionId}>
+                                    {question.id}
+                                  </div>
+                                  
+                                  <div className={styles.questionMeta}>
+                                    {/* 次回予定日 */}
+                                    {question.nextDate && (
+                                      <div className={styles.nextDateContainer}>
+                                        <Clock size={14} className={styles.metaIcon} />
+                                        <span className={styles.nextDateText}>
+                                          {formatDate && formatDate(question.nextDate)}
+                                        </span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* 理解度 */}
+                                    {question.understanding && (
+                                      <div className={getUnderstandingStyle(question.understanding).badgeClass}>
+                                        {getUnderstandingStyle(question.understanding).icon}
+                                        <span>{question.understanding}</span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* 正解率 */}
+                                    {question.correctRate !== undefined && (
+                                      <div className={styles.correctRateContainer}>
+                                        <div className={styles.rateBarContainer}>
+                                          <div 
+                                            className={`${styles.rateBar} ${getCorrectRateColorClass(question.correctRate)}`} 
+                                            style={{ width: `${question.correctRate}%` }}
+                                          />
+                                        </div>
+                                        <span className={styles.correctRateText}>
+                                          <Percent size={14} className={styles.percentIcon} />
+                                          {question.correctRate}%
+                                        </span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* コメントがある場合のインジケータ */}
+                                    {question.comment && (
+                                      <div className={styles.commentIndicator}>
+                                        <MessageSquare size={14} className={styles.commentIcon} />
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                {/* 編集ボタン */}
+                                <button
+                                  className={styles.editButton}
+                                  onClick={() => setEditingQuestion && setEditingQuestion(question)}
+                                >
+                                  <Edit size={16} />
+                                  編集
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
-              
-              {/* 展開時の章リスト */}
-              {expandedSubjects[subject.id] && (
-                <div className={styles.chaptersContainer}>
-                  {subject.chapters.map((chapter) => (
-                    <div key={chapter.id} className={styles.chapterSection}>
-                      {/* 章ヘッダー */}
-                      <div 
-                        className={styles.chapterHeader}
-                        onClick={() => toggleChapter && toggleChapter(chapter.id)}
-                      >
-                        {expandedChapters[chapter.id] ? (
-                          <ChevronDown className={styles.chevronIconSmall} />
-                        ) : (
-                          <ChevronRight className={styles.chevronIconSmall} />
-                        )}
-                        <span className={styles.chapterName}>
-                          {chapter.name || chapter.chapterName || "未分類"}
-                        </span>
-                        <span className={styles.questionCount}>
-                          {chapter.questions.length}問
-                        </span>
-                      </div>
-                      
-                      {/* 展開時の問題リスト */}
-                      {expandedChapters[chapter.id] && (
-                        <div className={styles.questionsContainer}>
-                          {chapter.questions.map((question) => (
-                            <div 
-                              key={question.id} 
-                              className={styles.questionCard}
-                              style={{
-                                borderLeftColor: getSubjectColorCode(subject.name || subject.subjectName)
-                              }}
-                            >
-                              {/* 一括編集モード時のチェックボックス */}
-                              {bulkEditMode && (
-                                <div className={styles.questionCheckbox}>
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedQuestions.includes(question.id)}
-                                    onChange={() => toggleQuestionSelection && toggleQuestionSelection(question.id)}
-                                    className={styles.checkbox}
-                                  />
-                                </div>
-                              )}
-                              
-                              {/* 問題カード内容 */}
-                              <div className={styles.questionInfo}>
-                                <div className={styles.questionId}>
-                                  {question.id}
-                                </div>
-                                
-                                <div className={styles.questionMeta}>
-                                  {/* 次回予定日 */}
-                                  {question.nextDate && (
-                                    <div className={styles.nextDateContainer}>
-                                      <Clock size={14} className={styles.metaIcon} />
-                                      <span className={styles.nextDateText}>
-                                        {formatDate && formatDate(question.nextDate)}
-                                      </span>
-                                    </div>
-                                  )}
-                                  
-                                  {/* 理解度 */}
-                                  {question.understanding && (
-                                    <div className={getUnderstandingStyle(question.understanding).badgeClass}>
-                                      {getUnderstandingStyle(question.understanding).icon}
-                                      <span>{question.understanding}</span>
-                                    </div>
-                                  )}
-                                  
-                                  {/* 正解率 */}
-                                  {question.correctRate !== undefined && (
-                                    <div className={styles.correctRateContainer}>
-                                      <div className={styles.rateBarContainer}>
-                                        <div 
-                                          className={`${styles.rateBar} ${getCorrectRateColorClass(question.correctRate)}`} 
-                                          style={{ width: `${question.correctRate}%` }}
-                                        />
-                                      </div>
-                                      <span className={styles.correctRateText}>
-                                        <Percent size={14} className={styles.percentIcon} />
-                                        {question.correctRate}%
-                                      </span>
-                                    </div>
-                                  )}
-                                  
-                                  {/* コメントがある場合のインジケータ */}
-                                  {question.comment && (
-                                    <div className={styles.commentIndicator}>
-                                      <MessageSquare size={14} className={styles.commentIcon} />
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              
-                              {/* 編集ボタン */}
-                              <button
-                                className={styles.editButton}
-                                onClick={() => setEditingQuestion && setEditingQuestion(question)}
-                              >
-                                <Edit size={16} />
-                                編集
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))
+            )}
+            
+            {/* 科目ページャーを表示（下部にも同じページャーを表示） */}
+            <SubjectPaginator />
+          </>
         ) : (
           <div className={styles.noResults}>
             <AlertTriangle className={styles.noResultsIcon} />
