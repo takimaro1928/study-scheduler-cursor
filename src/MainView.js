@@ -71,6 +71,7 @@ const MainView = ({
           <ErrorBoundary>
             <RedesignedAllQuestionsView
               subjects={subjects}
+              allQuestions={getAllQuestions(subjects)}
               expandedSubjects={expandedSubjects}
               expandedChapters={expandedChapters}
               toggleSubject={toggleSubject}
