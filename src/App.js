@@ -197,6 +197,9 @@ const calculateTotalQuestionCount = (subjects) => {
 
 // 全問題を取得する関数
 const getAllQuestions = (subjectsData) => {
+  console.log("getAllQuestions: 関数が呼び出されました");
+  console.log("subjectsData:", subjectsData);
+  
   const allQuestions = [];
   
   if (!Array.isArray(subjectsData)) {
@@ -204,15 +207,26 @@ const getAllQuestions = (subjectsData) => {
     return [];
   }
   
-  subjectsData.forEach(subject => {
+  if (subjectsData.length === 0) {
+    console.warn('getAllQuestions: subjectsDataが空配列です');
+    return [];
+  }
+  
+  subjectsData.forEach((subject, i) => {
     if (!subject || !Array.isArray(subject.chapters)) {
+      console.warn(`getAllQuestions: ${i}番目の科目が無効です`, subject);
       return;
     }
     
-    subject.chapters.forEach(chapter => {
+    console.log(`getAllQuestions: ${subject.name || subject.subjectName || '不明な科目'}の処理中...`);
+    
+    subject.chapters.forEach((chapter, j) => {
       if (!chapter || !Array.isArray(chapter.questions)) {
+        console.warn(`getAllQuestions: ${i}番目の科目の${j}番目の章が無効です`, chapter);
         return;
       }
+      
+      console.log(`getAllQuestions: ${chapter.name || chapter.chapterName || '不明な章'}の問題数: ${chapter.questions.length}`);
       
       chapter.questions.forEach(question => {
         if (question) {
@@ -230,6 +244,10 @@ const getAllQuestions = (subjectsData) => {
   });
   
   console.log(`getAllQuestions: 全部で${allQuestions.length}問の問題を取得しました`);
+  if (allQuestions.length > 0) {
+    console.log("getAllQuestions: 最初の問題サンプル:", allQuestions[0]);
+  }
+  
   return allQuestions;
 };
 
