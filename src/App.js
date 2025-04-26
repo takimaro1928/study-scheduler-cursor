@@ -198,39 +198,38 @@ const calculateTotalQuestionCount = (subjects) => {
 // 全問題を取得する関数
 const getAllQuestions = (subjectsData) => {
   const allQuestions = [];
-  if (!subjectsData || !Array.isArray(subjectsData)) return allQuestions;
   
-  console.log(`getAllQuestions: 科目数=${subjectsData.length}`);
+  if (!Array.isArray(subjectsData)) {
+    console.error('getAllQuestions: subjectsDataが配列ではありません', subjectsData);
+    return [];
+  }
   
   subjectsData.forEach(subject => {
-    if (!subject || !subject.chapters || !Array.isArray(subject.chapters)) return;
-    
-    const subjectName = subject.name || subject.subjectName || '未分類';
-    console.log(`科目「${subjectName}」: 章数=${subject.chapters.length}`);
+    if (!subject || !Array.isArray(subject.chapters)) {
+      return;
+    }
     
     subject.chapters.forEach(chapter => {
-      if (!chapter || !chapter.questions || !Array.isArray(chapter.questions)) return;
-      
-      const chapterName = chapter.name || chapter.chapterName || '未分類';
-      console.log(`章「${chapterName}」: 問題数=${chapter.questions.length}`);
+      if (!chapter || !Array.isArray(chapter.questions)) {
+        return;
+      }
       
       chapter.questions.forEach(question => {
-        if (!question) return;
-        
-        allQuestions.push({
-          ...question,
-          subject: subjectName,
-          chapter: chapterName,
-          subjectName: subjectName,
-          chapterName: chapterName,
-          id: question.id,
-          number: question.number
-        });
+        if (question) {
+          // 各問題に科目名と章名の情報を追加
+          allQuestions.push({
+            ...question,
+            subjectId: subject.id,
+            subjectName: subject.name || subject.subjectName || '未分類',
+            chapterId: chapter.id,
+            chapterName: chapter.name || chapter.chapterName || '未分類'
+          });
+        }
       });
     });
   });
   
-  console.log(`getAllQuestions: 合計${allQuestions.length}問を取得しました`);
+  console.log(`getAllQuestions: 全部で${allQuestions.length}問の問題を取得しました`);
   return allQuestions;
 };
 
