@@ -254,7 +254,10 @@ const showErrorRecoveryUI = (error, options = {}) => {
       if (window.confirm('本当にデータをリセットしますか？この操作は元に戻せません。')) {
         try {
           localStorage.clear();
-          indexedDB.deleteDatabase('studySchedulerDB');
+          // indexedDBを直接参照するのではなく、window.indexedDBを使用
+          if (window.indexedDB) {
+            window.indexedDB.deleteDatabase('studySchedulerDB');
+          }
           window.location.reload();
         } catch (err) {
           console.error('データリセット中にエラーが発生しました:', err);
