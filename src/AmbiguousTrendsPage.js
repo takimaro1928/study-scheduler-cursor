@@ -2,7 +2,7 @@
 // テーブルソート機能の不具合修正版 + 科目名/章名プロパティ対応版
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Filter, ChevronDown, ChevronUp, Info, ArrowUpDown, BarChart2, AlertCircle, RotateCcw, TrendingUp, Edit2, TrendingDown, X, RefreshCw, Calendar, Edit, Activity, ArrowRight, CalendarDays, CalendarClock, CalendarRange } from 'lucide-react';
+import { Filter, ChevronDown, ChevronUp, Info, ArrowUpDown, BarChart2, AlertCircle, RotateCcw, TrendingUp, Edit2, TrendingDown, X, RefreshCw, Calendar, Edit, Activity, ArrowRight, CalendarDays, CalendarClock, CalendarRange, MessageSquare, Save } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Sankey, Tooltip as RechartsTooltip } from 'recharts';
 import styles from './AmbiguousTrendsPage.module.css';
 import CommentEditModal from './CommentEditModal';
@@ -197,6 +197,7 @@ const AmbiguousTrendsPage = ({ subjects, formatDate = formatDateInternal, answer
   const [showFilters, setShowFilters] = useState(false);
   const [editingCommentQuestion, setEditingCommentQuestion] = useState(null);
   const [expandedCommentId, setExpandedCommentId] = useState(null); // クリック表示用State
+  const [editingMemoQuestion, setEditingMemoQuestion] = useState(null); // メモ編集用State
   
   // 時間軸の集計単位を管理するステート
   const [timeAxisUnit, setTimeAxisUnit] = useState('daily'); // 'daily', 'weekly', 'monthly'
@@ -204,7 +205,7 @@ const AmbiguousTrendsPage = ({ subjects, formatDate = formatDateInternal, answer
   // --- 新機能: 曖昧から理解への遷移分析のための状態 ---
   const [activeTab, setActiveTab] = useState('ambiguous'); // 'ambiguous', 'transitions'
   const [timeRangeForTransition, setTimeRangeForTransition] = useState('30days'); // '7days', '30days', '90days', 'all'
-  
+
   // --- Memoized Data ---
   const ambiguousQuestions = useMemo(() => getAmbiguousQuestions(subjects || []), [subjects]);
 
@@ -580,7 +581,7 @@ const AmbiguousTrendsPage = ({ subjects, formatDate = formatDateInternal, answer
       // 章フィルター（科目が選択されている場合のみ有効）
       if (filter.chapter !== 'all') {
         filtered = filtered.filter(q => q.chapterName === filter.chapter);
-      }
+    }
     }
     
     // 期間フィルター
@@ -740,6 +741,22 @@ const AmbiguousTrendsPage = ({ subjects, formatDate = formatDateInternal, answer
     setExpandedCommentId(prevId => (prevId === questionId ? null : questionId));
   };
 
+  // メモ編集ボタンクリック時のハンドラ
+  const handleEditMemoClick = (question) => {
+    setEditingMemoQuestion(question);
+  };
+  
+  // メモ編集モーダルを閉じるハンドラ
+  const handleCloseMemoModal = () => {
+    setEditingMemoQuestion(null);
+  };
+  
+  // メモを保存するハンドラ
+  const handleSaveMemo = (questionId, memoText) => {
+    saveComment(questionId, memoText);
+    setEditingMemoQuestion(null);
+  };
+
   // アクションハンドラ：今日復習する
   const handleReviewToday = (questionId) => {
     const today = new Date();
@@ -770,13 +787,13 @@ const AmbiguousTrendsPage = ({ subjects, formatDate = formatDateInternal, answer
       // 基本のヘッダー（全テーブル共通）
       const baseHeaders = (
         <>
-          <th onClick={() => handleSort(tableType, 'id')}>問題ID {getSortIcon(tableType, 'id')}</th> 
-          <th onClick={() => handleSort(tableType, 'subjectName')}>科目 {getSortIcon(tableType, 'subjectName')}</th> 
-          <th onClick={() => handleSort(tableType, 'chapterName')}>章 {getSortIcon(tableType, 'chapterName')}</th> 
-          <th onClick={() => handleSort(tableType, 'reason')}>理由 {getSortIcon(tableType, 'reason')}</th> 
-          <th>コメント</th> 
-          <th onClick={() => handleSort(tableType, 'correctRate')}>正答率 {getSortIcon(tableType, 'correctRate')}</th> 
-          <th onClick={() => handleSort(tableType, 'answerCount')}>解答回数 {getSortIcon(tableType, 'answerCount')}</th> 
+               <th onClick={() => handleSort(tableType, 'id')}>問題ID {getSortIcon(tableType, 'id')}</th> 
+               <th onClick={() => handleSort(tableType, 'subjectName')}>科目 {getSortIcon(tableType, 'subjectName')}</th> 
+               <th onClick={() => handleSort(tableType, 'chapterName')}>章 {getSortIcon(tableType, 'chapterName')}</th> 
+               <th onClick={() => handleSort(tableType, 'reason')}>理由 {getSortIcon(tableType, 'reason')}</th> 
+               <th>コメント</th> 
+               <th onClick={() => handleSort(tableType, 'correctRate')}>正答率 {getSortIcon(tableType, 'correctRate')}</th> 
+               <th onClick={() => handleSort(tableType, 'answerCount')}>解答回数 {getSortIcon(tableType, 'answerCount')}</th> 
         </>
       );
       
@@ -788,12 +805,12 @@ const AmbiguousTrendsPage = ({ subjects, formatDate = formatDateInternal, answer
               {baseHeaders}
               <th onClick={() => handleSort(tableType, 'lastUnderstoodDate')}>前回理解日 {getSortIcon(tableType, 'lastUnderstoodDate')}</th>
               <th onClick={() => handleSort(tableType, 'revertedDate')}>揺り戻し日 {getSortIcon(tableType, 'revertedDate')}</th>
-              <th onClick={() => handleSort(tableType, 'lastAnswered')}>最終解答日 {getSortIcon(tableType, 'lastAnswered')}</th>
+               <th onClick={() => handleSort(tableType, 'lastAnswered')}>最終解答日 {getSortIcon(tableType, 'lastAnswered')}</th> 
               <th>アクション</th>
             </>
           );
         case 'completeReverted':
-          return (
+                return (
             <>
               {baseHeaders}
               <th onClick={() => handleSort(tableType, 'firstAmbiguousDate')}>初回曖昧日 {getSortIcon(tableType, 'firstAmbiguousDate')}</th>
@@ -850,33 +867,45 @@ const AmbiguousTrendsPage = ({ subjects, formatDate = formatDateInternal, answer
       // 全てのテーブルで共通の行セルを定義
       const baseCellsJsx = (
         <>
-          <td>{q.id ?? 'N/A'}</td>
-          <td>{q.subjectName ?? 'N/A'}</td>
-          <td>{q.chapterName ?? 'N/A'}</td>
-          <td>{q.reason ?? 'N/A'}</td>
-          <td className={styles.commentCell}>
-            <span
-              className={styles.commentTextAbbr}
-              onClick={() => handleCommentClick(q.id)}
-              title={expandedCommentId === q.id ? "" : "クリックして全文表示"}
-            >
-              {q.comment ?? ''}
-            </span>
-            {expandedCommentId === q.id && (
-              <div className={styles.expandedCommentBox}>
-                <button
-                  className={styles.closeExpandedComment}
-                  onClick={() => setExpandedCommentId(null)}
-                  title="閉じる"
-                >
-                  <X size={14} />
-                </button>
-                {q.comment}
-              </div>
-            )}
-          </td>
-          <td>{q.correctRate != null ? `${q.correctRate}%` : 'N/A'}</td>
-          <td>{q.answerCount ?? 'N/A'}</td>
+                   <td>{q.id ?? 'N/A'}</td>
+                   <td>{q.subjectName ?? 'N/A'}</td>
+                   <td>{q.chapterName ?? 'N/A'}</td>
+                   <td>{q.reason ?? 'N/A'}</td>
+                   <td className={styles.commentCell}>
+                     {q.comment ? (
+                       <>
+                         <span
+                           className={styles.commentTextAbbr}
+                           onClick={() => handleCommentClick(q.id)}
+                           title={expandedCommentId === q.id ? "" : "クリックして全文表示"}
+                         >
+                           {q.comment}
+                         </span>
+                         {expandedCommentId === q.id && (
+                           <div className={styles.expandedCommentBox}>
+                             <button
+                               className={styles.closeExpandedComment}
+                               onClick={() => setExpandedCommentId(null)}
+                               title="閉じる"
+                             >
+                               <X size={14} />
+                             </button>
+                             {q.comment}
+                           </div>
+                         )}
+                       </>
+                     ) : (
+                       <button
+                         className={styles.addMemoButton}
+                         onClick={() => handleEditMemoClick(q)}
+                         title="間違えやすい点などをメモ"
+                       >
+                         メモを追加
+                       </button>
+                     )}
+                   </td>
+                   <td>{q.correctRate != null ? `${q.correctRate}%` : 'N/A'}</td>
+                   <td>{q.answerCount ?? 'N/A'}</td>
         </>
       );
       
@@ -890,8 +919,8 @@ const AmbiguousTrendsPage = ({ subjects, formatDate = formatDateInternal, answer
               <td className={styles.dateCell} style={{color: '#dc2626', fontWeight: 500}}>{formatDate(q.revertedDate)}</td>
               <td>{formatDate(q.lastAnswered)}</td>
               {renderActionsCell(q)}
-            </tr>
-          );
+                 </tr>
+                );
         case 'completeReverted':
           return (
             <tr key={q.id}>
@@ -1324,23 +1353,23 @@ const AmbiguousTrendsPage = ({ subjects, formatDate = formatDateInternal, answer
             >
               <Filter size={18} /> フィルター {showFilters ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </button>
-            
-            {showFilters && (
-              <div className={styles.filterPanel}>
-                <div className={styles.filterGrid}>
-                  <div>
+
+      {showFilters && (
+        <div className={styles.filterPanel}>
+          <div className={styles.filterGrid}>
+            <div>
                     <label htmlFor="subjectFilter" className={styles.filterLabel}>科目</label>
                     <select id="subjectFilter" value={filter.subject} onChange={handleSubjectChange} className={styles.filterSelect}>
                       <option value="all">全ての科目</option>
                       {filterOptions.subjects.map(subject => (
                         <option key={subject} value={subject}>{subject}</option>
                       ))}
-                    </select>
-                  </div>
+              </select>
+            </div>
                   
                   {/* 章フィルター (科目が選択されている時のみ表示) */}
                   {filter.subject !== 'all' && (
-                    <div>
+            <div>
                       <label htmlFor="chapterFilter" className={styles.filterLabel}>章</label>
                       <select 
                         id="chapterFilter" 
@@ -1352,25 +1381,25 @@ const AmbiguousTrendsPage = ({ subjects, formatDate = formatDateInternal, answer
                         {filterOptions.chapters.map(chapter => (
                           <option key={chapter} value={chapter}>{chapter}</option>
                         ))}
-                      </select>
-                    </div>
+              </select>
+            </div>
                   )}
                   
-                  <div>
-                    <label htmlFor="periodFilter" className={styles.filterLabel}>最終解答期間</label>
+            <div>
+              <label htmlFor="periodFilter" className={styles.filterLabel}>最終解答期間</label>
                     <select 
                       id="periodFilter" 
                       value={filter.period} 
                       onChange={(e) => setFilter(prev => ({ ...prev, period: e.target.value }))}
                       className={styles.filterSelect}
                     >
-                      <option value="all">全期間</option>
-                      <option value="week">直近1週間</option>
-                      <option value="month">直近1ヶ月</option>
-                      <option value="quarter">直近3ヶ月</option>
-                    </select>
-                  </div>
-                </div>
+                <option value="all">全期間</option>
+                <option value="week">直近1週間</option>
+                <option value="month">直近1ヶ月</option>
+                <option value="quarter">直近3ヶ月</option>
+              </select>
+            </div>
+          </div>
                 
                 {/* 理由フィルター (複数選択) */}
                 <div className={styles.reasonFilterContainer}>
@@ -1405,29 +1434,29 @@ const AmbiguousTrendsPage = ({ subjects, formatDate = formatDateInternal, answer
                   <button onClick={handleResetFilters} className={styles.resetFilterButton}>
                     <X size={14} /> フィルターをリセット
                   </button>
-                </div>
-              </div>
-            )}
           </div>
-          
-          <div className={styles.chartContainer}>
-            <h3 className={styles.chartTitle}> <BarChart2 size={18} /> 科目別の曖昧問題数 </h3>
-            {ambiguousCountBySubject.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={ambiguousCountBySubject} margin={{ top: 5, right: 20, left: -10, bottom: 50 }} barGap={5} >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="subjectName" tick={{ fontSize: 11, fill: '#4b5563' }} angle={-45} textAnchor="end" height={60} interval={0} />
-                  <YAxis tick={{ fontSize: 11, fill: '#4b5563' }} allowDecimals={false} />
-                  <Tooltip cursor={{ fill: 'rgba(238, 242, 255, 0.6)' }} contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '0.375rem', fontSize: '0.875rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }} />
-                  <Bar dataKey="count" name="曖昧問題数" fill="#818cf8" radius={[4, 4, 0, 0]} barSize={20} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className={styles.noDataMessage}>グラフを表示するデータがありません。</div>
-            )}
+        </div>
+      )}
           </div>
 
-          <div className={styles.chartContainer}>
+      <div className={styles.chartContainer}>
+        <h3 className={styles.chartTitle}> <BarChart2 size={18} /> 科目別の曖昧問題数 </h3>
+        {ambiguousCountBySubject.length > 0 ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={ambiguousCountBySubject} margin={{ top: 5, right: 20, left: -10, bottom: 50 }} barGap={5} >
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="subjectName" tick={{ fontSize: 11, fill: '#4b5563' }} angle={-45} textAnchor="end" height={60} interval={0} />
+              <YAxis tick={{ fontSize: 11, fill: '#4b5563' }} allowDecimals={false} />
+              <Tooltip cursor={{ fill: 'rgba(238, 242, 255, 0.6)' }} contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '0.375rem', fontSize: '0.875rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }} />
+              <Bar dataKey="count" name="曖昧問題数" fill="#818cf8" radius={[4, 4, 0, 0]} barSize={20} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className={styles.noDataMessage}>グラフを表示するデータがありません。</div>
+        )}
+      </div>
+
+      <div className={styles.chartContainer}>
             <div className={styles.chartTitleContainer}>
               <h3 className={styles.chartTitle}> <TrendingUp size={18} /> 曖昧問題数の推移 </h3>
               <div className={styles.timeAxisButtons}>
@@ -1455,9 +1484,9 @@ const AmbiguousTrendsPage = ({ subjects, formatDate = formatDateInternal, answer
               </div>
             </div>
             {getAggregatedTrendsData.length > 1 ? (
-              <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={getAggregatedTrendsData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }} >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb"/>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb"/>
                   <XAxis 
                     dataKey={timeAxisUnit === 'daily' ? "date" : "period"} 
                     tick={{ fontSize: 11, fill: '#4b5563' }} 
@@ -1466,7 +1495,7 @@ const AmbiguousTrendsPage = ({ subjects, formatDate = formatDateInternal, answer
                     height={timeAxisUnit === 'weekly' ? 50 : 30}
                     textAnchor={timeAxisUnit === 'weekly' ? "end" : "middle"}
                   />
-                  <YAxis tick={{ fontSize: 11, fill: '#4b5563' }} allowDecimals={false} domain={['auto', 'auto']} />
+              <YAxis tick={{ fontSize: 11, fill: '#4b5563' }} allowDecimals={false} domain={['auto', 'auto']} />
                   <Tooltip 
                     cursor={{ stroke: '#a5b4fc', strokeWidth: 1 }} 
                     contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '0.375rem', fontSize: '0.875rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
@@ -1477,21 +1506,21 @@ const AmbiguousTrendsPage = ({ subjects, formatDate = formatDateInternal, answer
                       return `${label}`;
                     }}
                   />
-                  <Line type="monotone" dataKey="count" name="曖昧問題数" stroke="#818cf8" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 6 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className={styles.noDataMessage}>
-                {answerHistory.length === 0 ? '解答履歴データがありません。' : 'グラフを表示するための十分な解答履歴データがありません。(2日分以上の記録が必要です)'}
-              </div>
-            )}
+              <Line type="monotone" dataKey="count" name="曖昧問題数" stroke="#818cf8" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 6 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className={styles.noDataMessage}>
+            {answerHistory.length === 0 ? '解答履歴データがありません。' : 'グラフを表示するための十分な解答履歴データがありません。(2日分以上の記録が必要です)'}
           </div>
+        )}
+      </div>
 
-          {/* テーブル表示エリア - テーブルタイプ引数を追加 */}
-          {renderTable('longStagnant', '長期停滞している曖昧問題', AlertCircle, '#b45309', '(最終解答日から30日以上経過)', sortedLongStagnantQuestions, '長期停滞している曖昧問題はありません。', '#fffbeb')}
-          {renderTable('recentReverted', '直近の"揺り戻し"が発生した問題', TrendingDown, '#f97316', '(直前の解答が「理解○」だった問題)', sortedRecentRevertedQuestions, '直近で「理解○」→「曖昧△」となった問題はありません。', '#fff7ed')}
-          {renderTable('completeReverted', '完全な"揺り戻しサイクル"を経験した問題', RotateCcw, '#5b21b6', '(曖昧△ → 理解○ → 曖昧△ の流れを経験)', sortedCompleteRevertedQuestions, '完全な"揺り戻しサイクル"を経験した問題はありません。', '#f5f3ff')}
-          {renderTable('all', '全ての曖昧問題リスト', null, '#374151', '(現在のフィルターとソート適用)', filteredAndSortedQuestions, ambiguousQuestions.length > 0 ? '表示できる曖昧問題がありません。フィルター条件を変更してみてください。' : '曖昧と評価された問題はまだありません。', null)}
+      {/* テーブル表示エリア - テーブルタイプ引数を追加 */}
+      {renderTable('longStagnant', '長期停滞している曖昧問題', AlertCircle, '#b45309', '(最終解答日から30日以上経過)', sortedLongStagnantQuestions, '長期停滞している曖昧問題はありません。', '#fffbeb')}
+      {renderTable('recentReverted', '直近の"揺り戻し"が発生した問題', TrendingDown, '#f97316', '(直前の解答が「理解○」だった問題)', sortedRecentRevertedQuestions, '直近で「理解○」→「曖昧△」となった問題はありません。', '#fff7ed')}
+      {renderTable('completeReverted', '完全な"揺り戻しサイクル"を経験した問題', RotateCcw, '#5b21b6', '(曖昧△ → 理解○ → 曖昧△ の流れを経験)', sortedCompleteRevertedQuestions, '完全な"揺り戻しサイクル"を経験した問題はありません。', '#f5f3ff')}
+      {renderTable('all', '全ての曖昧問題リスト', null, '#374151', '(現在のフィルターとソート適用)', filteredAndSortedQuestions, ambiguousQuestions.length > 0 ? '表示できる曖昧問題がありません。フィルター条件を変更してみてください。' : '曖昧と評価された問題はまだありません。', null)}
         </div>
       ) : (
         renderTransitionAnalysisTab()
@@ -1508,6 +1537,44 @@ const AmbiguousTrendsPage = ({ subjects, formatDate = formatDateInternal, answer
           }}
           onCancel={() => setEditingCommentQuestion(null)}
         />
+      )}
+
+      {/* メモ編集モーダル */}
+      {editingMemoQuestion && (
+        <div className={styles.memoModalOverlay} onClick={handleCloseMemoModal}>
+          <div className={styles.memoModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.memoModalHeader}>
+              <h3 className={styles.memoModalTitle}>
+                <MessageSquare size={18} style={{ marginRight: '8px' }} />
+                学習メモの編集 ({editingMemoQuestion.id})
+              </h3>
+              <button onClick={handleCloseMemoModal} className={styles.memoModalCloseButton}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className={styles.memoModalContent}>
+              <textarea
+                className={styles.memoTextarea}
+                value={editingMemoQuestion.comment || ''}
+                onChange={(e) => setEditingMemoQuestion({...editingMemoQuestion, comment: e.target.value})}
+                placeholder="間違えやすい点や重要な考え方などをメモしておきましょう..."
+                rows={6}
+                autoFocus
+              />
+            </div>
+            <div className={styles.memoModalFooter}>
+              <button onClick={handleCloseMemoModal} className={`${styles.memoModalButton} ${styles.memoModalCancelButton}`}>
+                キャンセル
+              </button>
+              <button 
+                onClick={() => handleSaveMemo(editingMemoQuestion.id, editingMemoQuestion.comment || '')}
+                className={`${styles.memoModalButton} ${styles.memoModalSaveButton}`}
+              >
+                <Save size={16} style={{ marginRight: '4px' }} /> 保存
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
