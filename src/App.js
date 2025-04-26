@@ -161,7 +161,7 @@ function App() {
   // パフォーマンスモニタリング用の状態変数を追加（App関数内のステート定義部分に追加）
   const [memoryWarningShown, setMemoryWarningShown] = useState(false);
   // App関数内の先頭部分（他のuseState宣言の近く）に以下を追加
-  const [forceUpdate, setForceUpdate] = useState(0);
+  const [forceUpdate, setForceUpdate] = useState(false);
   // App関数内のuseState定義部分に以下を追加
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
     
@@ -205,6 +205,9 @@ function App() {
       if (history) {
         setAnswerHistory(history);
       }
+      
+      // forceUpdateのトグル
+      setForceUpdate(prev => !prev);
       
     } catch (error) {
       console.error("データ再読み込み中にエラーが発生しました:", error);
