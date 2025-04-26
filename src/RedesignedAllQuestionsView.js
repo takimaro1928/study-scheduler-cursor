@@ -917,7 +917,7 @@ const RedesignedAllQuestionsView = ({
     
     // 科目内のすべての問題IDを収集
     const questionIds = subject.chapters.flatMap(chapter => 
-      chapter.questions.map(q => q.id)
+      chapter.questions ? chapter.questions.map(q => q.id) : []
     );
     
     if (questionIds.length === 0) return;
@@ -927,19 +927,17 @@ const RedesignedAllQuestionsView = ({
     
     if (allSelected) {
       // すべて選択されている場合は解除
-      setSelectedQuestions(prevSelected => 
-        prevSelected.filter(id => !questionIds.includes(id))
-      );
+      questionIds.forEach(id => {
+        if (selectedQuestions.includes(id)) {
+          toggleQuestionSelection(id);
+        }
+      });
     } else {
       // 一部または全く選択されていない場合は全て選択
-      setSelectedQuestions(prevSelected => {
-        const newSelected = [...prevSelected];
-        questionIds.forEach(id => {
-          if (!newSelected.includes(id)) {
-            newSelected.push(id);
-          }
-        });
-        return newSelected;
+      questionIds.forEach(id => {
+        if (!selectedQuestions.includes(id)) {
+          toggleQuestionSelection(id);
+        }
       });
     }
   };
