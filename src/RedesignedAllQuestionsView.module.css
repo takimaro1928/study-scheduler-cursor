@@ -1207,3 +1207,280 @@
   transform: translateY(1px);
   box-shadow: none;
 }
+
+/* 階層構造表示のスタイル */
+.hierarchicalList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.subjectSection {
+  border-radius: 0.5rem;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.subjectHeader {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  cursor: pointer;
+  border-left: 4px solid #e5e7eb;
+  background-color: #f9fafb;
+  transition: background-color 0.2s ease;
+}
+
+.subjectHeader:hover {
+  background-color: #f3f4f6;
+}
+
+.chevronIcon {
+  color: #6b7280;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+
+.chevronIconSmall {
+  color: #6b7280;
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+
+.subjectName {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #111827;
+  flex-grow: 1;
+}
+
+.questionCount {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-left: 0.5rem;
+  background-color: #e5e7eb;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.bulkCheckboxContainer {
+  margin-left: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bulkCheckbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+}
+
+.chaptersContainer {
+  display: flex;
+  flex-direction: column;
+  padding: 0.25rem 0;
+  border-top: 1px solid #e5e7eb;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chapterSection {
+  margin: 0 0.5rem;
+}
+
+.chapterHeader {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  cursor: pointer;
+  margin: 0.25rem 0;
+  border-radius: 0.375rem;
+  transition: background-color 0.2s ease;
+}
+
+.chapterHeader:hover {
+  background-color: #f3f4f6;
+}
+
+.chapterName {
+  font-size: 0.9375rem;
+  color: #374151;
+  flex-grow: 1;
+}
+
+.questionsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.5rem 1.25rem 1rem 2rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.questionCard {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  border: 1px solid #e5e7eb;
+  border-left-width: 4px;
+  background-color: white;
+  transition: all 0.2s ease;
+  gap: 0.75rem;
+}
+
+.questionCard:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+.questionCheckbox {
+  display: flex;
+  align-items: center;
+}
+
+.questionInfo {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.questionId {
+  font-weight: 500;
+  font-size: 0.9375rem;
+  color: #111827;
+  margin-bottom: 0.25rem;
+}
+
+.questionMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  font-size: 0.8125rem;
+}
+
+.nextDateContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #6b7280;
+}
+
+.nextDateText {
+  white-space: nowrap;
+}
+
+.metaIcon {
+  color: #9ca3af;
+}
+
+.correctRateContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rateBarContainer {
+  width: 3rem;
+  height: 0.5rem;
+  background-color: #e5e7eb;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.rateBar {
+  height: 100%;
+  border-radius: 9999px;
+}
+
+.correctRateText {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.percentIcon {
+  color: #9ca3af;
+}
+
+.commentIndicator {
+  color: #9ca3af;
+}
+
+.editButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.editButton:hover {
+  background-color: #e5e7eb;
+}
+
+.noResults {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.noResultsIcon {
+  color: #f59e0b;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.resultsSummary {
+  margin: 1rem 0;
+  font-size: 0.9375rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pageInfo {
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
