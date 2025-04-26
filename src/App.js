@@ -383,16 +383,17 @@ const todayQuestionsList = useMemo(() => {
     today.setHours(0, 0, 0, 0);
     const todayTime = today.getTime();
     const questions = [];
-    console.log("Calculating todayQuestionsList using useMemo. Subjects length:", subjects?.length);
+    // 冗長なログ出力を削除
+    // console.log("Calculating todayQuestionsList using useMemo. Subjects length:", subjects?.length);
 
     if (!Array.isArray(subjects) || subjects.length === 0) {
-        console.warn("todayQuestionsList (useMemo): subjects is empty.");
+        // console.warn("todayQuestionsList (useMemo): subjects is empty.");
         return questions;
     }
 
     subjects.forEach((subject) => {
       if (!subject || !Array.isArray(subject.chapters)) {
-           console.warn("todayQuestionsList (useMemo): Invalid subject or chapters structure:", subject);
+           // console.warn("todayQuestionsList (useMemo): Invalid subject or chapters structure:", subject);
            return; // この subject をスキップ
       }
       // 両方のプロパティ名をサポート
@@ -400,7 +401,7 @@ const todayQuestionsList = useMemo(() => {
 
       subject.chapters.forEach((chapter) => {
         if (!chapter || !Array.isArray(chapter.questions)) {
-             console.warn("todayQuestionsList (useMemo): Invalid chapter or questions structure:", chapter);
+             // console.warn("todayQuestionsList (useMemo): Invalid chapter or questions structure:", chapter);
              return; // この chapter をスキップ
         }
         // 両方のプロパティ名をサポート
@@ -413,7 +414,8 @@ const todayQuestionsList = useMemo(() => {
                 if (isNaN(nextDate.getTime())) return;
                 nextDate.setHours(0, 0, 0, 0);
                 if (nextDate.getTime() === todayTime) {
-                    console.log(`[Today - useMemo] Found match: ${question.id}. Subject: ${currentSubjectName}, Chapter: ${currentChapterName}`);
+                    // ログ出力を削除
+                    // console.log(`[Today - useMemo] Found match: ${question.id}. Subject: ${currentSubjectName}, Chapter: ${currentChapterName}`);
                     // 両方のプロパティを設定
                     questions.push({
                         ...question,
@@ -423,7 +425,9 @@ const todayQuestionsList = useMemo(() => {
                         name: question.name || question.id
                     });
                 }
-            } catch (e) { console.error("[Today - useMemo] Error processing question:", e, question); }
+            } catch (e) { 
+                // console.error("[Today - useMemo] Error processing question:", e, question); 
+            }
         });
       });
     });
