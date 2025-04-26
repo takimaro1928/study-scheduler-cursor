@@ -496,73 +496,138 @@ export const getAllDataPaged = (storeName, { pageSize = 100, page = 0 } = {}) =>
 };
 
 /**
- * 古い解答履歴を削除（データベース容量の最適化）
- * @param {number} maxDays 保持する最大日数（デフォルト90日）
- * @returns {Promise<number>} 削除した件数
+ * 指定した日数よりも古い解答履歴を削除する
+ * パフォーマンス向上のため実装を強化
+ * @param {number} maxDays - 保持する最大日数 (デフォルト: 90日)
+ * @returns {Promise<number>} - 削除されたレコード数
  */
-export const cleanupOldAnswerHistory = (maxDays = 90) => {
-  return new Promise((resolve, reject) => {
-    openDatabase()
-      .then(db => {
-        try {
-          const transaction = db.transaction(STORES.ANSWER_HISTORY, 'readwrite');
-          const store = transaction.objectStore(STORES.ANSWER_HISTORY);
+export const cleanupOldAnswerHistory = async (maxDays = 90) => {
+  console.log(`${maxDays}日以上前の解答履歴を削除します...`);
+  
+  try {
+    const db = await openDatabase();
+    const tx = db.transaction(['answerHistory'], 'readwrite');
+    const store = tx.objectStore('answerHistory');
+    
+    // 現在の日付からmaxDays日前の日付を計算
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - maxDays);
+    cutoffDate.setHours(0, 0, 0, 0);
+    const cutoffTime = cutoffDate.getTime();
+    
+    // 削除カウンター
+    let deletedCount = 0;
+    
+    // 効率的な削除のため、バッチ処理を行う
+    return new Promise((resolve, reject) => {
+      const getAllKeysRequest = store.getAllKeys();
+      
+      getAllKeysRequest.onsuccess = async (event) => {
+        const allKeys = event.target.result;
+        const keysToDelete = [];
+        
+        // 削除対象のキーを特定するループ
+        for (const key of allKeys) {
+          const getRequest = store.get(key);
           
-          // 基準日時を計算（現在から90日前）
-          const cutoffDate = new Date();
-          cutoffDate.setDate(cutoffDate.getDate() - maxDays);
-          
-          const index = store.index('timestamp');
-          const range = IDBKeyRange.upperBound(cutoffDate.toISOString());
-          
-          // 削除すべきレコードを検索
-          const countRequest = index.count(range);
-          let deleteCount = 0;
-          
-          countRequest.onsuccess = () => {
-            const count = countRequest.result;
-            
-            if (count === 0) {
-              resolve(0); // 削除対象なし
-              return;
-            }
-            
-            const cursorRequest = index.openCursor(range);
-            
-            cursorRequest.onsuccess = (event) => {
-              const cursor = event.target.result;
-              
-              if (!cursor) {
-                // 削除完了
-                resolve(deleteCount);
-                return;
+          await new Promise(resolveGet => {
+            getRequest.onsuccess = (e) => {
+              const record = e.target.result;
+              if (record && record.timestamp) {
+                const recordDate = new Date(record.timestamp);
+                if (recordDate.getTime() < cutoffTime) {
+                  keysToDelete.push(key);
+                }
               }
-              
-              // このレコードを削除
-              const deleteRequest = cursor.delete();
-              
-              deleteRequest.onsuccess = () => {
-                deleteCount++;
-              };
-              
-              cursor.continue();
+              resolveGet();
             };
-          };
-          
-          transaction.oncomplete = () => {
-            resolve(deleteCount);
-          };
-          
-          transaction.onerror = (event) => {
-            reject(event.target.error);
-          };
-        } catch (error) {
-          logError(error, CONTEXT, { action: 'cleanupOldAnswerHistory' });
-          reject(error);
+            
+            getRequest.onerror = (e) => {
+              console.error('レコード取得エラー:', e.target.error);
+              resolveGet();
+            };
+          });
         }
-      })
-      .catch(reject);
-  });
+        
+        // 特定したキーを削除
+        if (keysToDelete.length > 0) {
+          console.log(`${keysToDelete.length}件の古い解答履歴を削除します`);
+          
+          // バッチサイズを設定して削除処理
+          const BATCH_SIZE = 100;
+          let processedCount = 0;
+          
+          while (processedCount < keysToDelete.length) {
+            const batch = keysToDelete.slice(processedCount, processedCount + BATCH_SIZE);
+            
+            // 各バッチを処理
+            await Promise.all(batch.map(key => {
+              return new Promise(resolveDelete => {
+                const deleteRequest = store.delete(key);
+                
+                deleteRequest.onsuccess = () => {
+                  deletedCount++;
+                  resolveDelete();
+                };
+                
+                deleteRequest.onerror = (e) => {
+                  console.error('レコード削除エラー:', e.target.error);
+                  resolveDelete();
+                };
+              });
+            }));
+            
+            processedCount += batch.length;
+          }
+        }
+        
+        tx.oncomplete = () => {
+          console.log(`クリーンアップ完了: ${deletedCount}件の古い解答履歴を削除しました`);
+          
+          // LocalStorageのバックアップも更新
+          try {
+            updateHistoryBackupAfterCleanup(maxDays);
+          } catch (e) {
+            console.warn('LocalStorageのバックアップ更新に失敗しました', e);
+          }
+          
+          resolve(deletedCount);
+        };
+        
+        tx.onerror = (e) => {
+          console.error('トランザクションエラー:', e.target.error);
+          reject(e.target.error);
+        };
+      };
+      
+      getAllKeysRequest.onerror = (e) => {
+        console.error('キー取得エラー:', e.target.error);
+        reject(e.target.error);
+      };
+    });
+  } catch (error) {
+    console.error('解答履歴クリーンアップエラー:', error);
+    return 0;
+  }
+};
+
+/**
+ * クリーンアップ後にLocalStorageのバックアップを更新する
+ * @param {number} maxDays - 保持する最大日数
+ */
+const updateHistoryBackupAfterCleanup = async (maxDays) => {
+  try {
+    // 最新の履歴データを取得
+    const history = await getAnswerHistory();
+    
+    if (history && Array.isArray(history)) {
+      // 最新の100件だけをバックアップ
+      const limitedHistory = history.slice(-100);
+      localStorage.setItem('answerHistory_backup', JSON.stringify(limitedHistory));
+    }
+  } catch (e) {
+    console.warn('バックアップ更新エラー:', e);
+  }
 };
 
 /**
