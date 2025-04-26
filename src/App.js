@@ -1684,8 +1684,6 @@ useEffect(() => {
               setShowAnswered={setShowAnswered}
               expandedSubjects={expandedSubjects} 
               expandedChapters={expandedChapters}
-              toggleSubject={toggleSubject}
-              toggleChapter={toggleChapter}
               saveComment={saveComment}
               blockSaveOperations={blockSaveOperations}
               addQuestion={addQuestion}
@@ -1719,17 +1717,6 @@ const blockSaveOperations = (duration = 60000) => {
 
 // ★★★ アコーディオン開閉 ★★★
 // 科目と章の開閉状態を制御する関数
-const toggleSubject = (subjectId) => { 
-  setExpandedSubjects(prev => ({ 
-    ...prev, 
-    [subjectId]: !prev[subjectId] 
-  })); 
-};
-
-const toggleChapter = (chapterId) => { 
-  setExpandedChapters(prev => ({ 
-    ...prev, 
-    [chapterId]: !prev[chapterId] 
-  })); 
-};
-
+  const setExpandedSubjects = (prev => ({
+    ...prev,
+  }));
