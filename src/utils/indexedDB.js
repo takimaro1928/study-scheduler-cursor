@@ -24,16 +24,37 @@ let dbConnection = null;
 
 // データの保存頻度制限機能を追加
 let lastSaveTime = 0;
-const SAVE_THROTTLE_MS = 5000; // 5秒間は同じデータの再保存を防止
+const SAVE_THROTTLE_MS = 30000; // 30秒間は同じデータの再保存を防止
+
+// データ保存の完全なブロック機能を追加
+let saveBlocked = false;
+
+/**
+ * データ保存を一時的にブロックする関数
+ * @param {number} durationMs - ブロック時間（ミリ秒）
+ */
+export const blockSaveOperations = (durationMs = 60000) => {
+  saveBlocked = true;
+  console.log(`データ保存操作を${durationMs / 1000}秒間ブロックします`);
+  
+  setTimeout(() => {
+    saveBlocked = false;
+    console.log('データ保存操作のブロックを解除しました');
+  }, durationMs);
+};
 
 /**
  * 保存処理の頻度を制限するヘルパー関数
  * @returns {boolean} 保存処理を実行すべきかどうか
  */
 const shouldThrottleSave = () => {
+  // 完全ブロック中は即座に制限
+  if (saveBlocked) {
+    return true;
+  }
+  
   const now = Date.now();
   if (now - lastSaveTime < SAVE_THROTTLE_MS) {
-    // console.log('保存頻度を制限しています...');
     return true;
   }
   lastSaveTime = now;
@@ -217,20 +238,21 @@ export const saveData = (storeName, data, key = null) => {
  * @returns {Promise<any>} 保存結果
  */
 export const saveStudyData = (subjects) => {
-  // 頻度制限をチェック
+  // 保存頻度制限をチェック - より厳格に
   if (shouldThrottleSave()) {
     return Promise.resolve('throttled');
   }
-
-  // データの変化がない場合は保存をスキップする機能
+  
+  // データの変化がない場合は保存をスキップする - より正確なチェック
   let cachedSubjectsHash = localStorage.getItem('subjectsHash');
   let currentSubjectsHash;
   
   try {
-    // 簡易的なハッシュ計算（データの一部をJSONに変換）
+    // より詳細なハッシュ計算（代表的なデータのサンプリング）
     const sampledData = subjects.map(s => ({ 
       id: s.id, 
-      count: s.chapters?.length || 0
+      count: s.chapters?.length || 0,
+      updated: s.lastUpdated || Date.now()
     }));
     currentSubjectsHash = JSON.stringify(sampledData);
     
