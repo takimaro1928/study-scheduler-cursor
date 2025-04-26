@@ -142,45 +142,27 @@ const getAllQuestions = (subjectsData) => {
 
 // ★ メインビュー切り替え ★
 function App() {
+  useEffect(() => {
+    document.title = "知識整理アプリ";
+  }, []);
+
+  // データの状態
   const [subjects, setSubjects] = useState([]);
   const [answerHistory, setAnswerHistory] = useState([]);
-  const [activeTab, setActiveTab] = useState('today');
-  const [expandedSubjects, setExpandedSubjects] = useState({});
-  const [expandedChapters, setExpandedChapters] = useState({});
-  const [editingQuestion, setEditingQuestion] = useState(null);
-  const [bulkEditMode, setBulkEditMode] = useState(false);
-  const [selectedQuestions, setSelectedQuestions] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(null); // 一括編集用の選択日付
-　const [showExportReminder, setShowExportReminder] = useState(false);
-  const [daysSinceLastExport, setDaysSinceLastExport] = useState(null);
-  // エラー関連の状態
-  const [hasStorageError, setHasStorageError] = useState(false);
-  // フィルタリング用の状態
-  const [filterText, setFilterText] = useState('');
-  const [showAnswered, setShowAnswered] = useState(false);
-  // パフォーマンスモニタリング用の状態変数を追加（App関数内のステート定義部分に追加）
-  const [memoryWarningShown, setMemoryWarningShown] = useState(false);
-  // App関数内の先頭部分（他のuseState宣言の近く）に以下を追加
-  const [forceUpdate, setForceUpdate] = useState(false);
-  // App関数内のuseState定義部分に以下を追加
-  const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
-    
-  // グローバルエラーハンドラーの設定
-  useEffect(() => {
-    setupGlobalErrorHandlers();
-    
-    // ローカルストレージの可用性チェック
-    if (!isStorageAvailable()) {
-      setHasStorageError(true);
-    }
-  }, []);
   
-  // データ再読み込み関数の強化
-  // useRefを使ってレンダー間で値を保持
+  // forceUpdateステートを最初に初期化（ブール値として定義）
+  const [forceUpdate, setForceUpdate] = useState(false);
+  
+  // 現在のタブ
+  const [currentTab, setCurrentTab] = useState(
+    localStorage.getItem('currentTab') || 'today'
+  );
+  
+  // 最終データ更新時間の参照を保持
   const lastRefreshTimeRef = useRef(0);
-  const REFRESH_THROTTLE_MS = 60000; // 1分間は連続読み込みを防止
-
-  // refreshData関数をuseCallbackでラップして安定した参照を保持
+  const REFRESH_THROTTLE_MS = 500; // 500ミリ秒のスロットリング
+  
+  // データ再読み込み関数 - 依存配列からsetForceUpdateを削除
   const refreshData = useCallback(async () => {
     // データロードの頻度を制限
     const now = Date.now();
@@ -208,19 +190,16 @@ function App() {
         setAnswerHistory(history);
       }
       
-      // forceUpdateのトグル
-      setForceUpdate(prev => !prev);
-      
     } catch (error) {
       console.error("データ再読み込み中にエラーが発生しました:", error);
     }
-  }, [setSubjects, setAnswerHistory, setForceUpdate]);
+  }, [setSubjects, setAnswerHistory]); // setForceUpdateを依存配列から削除
   
   // タブ切り替え時にデータをリフレッシュ
   useEffect(() => {
     // アクティブタブが変更されたらデータを最新化
     refreshData();
-  }, [activeTab, refreshData]);
+  }, [currentTab, refreshData]);
   
   // ★ 初期データ読み込み処理 (IndexedDB対応) ★
   useEffect(() => {
@@ -1445,11 +1424,11 @@ useEffect(() => {
   // refreshData()の呼び出しを削除 - これが無限ループの一因になっている可能性あり
   
   // タブ切り替え時にメモリ使用状況をチェック - 必要な場合のみ
-  if (activeTab === 'stats' || activeTab === 'ambiguous') {
+  if (currentTab === 'stats' || currentTab === 'ambiguous') {
     // 統計タブや曖昧分析タブに切り替える前にのみクリーンアップ
     setTimeout(() => cleanupMemoryUsage(false), 100);
   }
-}, [activeTab]);
+}, [currentTab]);
 
   // ★ アプリ全体のレンダリング (エラー状態対応) ★
   return (
@@ -1458,7 +1437,7 @@ useEffect(() => {
       <div className="App">
         <OfflineIndicator />
     <div className="min-h-screen bg-gray-50">
-      <TopNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
+      <TopNavigation activeTab={currentTab} setActiveTab={setCurrentTab} />
 　　　　
           {/* ストレージエラー通知 */}
           {hasStorageError && (
@@ -1483,44 +1462,47 @@ useEffect(() => {
           
           <div className="container mx-auto px-4 pt-4 pb-20">
             <MainView 
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
+              activeTab={currentTab}
+              setActiveTab={setCurrentTab}
               subjects={subjects}
               setSubjects={setSubjects}
-              answerHistory={answerHistory}
-              toggleSubject={toggleSubject}
-              toggleChapter={toggleChapter}
-              expandedSubjects={expandedSubjects}
-              expandedChapters={expandedChapters}
-              selectedQuestions={selectedQuestions}
-              toggleQuestionSelection={toggleQuestionSelection}
-              setEditingQuestion={setEditingQuestion}
-              bulkEditMode={bulkEditMode}
-              setBulkEditMode={setBulkEditMode}
+              answerHistory={answerHistory} 
+              refreshData={refreshData}
+              forceUpdate={forceUpdate}
+              setForceUpdate={setForceUpdate}
+              getAllQuestions={() => getAllQuestions(subjects)}
+              getQuestionsForToday={() => getQuestionsForDate(new Date())}
+              getQuestionsForDate={getQuestionsForDate}
+              recordAnswer={recordAnswer}
+              saveQuestionEdit={saveQuestionEdit}
+              handleQuestionDateChange={handleQuestionDateChange}
               saveBulkEdit={saveBulkEdit}
               saveBulkEditItems={saveBulkEditItems}
-              handleQuestionDateChange={handleQuestionDateChange}
-              saveComment={saveComment}
-              filterText={filterText} 
+              bulkEditMode={bulkEditMode}
+              setBulkEditMode={setBulkEditMode}
+              selectedQuestions={selectedQuestions}
+              setSelectedQuestions={setSelectedQuestions}
+              toggleQuestionSelection={toggleQuestionSelection}
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+              resetAllData={resetAllData}
+              resetAnswerStatusOnly={resetAnswerStatusOnly}
+              formatDate={formatDate}
+              editingQuestion={editingQuestion}
+              setEditingQuestion={setEditingQuestion}
+              filterText={filterText}
               setFilterText={setFilterText}
               showAnswered={showAnswered}
               setShowAnswered={setShowAnswered}
-              resetAllData={resetAllData}
-              resetAnswerStatusOnly={resetAnswerStatusOnly}
-             formatDate={formatDate}
-              handleDataImport={handleDataImport}
-              handleDataExport={handleDataExport}
-              handleBackupData={handleBackupData}
-              handleRestoreData={handleRestoreData}
-              getAllQuestions={getAllQuestions}
+              expandedSubjects={expandedSubjects} 
+              expandedChapters={expandedChapters}
+              toggleSubject={toggleSubject}
+              toggleChapter={toggleChapter}
+              saveComment={saveComment}
+              blockSaveOperations={blockSaveOperations}
               addQuestion={addQuestion}
+              calculateCorrectRate={calculateCorrectRate}
               calculateTotalQuestionCount={calculateTotalQuestionCount}
-              hasStorageError={hasStorageError}
-              recordAnswer={recordAnswer}
-              getQuestionsForDate={getQuestionsForDate}
-              editingQuestion={editingQuestion}
-              saveQuestionEdit={saveQuestionEdit}
-              refreshData={refreshData}
             />
       </div>
       <div id="notification-area" className="fixed bottom-4 right-4 z-30"></div>
