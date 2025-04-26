@@ -144,6 +144,142 @@ const clearErrorLogs = () => {
 };
 
 /**
+ * エラーリカバリーUIを表示する関数
+ * ページ全体にエラーメッセージとリカバリーオプションを表示します
+ * 
+ * @param {Error|string} error - エラーオブジェクトまたはエラーメッセージ
+ * @param {Object} options - オプション設定
+ * @param {string} options.title - エラータイトル (デフォルト: 'エラーが発生しました')
+ * @param {string} options.message - エラーメッセージ (デフォルト: '申し訳ありません。予期しないエラーが発生しました。')
+ * @param {boolean} options.showReload - リロードボタンを表示するか (デフォルト: true)
+ * @param {boolean} options.showReset - リセットボタンを表示するか (デフォルト: false)
+ */
+const showErrorRecoveryUI = (error, options = {}) => {
+  // エラーをログに記録
+  logError(error, 'ErrorRecoveryUI');
+  
+  // オプションのデフォルト値を設定
+  const {
+    title = 'エラーが発生しました',
+    message = '申し訳ありません。予期しないエラーが発生しました。',
+    showReload = true,
+    showReset = false
+  } = options;
+  
+  // 既存のエラーUIがあれば削除
+  const existingErrorUI = document.getElementById('global-error-ui');
+  if (existingErrorUI) {
+    existingErrorUI.remove();
+  }
+  
+  // エラーUIのコンテナを作成
+  const errorContainer = document.createElement('div');
+  errorContainer.id = 'global-error-ui';
+  errorContainer.style.position = 'fixed';
+  errorContainer.style.top = '0';
+  errorContainer.style.left = '0';
+  errorContainer.style.width = '100%';
+  errorContainer.style.height = '100%';
+  errorContainer.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+  errorContainer.style.zIndex = '9999';
+  errorContainer.style.display = 'flex';
+  errorContainer.style.flexDirection = 'column';
+  errorContainer.style.justifyContent = 'center';
+  errorContainer.style.alignItems = 'center';
+  errorContainer.style.padding = '2rem';
+  errorContainer.style.boxSizing = 'border-box';
+  
+  // エラーカードを作成
+  const errorCard = document.createElement('div');
+  errorCard.style.maxWidth = '500px';
+  errorCard.style.width = '100%';
+  errorCard.style.backgroundColor = 'white';
+  errorCard.style.borderRadius = '8px';
+  errorCard.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+  errorCard.style.overflow = 'hidden';
+  
+  // エラーヘッダーを作成
+  const errorHeader = document.createElement('div');
+  errorHeader.style.backgroundColor = '#ef4444';
+  errorHeader.style.color = 'white';
+  errorHeader.style.padding = '1rem 1.5rem';
+  errorHeader.style.fontWeight = 'bold';
+  errorHeader.style.fontSize = '1.25rem';
+  errorHeader.textContent = title;
+  
+  // エラーボディを作成
+  const errorBody = document.createElement('div');
+  errorBody.style.padding = '1.5rem';
+  
+  // エラーメッセージを作成
+  const errorMessage = document.createElement('p');
+  errorMessage.style.marginBottom = '1.5rem';
+  errorMessage.style.lineHeight = '1.5';
+  errorMessage.style.color = '#4b5563';
+  errorMessage.textContent = message;
+  
+  // ボタンコンテナを作成
+  const buttonContainer = document.createElement('div');
+  buttonContainer.style.display = 'flex';
+  buttonContainer.style.gap = '0.75rem';
+  buttonContainer.style.justifyContent = 'center';
+  
+  // リロードボタンを作成
+  if (showReload) {
+    const reloadButton = document.createElement('button');
+    reloadButton.textContent = 'ページをリロード';
+    reloadButton.style.backgroundColor = '#3b82f6';
+    reloadButton.style.color = 'white';
+    reloadButton.style.border = 'none';
+    reloadButton.style.borderRadius = '4px';
+    reloadButton.style.padding = '0.5rem 1rem';
+    reloadButton.style.cursor = 'pointer';
+    reloadButton.style.fontWeight = '500';
+    reloadButton.onclick = () => window.location.reload();
+    buttonContainer.appendChild(reloadButton);
+  }
+  
+  // リセットボタンを作成
+  if (showReset) {
+    const resetButton = document.createElement('button');
+    resetButton.textContent = 'データをリセット';
+    resetButton.style.backgroundColor = '#ef4444';
+    resetButton.style.color = 'white';
+    resetButton.style.border = 'none';
+    resetButton.style.borderRadius = '4px';
+    resetButton.style.padding = '0.5rem 1rem';
+    resetButton.style.cursor = 'pointer';
+    resetButton.style.fontWeight = '500';
+    resetButton.onclick = () => {
+      if (window.confirm('本当にデータをリセットしますか？この操作は元に戻せません。')) {
+        try {
+          localStorage.clear();
+          indexedDB.deleteDatabase('studySchedulerDB');
+          window.location.reload();
+        } catch (err) {
+          console.error('データリセット中にエラーが発生しました:', err);
+          alert('データリセット中にエラーが発生しました。ページをリロードします。');
+          window.location.reload();
+        }
+      }
+    };
+    buttonContainer.appendChild(resetButton);
+  }
+  
+  // 要素を組み立てる
+  errorBody.appendChild(errorMessage);
+  errorBody.appendChild(buttonContainer);
+  errorCard.appendChild(errorHeader);
+  errorCard.appendChild(errorBody);
+  errorContainer.appendChild(errorCard);
+  
+  // DOMにエラーUIを追加
+  document.body.appendChild(errorContainer);
+  
+  return errorContainer;
+};
+
+/**
  * グローバルエラーハンドラの設定
  * アプリケーションの初期化時に呼び出す
  */
@@ -155,12 +291,32 @@ const setupGlobalErrorHandlers = () => {
       lineNumber: event.lineno,
       columnNumber: event.colno
     });
+    
+    // ErrorBoundaryでキャッチされていないケースのみグローバルUIを表示
+    if (event.error && !window.__errorBoundaryCaught) {
+      showErrorRecoveryUI(event.error);
+    }
   });
   
   // Promiseでキャッチされていない例外をキャッチ
   window.addEventListener('unhandledrejection', (event) => {
     logError(event.reason, 'UnhandledPromiseRejection');
+    
+    // 深刻なPromiseエラーの場合にUIを表示
+    if (typeof event.reason === 'object' && event.reason !== null && 
+        (event.reason.name === 'QuotaExceededError' || 
+         event.reason.message?.includes('quota') || 
+         event.reason.message?.includes('storage'))) {
+      showErrorRecoveryUI(event.reason, {
+        title: 'ストレージエラー',
+        message: 'ブラウザのストレージ容量が不足しています。不要なデータを削除するか、ブラウザの設定を確認してください。',
+        showReset: true
+      });
+    }
   });
+
+  // グローバル関数として公開
+  window.showErrorRecoveryUI = showErrorRecoveryUI;
 };
 
 // ③ indexedDBの最適化（answerHistoryのクリーンアップ強化）
@@ -178,7 +334,8 @@ export {
   logWarning, 
   getErrorLogs, 
   clearErrorLogs, 
-  setupGlobalErrorHandlers 
+  setupGlobalErrorHandlers,
+  showErrorRecoveryUI
 };
 
 // デフォルトエクスポートを削除
