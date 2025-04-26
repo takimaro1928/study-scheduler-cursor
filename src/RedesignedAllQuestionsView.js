@@ -411,7 +411,7 @@ const RedesignedAllQuestionsView = ({
           const subjectName = subject.name || subject.subjectName || "未分類";
           const subjectId = subject.id;
   
-          // 科目フィルター
+          // 科目フィルター (アクティブな場合のみ適用)
           if (
             filters.selectedSubjects.length > 0 &&
             !filters.selectedSubjects.includes(subjectId)
@@ -428,7 +428,7 @@ const RedesignedAllQuestionsView = ({
               const chapterName = chapter.name || chapter.chapterName || "未分類";
               const chapterId = chapter.id;
   
-              // 章フィルター
+              // 章フィルター (アクティブな場合のみ適用)
               if (
                 filters.selectedChapters.length > 0 &&
                 !filters.selectedChapters.includes(chapterId)
@@ -440,7 +440,7 @@ const RedesignedAllQuestionsView = ({
               const filteredQuestions = chapter.questions.filter((question) => {
                 if (!question) return false;
                 
-                // 検索フィルタリング
+                // 検索フィルタリング (検索語句がある場合のみ)
                 if (searchKeywords.length > 0) {
                   const questionId = question.id?.toLowerCase() || "";
                   const comment = question.comment?.toLowerCase() || "";
@@ -457,7 +457,7 @@ const RedesignedAllQuestionsView = ({
                   if (!keywordMatch) return false;
                 }
   
-                // 理解度フィルタリング
+                // 理解度フィルタリング (「すべて」以外が選択されている場合のみ)
                 if (filters.understanding !== "all") {
                   if (
                     !question.understanding?.startsWith(filters.understanding)
@@ -466,7 +466,7 @@ const RedesignedAllQuestionsView = ({
                   }
                 }
   
-                // 正解率範囲フィルタリング
+                // 正解率範囲フィルタリング (値が設定されている場合のみ)
                 const rate = question.correctRate ?? 0;
                 if (
                   filters.correctRateMin &&
@@ -479,7 +479,7 @@ const RedesignedAllQuestionsView = ({
                 )
                   return false;
   
-                // 解答回数範囲フィルタリング
+                // 解答回数範囲フィルタリング (値が設定されている場合のみ)
                 const answerCount = question.answerCount ?? 0;
                 if (
                   filters.answerCountMin &&
@@ -492,7 +492,7 @@ const RedesignedAllQuestionsView = ({
                 )
                   return false;
   
-                // 次回予定日範囲フィルタリング
+                // 次回予定日範囲フィルタリング (値が設定されている場合のみ)
                 if (question.nextDate) {
                   const nextDate = new Date(question.nextDate);
                   if (filters.nextDateStart) {
@@ -509,7 +509,7 @@ const RedesignedAllQuestionsView = ({
                   return false;
                 }
   
-                // 最終解答日範囲フィルタリング
+                // 最終解答日範囲フィルタリング (値が設定されている場合のみ)
                 if (question.lastAnswered) {
                   const lastAnswered = new Date(question.lastAnswered);
                   if (filters.lastAnsweredStart) {
@@ -526,7 +526,7 @@ const RedesignedAllQuestionsView = ({
                   return false;
                 }
                 
-                // 解答済みフィルタリング条件
+                // 解答済みフィルタリング条件 (showAnsweredがfalseの場合のみ適用)
                 if (!showAnswered && question.lastAnswered) {
                   return false;
                 }
@@ -560,7 +560,7 @@ const RedesignedAllQuestionsView = ({
         if (question) {
           let passes = true;
           
-          // 検索フィルタリング
+          // 検索フィルタリング (検索語句がある場合のみ)
           if (searchKeywords.length > 0) {
             const questionId = question.id?.toLowerCase() || "";
             const comment = question.comment?.toLowerCase() || "";
@@ -579,24 +579,102 @@ const RedesignedAllQuestionsView = ({
             if (!passes) return; // この問題はスキップ
           }
           
-          // 理解度フィルタリング
+          // 理解度フィルタリング (「すべて」以外が選択されている場合のみ)
           if (filters.understanding !== "all") {
             passes = question.understanding?.startsWith(filters.understanding) || false;
             if (!passes) return;
           }
           
-          // 他のフィルター条件も同様に適用...
-          // （簡略化のため省略）
+          // 正解率範囲フィルタリング (値が設定されている場合のみ)
+          const rate = question.correctRate ?? 0;
+          if (filters.correctRateMin && rate < parseInt(filters.correctRateMin, 10)) return;
+          if (filters.correctRateMax && rate > parseInt(filters.correctRateMax, 10)) return;
           
-          // 解答済みフィルタリング条件
+          // 解答回数範囲フィルタリング (値が設定されている場合のみ)
+          const answerCount = question.answerCount ?? 0;
+          if (filters.answerCountMin && answerCount < parseInt(filters.answerCountMin, 10)) return;
+          if (filters.answerCountMax && answerCount > parseInt(filters.answerCountMax, 10)) return;
+          
+          // 次回予定日範囲フィルタリング (値が設定されている場合のみ)
+          if (question.nextDate) {
+            const nextDate = new Date(question.nextDate);
+            if (filters.nextDateStart) {
+              const startDate = new Date(filters.nextDateStart);
+              if (nextDate < startDate) return;
+            }
+            if (filters.nextDateEnd) {
+              const endDate = new Date(filters.nextDateEnd);
+              endDate.setHours(23, 59, 59, 999);
+              if (nextDate > endDate) return;
+            }
+          } else if (filters.nextDateStart || filters.nextDateEnd) {
+            return;
+          }
+          
+          // 最終解答日範囲フィルタリング (値が設定されている場合のみ)
+          if (question.lastAnswered) {
+            const lastAnswered = new Date(question.lastAnswered);
+            if (filters.lastAnsweredStart) {
+              const startDate = new Date(filters.lastAnsweredStart);
+              if (lastAnswered < startDate) return;
+            }
+            if (filters.lastAnsweredEnd) {
+              const endDate = new Date(filters.lastAnsweredEnd);
+              endDate.setHours(23, 59, 59, 999);
+              if (lastAnswered > endDate) return;
+            }
+          } else if (filters.lastAnsweredStart || filters.lastAnsweredEnd) {
+            return;
+          }
+          
+          // 解答済みフィルタリング条件 (showAnsweredがfalseの場合のみ適用)
           if (!showAnswered && question.lastAnswered) {
-            return; // この問題はスキップ
+            return;
           }
           
           // 条件を満たす問題を追加
           tempFilteredQuestions.push(question);
         }
       });
+      
+      // 問題データはあるがsubjectsがない場合は、仮の科目構造を作成
+      if (tempFilteredQuestions.length > 0 && tempFilteredSubjects.length === 0) {
+        // 問題からユニークな科目を抽出
+        const subjectMap = new Map();
+        
+        tempFilteredQuestions.forEach(question => {
+          const subjectId = question.subjectId || 'unknown';
+          const subjectName = question.subjectName || '未分類';
+          
+          if (!subjectMap.has(subjectId)) {
+            subjectMap.set(subjectId, {
+              id: subjectId,
+              name: subjectName,
+              chapters: new Map()
+            });
+          }
+          
+          const subject = subjectMap.get(subjectId);
+          const chapterId = question.chapterId || 'unknown';
+          const chapterName = question.chapterName || '未分類';
+          
+          if (!subject.chapters.has(chapterId)) {
+            subject.chapters.set(chapterId, {
+              id: chapterId,
+              name: chapterName,
+              questions: []
+            });
+          }
+          
+          subject.chapters.get(chapterId).questions.push(question);
+        });
+        
+        // Mapから配列に変換
+        tempFilteredSubjects = Array.from(subjectMap.values()).map(subject => ({
+          ...subject,
+          chapters: Array.from(subject.chapters.values())
+        }));
+      }
     }
     
     console.log(`フィルタリング後の問題数: ${tempFilteredQuestions.length}`);
@@ -786,7 +864,7 @@ const RedesignedAllQuestionsView = ({
                   {subject.chapters.reduce(
                     (total, chapter) => total + chapter.questions.length,
                     0
-                  )}
+                  )}問
                 </span>
                 
                 {/* 一括編集モード時、科目内全ての問題を選択するチェックボックス */}
@@ -852,7 +930,7 @@ const RedesignedAllQuestionsView = ({
                                   <input
                                     type="checkbox"
                                     checked={selectedQuestions.includes(question.id)}
-                                    onChange={() => toggleQuestionSelection(question.id)}
+                                    onChange={() => toggleQuestionSelection && toggleQuestionSelection(question.id)}
                                     className={styles.checkbox}
                                   />
                                 </div>
@@ -870,7 +948,7 @@ const RedesignedAllQuestionsView = ({
                                     <div className={styles.nextDateContainer}>
                                       <Clock size={14} className={styles.metaIcon} />
                                       <span className={styles.nextDateText}>
-                                        {formatDate(question.nextDate)}
+                                        {formatDate && formatDate(question.nextDate)}
                                       </span>
                                     </div>
                                   )}
@@ -911,7 +989,7 @@ const RedesignedAllQuestionsView = ({
                               {/* 編集ボタン */}
                               <button
                                 className={styles.editButton}
-                                onClick={() => setEditingQuestion(question)}
+                                onClick={() => setEditingQuestion && setEditingQuestion(question)}
                               >
                                 <Edit size={16} />
                                 編集
@@ -930,6 +1008,13 @@ const RedesignedAllQuestionsView = ({
           <div className={styles.noResults}>
             <AlertTriangle className={styles.noResultsIcon} />
             <p>該当する問題がありません</p>
+            {/* リセットボタンを追加 */}
+            <button 
+              onClick={resetAllFilters} 
+              className={`${styles.resetSearchButton} mt-3`}
+            >
+              フィルターをリセット
+            </button>
           </div>
         )}
       </div>
