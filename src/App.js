@@ -40,7 +40,7 @@ import {
 } from './utils/indexedDB';
 import { createBackup, restoreFromBackup } from './utils/backup-restore';
 // 他のコンポーネントインポートの近くに追加
-import NotesPage from './NotesPage.js'; // NotesPageコンポーネントのインポート（.js拡張子を追加）
+import NotesPage from './NotesPage'; // NotesPageコンポーネントのインポート
 
 // 問題生成関数 (IDゼロパディング、understanding='理解○' 固定)
 function generateQuestions(prefix, start, end) {
