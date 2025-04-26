@@ -171,13 +171,21 @@ const cleanupOldAnswerHistory = (days = 30) => {
   // ... 削除処理
 }
 
-// デフォルトエクスポートに加えて、名前付きエクスポートも追加
-export { logError, logWarning, getErrorLogs, clearErrorLogs, setupGlobalErrorHandlers };
+// 重複エクスポートエラーを修正
+// 名前付きエクスポートのみを使用する
+export { 
+  logError, 
+  logWarning, 
+  getErrorLogs, 
+  clearErrorLogs, 
+  setupGlobalErrorHandlers 
+};
 
-export default {
-  logError,
-  logWarning,
-  getErrorLogs,
-  clearErrorLogs,
-  setupGlobalErrorHandlers
-}; 
+// デフォルトエクスポートを削除
+// export default {
+//   logError,
+//   logWarning,
+//   getErrorLogs,
+//   clearErrorLogs,
+//   setupGlobalErrorHandlers
+// }; 
