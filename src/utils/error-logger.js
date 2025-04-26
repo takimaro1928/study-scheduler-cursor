@@ -67,7 +67,7 @@ const saveLogToStorage = (logEntry) => {
  * @param {string} context - エラーが発生したコンテキスト
  * @param {Object} additionalData - 追加のデータ (オプション)
  */
-export const logError = (error, context, additionalData = {}) => {
+const logError = (error, context, additionalData = {}) => {
   const errorMessage = error instanceof Error ? error.message : error;
   const stackTrace = error instanceof Error ? error.stack : new Error().stack;
   
@@ -99,7 +99,7 @@ export const logError = (error, context, additionalData = {}) => {
  * @param {string} context - 警告が発生したコンテキスト
  * @param {Object} additionalData - 追加のデータ (オプション)
  */
-export const logWarning = (message, context, additionalData = {}) => {
+const logWarning = (message, context, additionalData = {}) => {
   const logEntry = {
     level: LOG_LEVELS.WARN,
     timestamp: new Date().toISOString(),
@@ -122,7 +122,7 @@ export const logWarning = (message, context, additionalData = {}) => {
  * エラーログの取得
  * @returns {Array} 保存されているエラーログ
  */
-export const getErrorLogs = () => {
+const getErrorLogs = () => {
   try {
     const storedLogs = localStorage.getItem('errorLogs');
     return storedLogs ? JSON.parse(storedLogs) : [];
@@ -135,7 +135,7 @@ export const getErrorLogs = () => {
 /**
  * エラーログのクリア
  */
-export const clearErrorLogs = () => {
+const clearErrorLogs = () => {
   try {
     localStorage.removeItem('errorLogs');
   } catch (err) {
@@ -147,7 +147,7 @@ export const clearErrorLogs = () => {
  * グローバルエラーハンドラの設定
  * アプリケーションの初期化時に呼び出す
  */
-export const setupGlobalErrorHandlers = () => {
+const setupGlobalErrorHandlers = () => {
   // キャッチされていない例外をキャッチ
   window.addEventListener('error', (event) => {
     logError(event.error || event.message, 'UnhandledException', {
