@@ -120,7 +120,7 @@ const DataBackupRestore = ({ onBackup, onRestore }) => {
                 合計エントリ数: <span className="text-blue-600">{stats.totalEntries}</span>
               </div>
               <div className="grid grid-cols-2 gap-x-8 mt-2">
-                {Object.entries(stats.stores).map(([store, info]) => (
+                {stats.stores && Object.entries(stats.stores).map(([store, info]) => (
                   <div key={store} className="text-xs text-gray-600 flex items-center">
                     <span className="w-3 h-3 rounded-full bg-blue-400 mr-1.5"></span>
                     <span className="font-medium">{store}:</span> {info.entries}件
