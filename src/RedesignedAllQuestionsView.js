@@ -22,6 +22,9 @@ import {
   File as FileIcon,
   Percent,
   MessageSquare,
+  X,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import styles from "./RedesignedAllQuestionsView.module.css"; // CSSモジュール
 import AddQuestionModal from "./AddQuestionModal";
@@ -158,7 +161,8 @@ const RedesignedAllQuestionsView = ({
   formatDate,
   addQuestion,
   answerHistory,
-  refreshData
+  refreshData,
+  handleExportCSV
 }) => {
   // 検索とフィルター用state
   const [searchTerm, setSearchTerm] = useState("");
@@ -194,6 +198,9 @@ const RedesignedAllQuestionsView = ({
   
   // 検索条件に合った科目のみフィルタリング
   const [currentSubjectIndex, setCurrentSubjectIndex] = useState(0);
+
+  // コメントをポップアップ表示する処理
+  const [expandedComments, setExpandedComments] = useState({});
 
   // ページリセット用の効果
   useEffect(() => {
@@ -966,6 +973,125 @@ const RedesignedAllQuestionsView = ({
     }
   };
 
+  // コメントをポップアップ表示する処理
+  const toggleComment = (questionId, event) => {
+    event.stopPropagation(); // バブリング防止
+    setExpandedComments(prev => ({
+      ...prev,
+      [questionId]: !prev[questionId]
+    }));
+  };
+
+  // 各問題カードをレンダリング
+  const renderQuestionCard = (question) => {
+    return (
+      <div 
+        key={question.id} 
+        className={styles.questionCard}
+        style={{
+          borderLeftColor: getSubjectColorCode(question.subjectName || question.subjectId)
+        }}
+      >
+        {/* 一括編集モード時のチェックボックス */}
+        {bulkEditMode && (
+          <div className={styles.questionCheckbox}>
+            <input
+              type="checkbox"
+              checked={selectedQuestions.includes(question.id)}
+              onChange={() => toggleQuestionSelection && toggleQuestionSelection(question.id)}
+              className={styles.checkbox}
+            />
+          </div>
+        )}
+        
+        {/* 問題カード内容 */}
+        <div className={styles.questionInfo}>
+          <div className={styles.questionId}>
+            {question.id}
+          </div>
+          
+          <div className={styles.questionMeta}>
+            {/* 次回予定日 */}
+            {question.nextDate && (
+              <div className={styles.nextDateContainer}>
+                <Clock size={14} className={styles.metaIcon} />
+                <span className={styles.nextDateText}>
+                  {formatDate && formatDate(question.nextDate)}
+                </span>
+              </div>
+            )}
+            
+            {/* 理解度 */}
+            {question.understanding && (
+              <div className={getUnderstandingStyle(question.understanding).badgeClass}>
+                {getUnderstandingStyle(question.understanding).icon}
+                <span>{question.understanding}</span>
+              </div>
+            )}
+            
+            {/* 正解率 */}
+            {question.correctRate !== undefined && (
+              <div className={styles.correctRateContainer}>
+                <div 
+                  className={`${styles.rateBar} ${getCorrectRateColorClass(question.correctRate)}`} 
+                  style={{ width: `${question.correctRate}%` }}
+                />
+                <span className={styles.correctRateText}>
+                  <Percent size={14} className={styles.percentIcon} />
+                  {question.correctRate}%
+                </span>
+              </div>
+            )}
+            
+            {/* コメントがある場合のインジケータ */}
+            {question.comment && (
+              <div 
+                className={styles.commentIndicator}
+                onClick={(e) => toggleComment(question.id, e)}
+                title="コメントを表示"
+              >
+                <MessageSquare size={14} className={styles.commentIcon} />
+                
+                {/* コメントポップアップ */}
+                {expandedComments[question.id] && (
+                  <div className={styles.commentPopup} onClick={e => e.stopPropagation()}>
+                    <div className={styles.commentPopupHeader}>
+                      <span className={styles.commentPopupTitle}>メモ</span>
+                      <button 
+                        className={styles.commentPopupClose}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedComments(prev => ({
+                            ...prev,
+                            [question.id]: false
+                          }));
+                        }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <div className={styles.commentPopupContent}>
+                      {question.comment}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* 編集ボタン */}
+        <button
+          className={styles.editButton}
+          onClick={() => setEditingQuestion && setEditingQuestion(question)}
+        >
+          <Edit size={16} />
+          編集
+        </button>
+      </div>
+    );
+  };
+
   // 問題リストの階層表示をレンダリングする関数
   const renderHierarchicalList = () => {
     return (
@@ -1053,86 +1179,7 @@ const RedesignedAllQuestionsView = ({
                         {/* 展開時の問題リスト */}
                         {expandedChapters[chapter.id] && (
                           <div className={styles.questionsContainer}>
-                            {chapter.questions.map((question) => (
-                              <div 
-                                key={question.id} 
-                                className={styles.questionCard}
-                                style={{
-                                  borderLeftColor: getSubjectColorCode(currentSubject.name || currentSubject.subjectName)
-                                }}
-                              >
-                                {/* 一括編集モード時のチェックボックス */}
-                                {bulkEditMode && (
-                                  <div className={styles.questionCheckbox}>
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedQuestions.includes(question.id)}
-                                      onChange={() => toggleQuestionSelection && toggleQuestionSelection(question.id)}
-                                      className={styles.checkbox}
-                                    />
-                                  </div>
-                                )}
-                                
-                                {/* 問題カード内容 */}
-                                <div className={styles.questionInfo}>
-                                  <div className={styles.questionId}>
-                                    {question.id}
-                                  </div>
-                                  
-                                  <div className={styles.questionMeta}>
-                                    {/* 次回予定日 */}
-                                    {question.nextDate && (
-                                      <div className={styles.nextDateContainer}>
-                                        <Clock size={14} className={styles.metaIcon} />
-                                        <span className={styles.nextDateText}>
-                                          {formatDate && formatDate(question.nextDate)}
-                                        </span>
-                                      </div>
-                                    )}
-                                    
-                                    {/* 理解度 */}
-                                    {question.understanding && (
-                                      <div className={getUnderstandingStyle(question.understanding).badgeClass}>
-                                        {getUnderstandingStyle(question.understanding).icon}
-                                        <span>{question.understanding}</span>
-                                      </div>
-                                    )}
-                                    
-                                    {/* 正解率 */}
-                                    {question.correctRate !== undefined && (
-                                      <div className={styles.correctRateContainer}>
-                                        <div className={styles.rateBarContainer}>
-                                          <div 
-                                            className={`${styles.rateBar} ${getCorrectRateColorClass(question.correctRate)}`} 
-                                            style={{ width: `${question.correctRate}%` }}
-                                          />
-                                        </div>
-                                        <span className={styles.correctRateText}>
-                                          <Percent size={14} className={styles.percentIcon} />
-                                          {question.correctRate}%
-                                        </span>
-                                      </div>
-                                    )}
-                                    
-                                    {/* コメントがある場合のインジケータ */}
-                                    {question.comment && (
-                                      <div className={styles.commentIndicator}>
-                                        <MessageSquare size={14} className={styles.commentIcon} />
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                                
-                                {/* 編集ボタン */}
-                                <button
-                                  className={styles.editButton}
-                                  onClick={() => setEditingQuestion && setEditingQuestion(question)}
-                                >
-                                  <Edit size={16} />
-                                  編集
-                                </button>
-                              </div>
-                            ))}
+                            {chapter.questions.map((question) => renderQuestionCard(question))}
                           </div>
                         )}
                       </div>
