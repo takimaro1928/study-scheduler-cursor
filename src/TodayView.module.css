@@ -95,17 +95,68 @@
   white-space: pre-wrap;
 }
 
-.understandingButtons {
+/* 正解・不正解ボタン */
+.answerButtons {
   display: flex;
   gap: 1rem;
   margin-top: 1rem;
+  justify-content: center;
+}
+
+.answerButtons button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.answerButtons .correctButton {
+  background-color: #22c55e;
+  color: white;
+}
+
+.answerButtons .correctButton:hover {
+  background-color: #16a34a;
+}
+
+.answerButtons .incorrectButton {
+  background-color: #ef4444;
+  color: white;
+}
+
+.answerButtons .incorrectButton:hover {
+  background-color: #dc2626;
+}
+
+/* 理解度選択 */
+.understandingChoice {
+  margin-top: 1.5rem;
+}
+
+.choiceHeader {
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #4b5563;
+}
+
+.understandingButtons {
+  display: flex;
+  gap: 1rem;
 }
 
 .understandingButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
   border: none;
   border-radius: 0.375rem;
   font-weight: 500;
@@ -121,6 +172,7 @@
 .correctButton {
   background-color: #dcfce7;
   color: #166534;
+  border: 1px solid #86efac;
 }
 
 .correctButton:hover {
@@ -132,20 +184,22 @@
   color: white;
 }
 
-.incorrectButton {
-  background-color: #fff1f2;
-  color: #be123c;
+.ambiguousButton {
+  background-color: #fef9c3;
+  color: #854d0e;
+  border: 1px solid #fde047;
 }
 
-.incorrectButton:hover {
-  background-color: #fecdd3;
+.ambiguousButton:hover {
+  background-color: #fef08a;
 }
 
-.incorrectButton.selected {
-  background-color: #fb7185;
+.ambiguousButton.selected {
+  background-color: #facc15;
   color: white;
 }
 
+/* 曖昧理由選択パネル */
 .ambiguousReasonsPanel {
   margin-top: 1rem;
   padding: 1rem;
@@ -157,60 +211,59 @@
 .ambiguousReasonsTitle {
   font-weight: 500;
   margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+  color: #854d0e;
 }
 
 .ambiguousReasonsList {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.ambiguousReasonButton {
-  padding: 0.5rem;
-  background-color: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.ambiguousReasonButton:hover {
-  background-color: #f3f4f6;
-}
-
-.ambiguousReasonButton.selected {
-  background-color: #fef9c3;
-  border-color: #fde047;
-}
-
-.ambiguousReasonsActions {
   display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0rem;
 }
 
-.ambiguousCancelButton {
-  padding: 0.5rem 1rem;
+.ambiguousReasonItem {
+  padding: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  border-bottom: 1px solid #fef08a;
+  transition: background-color 0.2s;
+}
+
+.ambiguousReasonItem:last-child {
+  border-bottom: none;
+}
+
+.ambiguousReasonItem:hover {
+  background-color: #fef9c3;
+}
+
+.selectedReason {
+  background-color: #fef9c3;
+}
+
+.reasonContent {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.reasonDot {
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  background-color: #f59e0b;
+  border-radius: 50%;
+  margin-right: 0.75rem;
+}
+
+.daysBadge {
+  font-size: 0.8rem;
+  color: #4b5563;
   background-color: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.375rem;
-  cursor: pointer;
-}
-
-.ambiguousConfirmButton {
-  padding: 0.5rem 1rem;
-  background-color: #fde047;
-  border: none;
-  border-radius: 0.375rem;
-  cursor: pointer;
-}
-
-.ambiguousConfirmButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
 }
 
 .animateFadeIn {
