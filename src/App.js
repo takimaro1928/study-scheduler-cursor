@@ -1367,6 +1367,81 @@ useEffect(() => {
   }
 }, [memoryWarningShown]);
 
+// データクリーンアップ機能の追加
+// App関数内で以下のコードを追加
+
+// メモリ監視とデータクリーンアップのための関数
+const cleanupMemoryUsage = (force = false) => {
+  console.log('メモリ使用状況チェック・クリーンアップ実行');
+  
+  // 強制クリーンアップまたはメモリ使用量が閾値を超えた場合に実行
+  if (force || (window.performance && window.performance.memory && 
+      window.performance.memory.usedJSHeapSize > window.performance.memory.jsHeapSizeLimit * 0.7)) {
+    
+    console.log('大規模メモリクリーンアップを実行します');
+    
+    // 1. 解答履歴の古いデータを削除（90日以上前のデータ）
+    cleanupOldAnswerHistory(90)
+      .then(count => {
+        if (count > 0) {
+          console.log(`${count}件の古い解答履歴を削除しました`);
+        }
+      })
+      .catch(err => console.error('履歴クリーンアップエラー:', err));
+    
+    // 2. 内部キャッシュをクリア
+    setForceUpdate(prev => prev + 1);
+    
+    // 3. 不要な配列を削除（参照を切る）
+    if (localStorage.getItem('tempDataCache')) {
+      localStorage.removeItem('tempDataCache');
+    }
+    
+    // 4. ガベージコレクションのヒント
+    if (global.gc) {
+      try {
+        global.gc();
+      } catch (e) {
+        console.log('ガベージコレクション呼び出しに失敗:', e);
+      }
+    }
+    
+    return true;
+  }
+  
+  return false;
+};
+
+// 定期的なクリーンアップを実行するためのuseEffect
+useEffect(() => {
+  // 30分ごとにメモリクリーンアップを実行
+  const cleanupInterval = setInterval(() => {
+    cleanupMemoryUsage();
+  }, 30 * 60 * 1000); // 30分 = 1,800,000ミリ秒
+  
+  // 画面を長時間開いている場合に備えて、3時間ごとに強制クリーンアップ
+  const forcedCleanupInterval = setInterval(() => {
+    cleanupMemoryUsage(true);
+  }, 3 * 60 * 60 * 1000); // 3時間 = 10,800,000ミリ秒
+  
+  return () => {
+    clearInterval(cleanupInterval);
+    clearInterval(forcedCleanupInterval);
+  };
+}, []);
+
+// タブ切り替え時のデータクリーンアップを追加
+useEffect(() => {
+  // アクティブタブが変更されたらデータを最新化
+  refreshData();
+  
+  // タブ切り替え時にメモリ使用状況をチェック
+  if (activeTab === 'stats' || activeTab === 'ambiguous') {
+    // 統計タブや曖昧分析タブに切り替える前にメモリをクリーンアップ
+    cleanupMemoryUsage();
+  }
+}, [activeTab]);
+
   // ★ アプリ全体のレンダリング (エラー状態対応) ★
   return (
   <ErrorBoundary>
