@@ -3,13 +3,30 @@
  * アプリケーション全体で一貫したエラーログ管理を提供します
  */
 
-// 環境設定
-const isDevelopment = process.env.NODE_ENV === 'development';
-const LOG_LEVELS = {
-  ERROR: 'error',
-  WARN: 'warn',
-  INFO: 'info',
-  DEBUG: 'debug'
+// エラーログ出力を本番環境で最小限にする
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const LOG_LEVEL = IS_PRODUCTION ? 'error' : 'debug';
+
+// 環境に応じたログ出力関数
+const logger = {
+  debug: (...args) => {
+    if (LOG_LEVEL === 'debug') {
+      console.debug(...args);
+    }
+  },
+  info: (...args) => {
+    if (LOG_LEVEL === 'debug' || LOG_LEVEL === 'info') {
+      console.info(...args);
+    }
+  },
+  warn: (...args) => {
+    if (LOG_LEVEL !== 'error') {
+      console.warn(...args);
+    }
+  },
+  error: (...args) => {
+    console.error(...args);
+  }
 };
 
 // エラーログ保存のための最大サイズ
@@ -93,7 +110,7 @@ export const logWarning = (message, context, additionalData = {}) => {
   console.warn(`[WARN][${context}]`, message, additionalData);
   
   // 開発環境の場合のみローカルストレージに保存
-  if (isDevelopment) {
+  if (IS_PRODUCTION) {
     saveLogToStorage(logEntry);
   }
 };
