@@ -122,7 +122,7 @@ const MainView = ({
                 
                 // データをリフレッシュする必要がある場合はここに処理を追加
                 // 必要最小限のみ更新
-                setForceUpdate(prev => prev + 1);
+                setForceUpdate(prev => !prev);
               }}
             />
           </ErrorBoundary>
