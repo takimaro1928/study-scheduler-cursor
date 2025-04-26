@@ -45,26 +45,34 @@
 }
 
 .resetButton {
-  padding: 0.625rem 1.25rem; /* py-2.5 px-5 */
-  background-color: #ef4444; /* bg-red-500 */
+  padding: 0.625rem 1.25rem;
+  background-color: #ef4444;
   color: white;
-  font-weight: 500; /* font-medium */
-  font-size: 0.875rem; /* text-sm */
+  font-weight: 600;
+  font-size: 0.875rem;
   border: none;
-  border-radius: 0.5rem; /* rounded-lg */
+  border-radius: 0.5rem;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
 }
 
 .resetButton:hover {
-  background-color: #dc2626; /* hover:bg-red-600 */
+  background-color: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.4);
+}
+
+.resetButton:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(239, 68, 68, 0.2);
 }
 
 .resetButton svg {
-  margin-right: 0.5rem; /* mr-2 */
+  margin-right: 0.5rem;
 }
 
 /* 新規追加スタイル */
@@ -102,11 +110,17 @@
 }
 
 .resetAnswerButton {
-  background-color: #6366f1; /* indigo-500 */
+  background-color: #8b5cf6;
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
 }
 
 .resetAnswerButton:hover {
-  background-color: #4f46e5; /* indigo-600 */
+  background-color: #7c3aed;
+  box-shadow: 0 4px 8px rgba(139, 92, 246, 0.4);
+}
+
+.resetAnswerButton:active {
+  box-shadow: 0 1px 2px rgba(139, 92, 246, 0.2);
 }
 
 /* データエクスポート/インポート関連のスタイル */
@@ -162,21 +176,29 @@
 /* エクスポートボタン */
 .exportButton {
   padding: 0.625rem 1.25rem;
-  background-color: #4f46e5; /* indigo-600 */
+  background-color: #3b82f6;
   color: white;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 0.875rem;
   border: none;
   border-radius: 0.5rem;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
 }
 
 .exportButton:hover {
-  background-color: #4338ca; /* indigo-700 */
+  background-color: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+}
+
+.exportButton:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(59, 130, 246, 0.2);
 }
 
 .exportButton svg {
@@ -186,31 +208,44 @@
 /* インポートボタン */
 .importButton {
   padding: 0.625rem 1.25rem;
-  background-color: #10b981; /* emerald-500 */
+  background-color: #10b981;
   color: white;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 0.875rem;
   border: none;
   border-radius: 0.5rem;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
   white-space: nowrap;
 }
 
 .importButton:hover {
-  background-color: #059669; /* emerald-600 */
+  background-color: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
+}
+
+.importButton:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(16, 185, 129, 0.2);
 }
 
 .importButtonDisabled {
-  background-color: #9ca3af; /* gray-400 */
+  background-color: #9ca3af;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.7;
 }
 
 .importButtonDisabled:hover {
-  background-color: #9ca3af; /* hover時も同じ色 */
+  background-color: #9ca3af;
+  transform: none;
+  box-shadow: none;
 }
 
 .importButton svg {
@@ -241,4 +276,340 @@
   font-size: 0.875rem;
   display: flex;
   align-items: center;
+}
+
+/* 危険操作ボタン */
+.warningButton {
+  padding: 0.625rem 1.25rem;
+  background-color: #f59e0b;
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+}
+
+.warningButton:hover {
+  background-color: #d97706;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(245, 158, 11, 0.4);
+}
+
+.warningButton:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(245, 158, 11, 0.2);
+}
+
+.warningButton svg {
+  margin-right: 0.5rem;
+}
+
+/* 危険操作ボタン */
+.dangerButton {
+  padding: 0.625rem 1.25rem;
+  background-color: #ef4444;
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+.dangerButton:hover {
+  background-color: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.4);
+}
+
+.dangerButton:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(239, 68, 68, 0.2);
+}
+
+.dangerButton svg {
+  margin-right: 0.5rem;
+}
+
+/* ファイル入力関連のスタイル */
+.fileInputWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 400px;
+  margin-top: 1rem;
+}
+
+@media (min-width: 768px) {
+  .fileInputWrapper {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 0;
+  }
+}
+
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.fileInputLabel {
+  padding: 0.625rem 1rem;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-grow: 1;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.fileInputLabel:hover {
+  background-color: #e5e7eb;
+}
+
+/* アクショングループ */
+.actionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+@media (min-width: 768px) {
+  .actionGroup {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+/* 確認ダイアログ関連のスタイル */
+.confirmationBox {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.confirmationText {
+  font-size: 0.875rem;
+  color: #4b5563;
+  margin-bottom: 1rem;
+}
+
+.confirmationButtons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.confirmButton {
+  padding: 0.5rem 1rem;
+  background-color: #6366f1;
+  color: white;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.confirmButton:hover {
+  background-color: #4f46e5;
+}
+
+.dangerConfirmButton {
+  padding: 0.5rem 1rem;
+  background-color: #ef4444;
+  color: white;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.dangerConfirmButton:hover {
+  background-color: #dc2626;
+}
+
+.cancelButton {
+  padding: 0.5rem 1rem;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cancelButton:hover {
+  background-color: #e5e7eb;
+}
+
+/* 追加のセクションスタイル */
+.settingsHeading {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.settingsHeading svg {
+  margin-right: 0.5rem;
+  color: #6366f1;
+}
+
+.settingsGroup {
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f3f4f6;
+  margin-bottom: 1.5rem;
+}
+
+.settingsSubheading {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.settingsDescription {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 1rem;
+}
+
+.statsContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+  background-color: var(--color-bg-subtle);
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.statsItem {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  background-color: white;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.statsLabel {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+}
+
+.statsValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.warningContainer {
+  display: flex;
+  background-color: #fff7ed;
+  border-left: 4px solid #f97316;
+  padding: 1rem;
+  border-radius: 0.25rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+}
+
+.warningIcon {
+  color: #f97316;
+  margin-right: 0.75rem;
+  font-size: 1.125rem;
+}
+
+.lastExportDate {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* メッセージスタイル追加 */
+.errorMessage {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 6px;
+  margin-top: 16px;
+  background-color: rgba(254, 226, 226, 0.5);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+}
+
+.errorIcon {
+  color: #ef4444;
+  flex-shrink: 0;
+}
+
+.successMessage {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 6px;
+  margin-top: 16px;
+  background-color: rgba(209, 250, 229, 0.5);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+}
+
+.successIcon {
+  color: #10b981;
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .actionGroup {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  
+  .exportButton,
+  .fileInputWrapper {
+    flex: 1;
+  }
 }
