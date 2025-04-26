@@ -172,35 +172,46 @@ function App() {
   }, []);
   
   // データ再読み込み関数の強化
+  let lastRefreshTime = 0;
+  const REFRESH_THROTTLE_MS = 10000; // 10秒間は連続読み込みを防止
+
   const refreshData = async () => {
+    // データロードの頻度を制限
+    const now = Date.now();
+    if (now - lastRefreshTime < REFRESH_THROTTLE_MS) {
+      console.log('データ読み込みの頻度を制限しています...');
+      return;
+    }
+    lastRefreshTime = now;
+
     console.log("データを強制的に再読み込みしています...");
+    
     try {
-      // IndexedDBからデータを直接取得する
-      const refreshedSubjects = await indexedDB.getStudyDataWithFallback();
+      // 同期的にデータを取得
+      const studyData = await getStudyDataWithFallback();
+      const history = await getAnswerHistoryWithFallback();
       
-      if (refreshedSubjects && Array.isArray(refreshedSubjects)) {
-        console.log("データ再読み込み成功:", refreshedSubjects.length, "個の科目");
-        
-        // 状態を強制的に更新してUIを再レンダリング
-        setSubjects(prevState => {
-          // 本当に新しいオブジェクト参照にして確実に再レンダリングを発生させる
-          return JSON.parse(JSON.stringify(refreshedSubjects));
-        });
+      // データをセット
+      console.log(`データ再読み込み成功: ${studyData?.length || 0}個の科目`);
       
-        // 解答履歴も更新
-        const refreshedHistory = await indexedDB.getAnswerHistoryWithFallback();
-        if (refreshedHistory) {
-          setAnswerHistory(refreshedHistory);
-        }
-        
-        return true;
-      } else {
-        console.error("データ再読み込み失敗: データ形式が不正です");
-        return false;
+      if (studyData) {
+        setSubjects(studyData);
       }
+      
+      if (history) {
+        setAnswerHistory(history);
+      }
+      
+      // 日付と時刻の更新
+      const today = new Date();
+      setCurrentDate(today);
+      
+      // 日ごとの問題リストを再計算
+      const newTodayQuestions = getQuestionsForDate(today);
+      setTodayQuestionsList(newTodayQuestions);
+      
     } catch (error) {
       console.error("データ再読み込み中にエラーが発生しました:", error);
-      return false;
     }
   };
   
@@ -1374,41 +1385,53 @@ useEffect(() => {
 
 // メモリ監視とデータクリーンアップのための関数
 const cleanupMemoryUsage = (force = false) => {
+  // 実行頻度を制限するためのフラグチェック
+  if (window._isCleanupRunning) {
+    console.log('クリーンアップ処理が既に実行中です');
+    return false;
+  }
+  
+  window._isCleanupRunning = true;
   console.log('メモリ使用状況チェック・クリーンアップ実行');
   
-  // 強制クリーンアップまたはメモリ使用量が閾値を超えた場合に実行
-  if (force || (window.performance && window.performance.memory && 
-      window.performance.memory.usedJSHeapSize > window.performance.memory.jsHeapSizeLimit * 0.7)) {
-    
-    console.log('大規模メモリクリーンアップを実行します');
-    
-    // 1. 解答履歴の古いデータを削除（90日以上前のデータ）
-    cleanupOldAnswerHistory(90)
-      .then(count => {
-        if (count > 0) {
-          console.log(`${count}件の古い解答履歴を削除しました`);
-        }
-      })
-      .catch(err => console.error('履歴クリーンアップエラー:', err));
-    
-    // 2. 内部キャッシュをクリア
-    setForceUpdate(prev => prev + 1);
-    
-    // 3. 不要な配列を削除（参照を切る）
-    if (localStorage.getItem('tempDataCache')) {
-      localStorage.removeItem('tempDataCache');
-    }
-    
-    // 4. ガベージコレクションのヒント
-    if (global.gc) {
-      try {
-        global.gc();
-      } catch (e) {
-        console.log('ガベージコレクション呼び出しに失敗:', e);
+  try {
+    // 強制クリーンアップまたはメモリ使用量が閾値を超えた場合に実行
+    if (force || (window.performance && window.performance.memory && 
+        window.performance.memory.usedJSHeapSize > window.performance.memory.jsHeapSizeLimit * 0.7)) {
+      
+      console.log('大規模メモリクリーンアップを実行します');
+      
+      // 1. 解答履歴の古いデータを削除（90日以上前のデータ）
+      cleanupOldAnswerHistory(90)
+        .then(count => {
+          if (count > 0) {
+            console.log(`${count}件の古い解答履歴を削除しました`);
+          }
+        })
+        .catch(err => console.error('履歴クリーンアップエラー:', err))
+        .finally(() => {
+          // 完了時にフラグをリセット
+          window._isCleanupRunning = false;
+        });
+      
+      // 2. 内部キャッシュをクリア - forceUpdateは最小限に使用
+      // UIの再描画は必要な場合のみに限定
+      if (force) {
+        setForceUpdate(prev => prev + 1);
       }
+      
+      // 3. 不要な配列を削除（参照を切る）
+      if (localStorage.getItem('tempDataCache')) {
+        localStorage.removeItem('tempDataCache');
+      }
+      
+      return true;
     }
-    
-    return true;
+  } catch (e) {
+    console.error('クリーンアップ処理でエラーが発生しました:', e);
+  } finally {
+    // 確実にフラグをリセット
+    window._isCleanupRunning = false;
   }
   
   return false;
@@ -1416,31 +1439,30 @@ const cleanupMemoryUsage = (force = false) => {
 
 // 定期的なクリーンアップを実行するためのuseEffect
 useEffect(() => {
-  // 30分ごとにメモリクリーンアップを実行
+  // 頻度を大幅に減らす - 30分→2時間ごと
   const cleanupInterval = setInterval(() => {
     cleanupMemoryUsage();
-  }, 30 * 60 * 1000); // 30分 = 1,800,000ミリ秒
+  }, 120 * 60 * 1000); // 2時間 = 120分 = 7,200,000ミリ秒
   
-  // 画面を長時間開いている場合に備えて、3時間ごとに強制クリーンアップ
-  const forcedCleanupInterval = setInterval(() => {
-    cleanupMemoryUsage(true);
-  }, 3 * 60 * 60 * 1000); // 3時間 = 10,800,000ミリ秒
+  // 初期化時に1回だけ実行
+  const initialCleanupTimeout = setTimeout(() => {
+    cleanupMemoryUsage();
+  }, 60 * 1000); // 起動から1分後
   
   return () => {
     clearInterval(cleanupInterval);
-    clearInterval(forcedCleanupInterval);
+    clearTimeout(initialCleanupTimeout);
   };
 }, []);
 
-// タブ切り替え時のデータクリーンアップを追加
+// タブ切り替え時のデータクリーンアップを最適化
 useEffect(() => {
-  // アクティブタブが変更されたらデータを最新化
-  refreshData();
+  // refreshData()の呼び出しを削除 - これが無限ループの一因になっている可能性あり
   
-  // タブ切り替え時にメモリ使用状況をチェック
+  // タブ切り替え時にメモリ使用状況をチェック - 必要な場合のみ
   if (activeTab === 'stats' || activeTab === 'ambiguous') {
-    // 統計タブや曖昧分析タブに切り替える前にメモリをクリーンアップ
-    cleanupMemoryUsage();
+    // 統計タブや曖昧分析タブに切り替える前にのみクリーンアップ
+    setTimeout(() => cleanupMemoryUsage(false), 100);
   }
 }, [activeTab]);
 
